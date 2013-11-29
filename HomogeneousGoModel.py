@@ -19,8 +19,7 @@ class HomogeneousGoModel(CalphaBase):
         same as the original SBMs in that the non-native interactions still have
         a "shape" in the same way as the other Clementi models.'''
 
-    def __init__(self,path):
-        self.path = path
+    def __init__(self):
         self.model_parameters()
         self.get_tables()
 
