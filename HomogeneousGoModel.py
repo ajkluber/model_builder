@@ -180,8 +180,6 @@ class HomogeneousGoModel(CalphaBase):
             residues = prots_residues[prot_num]
             coords = prots_coords[prot_num]/10.
             
-            print "Length: ",len(indices)
-    
             beadbead_string = ''
             native = 0
             interaction_num = 1
