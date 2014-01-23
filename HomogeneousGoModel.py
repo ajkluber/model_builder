@@ -166,11 +166,12 @@ class HomogeneousGoModel(CalphaBase):
             native = 0
         return newsig, native
 
-    def get_nonbond_params_itp(self,prots_indices,prots_residues,prots_coords):
+    def get_nonbond_params_itp(self,prots_indices,prots_residues,prots_coords,prots_Qref):
         ''' Get the nonbond_params.itp and BeadBead.dat strings. Select bond
             distances for native contacts. This is the core of what 
             distinquishes the different models. Also collects the native 
-            contacts.'''
+            contacts. '''
+    
         Knb = self.nonbond_param
         nonbond_itps = []
         beadbead_files = []
@@ -178,6 +179,8 @@ class HomogeneousGoModel(CalphaBase):
             indices = prots_indices[prot_num]["CA"]
             residues = prots_residues[prot_num]
             coords = prots_coords[prot_num]/10.
+            
+            print "Length: ",len(indices)
     
             beadbead_string = ''
             native = 0
@@ -192,10 +195,20 @@ class HomogeneousGoModel(CalphaBase):
                     delta = j - i
                     xi = coords[i]
                     xj = coords[j]
-                    sig, delta = self.get_nonbond_sigma(resi,resj,delta,xi,xj)
+                    if prots_Qref[prot_num][i][j] == 1:
+                        ## Native contact are attractive.
+                        sig = np.linalg.norm(xi - xj)
+                        delta = 1
+                        c12 = Knb*5.0*(sig**12)
+                        c10 = Knb*6.0*(sig**10)*delta
+                    else:
+                        ## Non-native interactions are repulsive at constant distance of 3.5A.
+                        #sig, delta = self.get_nonbond_sigma(resi,resj,delta,xi,xj)
+                        sig = 0.35
+                        delta = 0
+                        c12 = Knb*5.0*(sig**12)
+                        c10 = Knb*6.0*(sig**10)*delta
                     native += delta
-                    c12 = Knb*5.0*(sig**12)
-                    c10 = Knb*6.0*(sig**10)*delta
                     beadbead_string += '%5d%5d%8s%8s%5d%16.8E%16.8E%16.8E\n' % \
                             (i_idx,j_idx,resi+str(i_idx),resj+str(j_idx),interaction_num,sig,Knb,delta)
                     nonbond_params_string += "%8s%8s%3d  %10.8e  %10.8e\n" % \
