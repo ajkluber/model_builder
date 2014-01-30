@@ -35,6 +35,12 @@ class HomogeneousGoModel(CalphaBase):
         repstring += "%s\n" % self.interaction_groups[0]
         repstring += "[ Interaction_Types ]\n" 
         repstring += "%s\n" % self.interaction_types[0]
+        repstring += "[ Backbone_params ]\n" 
+        repstring += "  %5s       %5s       %5s\n" % ("Kb","Ka","Kd")
+        repstring += "[ Backbone_param_vals ]\n" 
+        repstring += "%10.2f%10.2f%10.2f\n" % (self.backbone_param_vals["Kb"],self.backbone_param_vals["Ka"],self.backbone_param_vals["Kd"])
+        repstring += "[ nonbond_param ]\n" 
+        repstring += "%10f\n" % self.nonbond_param
         repstring += "[ Solvent ]\n"
         repstring += "%s\n" % self.solvent
         repstring += "[ Reference ]\n" 
@@ -42,7 +48,7 @@ class HomogeneousGoModel(CalphaBase):
         return repstring
 
     def load_info_file(self,sub):
-        ''' '''
+        ''' NOT IN USE.'''
         
         info_file = open(sub+'/model.info','r')
         line = info_file.readline()
@@ -166,19 +172,25 @@ class HomogeneousGoModel(CalphaBase):
             native = 0
         return newsig, native
 
-    def get_nonbond_params_itp(self,prots_indices,prots_residues,prots_coords,prots_Qref):
+    def get_nonbond_params_itp(self,prots_indices,prots_residues,prots_coords,prots_Qref,R_CD=None):
         ''' Get the nonbond_params.itp and BeadBead.dat strings. Select bond
             distances for native contacts. This is the core of what 
             distinquishes the different models. Also collects the native 
             contacts. '''
     
-        Knb = self.nonbond_param
         nonbond_itps = []
         beadbead_files = []
         for prot_num in range(len(prots_indices)):
             indices = prots_indices[prot_num]["CA"]
             residues = prots_residues[prot_num]
             coords = prots_coords[prot_num]/10.
+
+            if R_CD != None:
+                Nc = float(sum(sum(prots_Qref[prot_num])))
+                Nd = float(len(prots_Qref[prot_num])-4)
+                Knb = (R_CD*Nd/Nc)*self.backbone_param_vals["Kd"]
+            else:
+                Knb = self.nonbond_param
             
             beadbead_string = ''
             native = 0

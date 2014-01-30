@@ -74,7 +74,7 @@ class CalphaBase(object):
             indexs.append(indexstring)
         return indexs
 
-    def get_itp_strings(self,prots_indices,prots_residues,prots_coords,prots_ndxs,prots_Qref):
+    def get_itp_strings(self,prots_indices,prots_residues,prots_coords,prots_ndxs,prots_Qref,R_CD=None):
         ''' Create a dictionary of all files needed to run the simulation. 
             These files encompass all the information about the combination
             of the model and the system. The files are returned as a list of
@@ -87,7 +87,7 @@ class CalphaBase(object):
         bonds_itps = self.get_bonds_itp(prots_indices,prots_coords)
         angles_itps = self.get_angles_itp(prots_indices,prots_coords)
         dihedrals_itps,dihedrals_ndxs = self.get_dihedrals_itp(prots_indices,prots_coords)
-        nonbond_params_itps,beadbead_files = self.get_nonbond_params_itp(prots_indices,prots_residues,prots_coords,prots_Qref)
+        nonbond_params_itps,beadbead_files = self.get_nonbond_params_itp(prots_indices,prots_residues,prots_coords,prots_Qref,R_CD=R_CD)
         topology_files = []
         for i in range(len(prots_residues)):
             topology_files.append({"index.ndx":prots_ndxs[i],
