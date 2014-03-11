@@ -19,9 +19,10 @@ class HomogeneousGoModel(CalphaBase):
         same as the original SBMs in that the non-native interactions still have
         a "shape" in the same way as the other Clementi models.'''
 
-    def __init__(self):
-        self.model_parameters()
+    def __init__(self,disulfides=None,nonbond_param=1.,R_CD=None):
+        self.model_parameters(nonbond_param=nonbond_param,R_CD=R_CD)
         self.get_tables()
+        self.disulfides = disulfides
 
     def __repr__(self):
         ''' The string representation of all the model info.'''
@@ -81,7 +82,7 @@ class HomogeneousGoModel(CalphaBase):
         self.other_table = np.zeros((len(r),7),float)
         self.other_table[:,0] = r
 
-    def model_parameters(self):
+    def model_parameters(self,nonbond_param=1.,R_CD=None):
         ''' Contains all the parameter information about the model, as well as
             what types of interactions are included.'''
         self.modelname = "Homogenous Go Model"
@@ -100,7 +101,8 @@ class HomogeneousGoModel(CalphaBase):
         self.solvent = "None"
         self.backbone_params = ["Kb","Ka","Kd"]
         self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
-        self.nonbond_param = 1.
+        self.nonbond_param = nonbond_param
+        self.R_CD = R_CD
         self.citation = self.citation_info(self.modelnameshort)
 
     def get_table_Protein_Protein(self,r):
@@ -143,7 +145,7 @@ class HomogeneousGoModel(CalphaBase):
 
     def get_nonbond_sigma(self,resi,resj,delta,xi,xj):
         ''' Extract the equilibrium non-bonded interaction distance from the 
-            histogram files.'''
+            histogram files. NOT USED'''
 
         histpath = "/projects/cecilia/ajk8/model_builder/Histograms/contact_CA/hist"
         names = sorted([resi,resj])
