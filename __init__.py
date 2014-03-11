@@ -1,6 +1,10 @@
+import os
+
 import DMCModel
 import HeterogeneousGoModel
 import HomogeneousGoModel
+
+
 
 '''
 Author: Alexander Kluber
@@ -44,6 +48,7 @@ def get_model(type):
     if type == "HomGo":
         model = HomogeneousGoModel.HomogeneousGoModel()
     elif type == "HetGo":
+        pass
         model = HeterogeneousGoModel.HeterogeneousGoModel()
     elif type == "DMC":
         model = DMCModel.DMCModel()
@@ -59,6 +64,7 @@ def check_options(options):
     ## List of supported models & corresponding representations.
     available_models = ["HomGo","HetGo","DMC"]
     beadmodels = {"HomGo":["CA"],"HetGo":["CA"]}
+    contactopts = {"HetGo":["MJ","Bach","MC2004"]}
 
     modelcode = options["Model_Code"]
     beadmodel = options["Bead_Model"]
@@ -67,19 +73,25 @@ def check_options(options):
     print "Inputted options:"
     print options, "\n"
 
+    ## Check if model code is legal.
     if modelcode not in available_models:
         print "ERROR! Invalid Model_Code"
         print "Model: ", modelcode, "  not within available models: ",available_models
         print "Exiting."
         raise SystemExit
 
+    ## Check if bead model is available for model code.
     if beadmodel not in beadmodels[modelcode]:
         print "ERROR! Invalid Bead_Model"
         print "Bead model: ", beadmodel, " not available for model: ", modelcode
         print "Model: ",modelcode," has the following bead models: ", beadmodels[modelcode]
         print "Exiting."
         raise SystemExit
-    
+
+    ## Check for disulfides. If yes disulfids should be in format (e.g.):
+    ## [ 1, 6, 7, 20] where the first pair of numbers 1,6 correspond to 
+    ## a disulfide bond between those residue indices according to clean.pdb 
+    ## indices.
     if options.has_key("Disulfides"):
         if options["Disulfides"] not in ["",None,False]:
             disulf = options["Disulfides"].split()
@@ -104,6 +116,40 @@ def check_options(options):
         disulfides = None
     options["Disulfides"] = disulfides
 
+    ## Check for contact energies input.
+    if options.has_key("Contact_Energies"):
+        if options["Contact_Energies"] not in ["",None,False]:
+            if contactopts.has_key(modelcode):
+                if (options["Contact_Energies"] in contactopts[modelcode]):
+                    contact_energies = options["Contact_Energies"]
+                elif options["Contact_Energies"].split("/")[-1] == "BeadBead.dat":
+                    if os.path.exists(options["Contact_Energies"]) == False:
+                        print "ERROR!"
+                        print "Contact energies option: ", options["Contact_Energies"], \
+                            " points to a nonexistant file!"
+                        print "Exiting."
+                        raise SystemExit
+                    else:
+                        contact_energies = options["Contact_Energies"]
+                else:
+                    print "ERROR!"
+                    print "Model: ",modelcode," contact energies option must be from: ", \
+                            contactopts[modelcode], " or in format /path/to/BeadBead.dat"
+                    print "Exiting."
+                    raise SystemExit
+            else:
+                print "ERROR!"
+                print "Model: ",modelcode," doesn't support contact energies option."
+                print "Exiting."
+                raise SystemExit
+        else:
+            contact_energies = None
+    else:
+        Contact_Energies = None
+    options["Contact_Energies"] = contact_energies
+
+    ## Check for R_CD option. This option fixes the ratio of contact (C) to
+    ## dihedral (D) energy.
     if options.has_key("R_CD"):
         if options["R_CD"] not in ["",None,False]:
             try:
@@ -118,6 +164,9 @@ def check_options(options):
         R_CD = None
     options["R_CD"] = R_CD
 
+    ## This multiplier for the nonbond_param is 1 by default, but may be
+    ## different if R_CD was used. This is calculated automatically and not a command
+    ## line option.
     if options.has_key("nonbond_param"):
         if options["nonbond_param"] not in ["",None,False]:
             try:
@@ -132,6 +181,23 @@ def check_options(options):
         nonbond_param = 1.
     options["nonbond_param"] = nonbond_param
 
+    ## Cutoff will switch method of determining native contacts from Shadow map to 
+    ## using heavy atom contacts within a cutoff of a given residue.
+    if options.has_key("Cutoff"):
+        if options["Cutoff"] not in ["",None,False]:
+            try:
+                cutoff = float(options["Cutoff"])
+            except:
+                print "TypeError! cutoff value must be a float!"
+                print "Exiting."
+                raise SystemExit
+        else: 
+            cutoff = None
+    else:
+        cutoff = None
+    options["Cutoff"] = cutoff
+
+    ## This option is preemptive in case we want to solvent. Not implemented.
     if options.has_key("Solvent"):
         if options["Solvent"] in ["",None,False]:
             solvent = None
@@ -143,6 +209,7 @@ def check_options(options):
     else:
         solvent = None
     options["Solvent"] = solvent
+
 
     print "Options cleared!"
     print "Using options:"

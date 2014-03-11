@@ -1,13 +1,20 @@
 import numpy as np
+
 from modelbase import CalphaBase 
 
 
 '''
+Nov 2013
+Alexander Kluber
+
 Homogeneous Go Model
 
-This class generates the non-bonded interactions for the homogeneous go model.
-It inherihits a lot of functionality from CalphaBase. In this model the only
-non-bonded interactions are attractive native interactions.
+Purpose:
+    This class generates the non-bonded interactions for the homogeneous go
+model.  It inherihits a lot of functionality from CalphaBase. In this model the
+only non-bonded interactions are attractive native interactions.
+
+Description:
 
 '''
 
@@ -234,3 +241,33 @@ class HomogeneousGoModel(CalphaBase):
             beadbead_files.append(beadbead_string)
         return nonbond_itps,beadbead_files
 
+
+    def prepare_system_new(System,options):
+        ''' Extract all the topology files from Model. 
+            options:
+                disulfides
+                R_CD
+                cutoff
+                dryrun
+        '''
+        print "Preparing files..."
+        prots_Qref = System.shadow_contacts()
+        System.write_Native_pdb_CA()
+        if R_CD != None:
+            for i in range(len(System.subdirs)):
+                Nc = float(sum(sum(prots_Qref[i])))
+                Nd = float(len(prots_Qref[i])-4)
+                System.nonbond_params.append((R_CD*Nd/Nc)*self.backbone_param_vals["Kd"])
+                System.R_CD.append(R_CD)
+        else:
+            for i in range(len(System.subdirs)):
+                N = len(prots_Qref[i])
+                Nc = float(sum(sum(prots_Qref[i])))
+                Nd = float(len(prots_Qref[i])-4)
+                print "Num contacts per residue: ",Nc/N
+                System.nonbond_params.append(self.nonbond_param)
+                System.R_CD.append(None)
+        prots_indices, prots_residues, prots_coords = System.get_atom_indices(self.beadmodel)
+        prots_ndxs = self.get_index_string(prots_indices)
+        topology_files = self.get_itp_strings(prots_indices, prots_residues, prots_coords,prots_ndxs,prots_Qref,R_CD=R_CD)
+        System.topology_files = topology_files

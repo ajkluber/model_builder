@@ -1,14 +1,20 @@
+import numpy as np
+
 from HomogeneousGoModel import HomogeneousGoModel
 
 '''
 Mon Mar 3 2014
 Alexander Kluber
 
+Heterogeneous Go Model
+
+Purpose:
     The heterogeneous (C-alpha) Go model is very similar to the homogeneous
 one, so it is just a sub-class of HomogeneousGoModel with a couple of functions
 redefined. 
+    It will just take.
 
-    It will just take .
+Description:
 
 '''
 
@@ -17,7 +23,7 @@ class HeterogeneousGoModel(HomogeneousGoModel):
         i and j.'''
 
 
-    def model_parameters(self):
+    def model_parameters(self,nonbond_param=1.,R_CD=None):
         ''' Contains all the parameter information about the model, as well as
             what types of interactions are included.'''
         self.modelname = "Heterogeneous Go Model"
@@ -36,7 +42,8 @@ class HeterogeneousGoModel(HomogeneousGoModel):
         self.solvent = "None"
         self.backbone_params = ["Kb","Ka","Kd"]
         self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
-        self.nonbond_param = -1
+        self.nonbond_param = 1.
+        self.R_CD = None
         self.citation = self.citation_info(self.modelnameshort)
     
 
