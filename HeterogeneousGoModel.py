@@ -22,6 +22,11 @@ class HeterogeneousGoModel(HomogeneousGoModel):
     ''' All that needs to be computed is the interaction matrix between residues
         i and j.'''
 
+    def __init__(self,contact_energies,disulfides=None,nonbond_param=1.,R_CD=None):
+        self.model_parameters(nonbond_param=nonbond_param,R_CD=R_CD,)
+        self.get_tables()
+        self.disulfides = disulfides
+        self.cont_type = contact_energies
 
     def model_parameters(self,nonbond_param=1.,R_CD=None):
         ''' Contains all the parameter information about the model, as well as
@@ -46,11 +51,21 @@ class HeterogeneousGoModel(HomogeneousGoModel):
         self.R_CD = None
         self.citation = self.citation_info(self.modelnameshort)
     
+    def MJ_weights(resi,resj):
+        pass
+
+    def Bach_weights(resi,resj):
+        pass
 
     def get_contact_strengths(self,option,path=''):
         ''' Load in the interaction strengths for the desired option. Native contact
             strengths can be taken from MJ parameters, bach parameters, or a saved
-            beadbead.dat '''
+            beadbead.dat. Assigns contacts into a Beadbead.dat format i.e. enumerate
+            all contact strengths
+
+            
+
+        '''
 
         if option == "MJ":
             pass
@@ -90,6 +105,8 @@ class HeterogeneousGoModel(HomogeneousGoModel):
                 for j in range(i+4,len(indices)):
                     resi = residues[i]
                     resj = residues[j]
+                    print resi,resj
+                    raise SystemExit
                     i_idx = indices[i]
                     j_idx = indices[j]
                     delta = j - i

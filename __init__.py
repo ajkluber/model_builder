@@ -32,7 +32,8 @@ def get_model_new(options):
                                                     nonbond_param=options["nonbond_param"],
                                                     R_CD=options["R_CD"])
     elif type == "HetGo":
-        model = HeterogeneousGoModel.HeterogeneousGoModel(disulfides=options["Disulfides"],
+        model = HeterogeneousGoModel.HeterogeneousGoModel(options["Contact_Energies"],
+                                                    disulfides=options["Disulfides"],
                                                     nonbond_param=options["nonbond_param"],
                                                     R_CD=options["R_CD"])
     elif type == "DMC":
@@ -116,7 +117,10 @@ def check_options(options):
         disulfides = None
     options["Disulfides"] = disulfides
 
-    ## Check for contact energies input.
+    ## Check for contact energies input. Only valid for certain models. Format
+    ## for contact_energies should be an allowed option for the model (e.g. 'MJ'
+    ## for 'HetGo') or a path to a Beadbead.dat with previously saved contact
+    ## energies.
     if options.has_key("Contact_Energies"):
         if options["Contact_Energies"] not in ["",None,False]:
             if contactopts.has_key(modelcode):
@@ -143,7 +147,13 @@ def check_options(options):
                 print "Exiting."
                 raise SystemExit
         else:
-            contact_energies = None
+            if contactopts.has_key(modelcode):
+                print "ERROR!"
+                print "Model: ",modelcode," requires contact energies option."
+                print "Exiting."
+                raise SystemExit
+            else:
+                contact_energies = None
     else:
         Contact_Energies = None
     options["Contact_Energies"] = contact_energies
