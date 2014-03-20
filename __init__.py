@@ -30,12 +30,14 @@ def get_model_new(options):
     if type == "HomGo":
         model = HomogeneousGoModel.HomogeneousGoModel(disulfides=options["Disulfides"],
                                                     nonbond_param=options["nonbond_param"],
-                                                    R_CD=options["R_CD"])
+                                                    R_CD=options["R_CD"],
+                                                    cutoff=options["Cutoff"])
     elif type == "HetGo":
         model = HeterogeneousGoModel.HeterogeneousGoModel(options["Contact_Energies"],
                                                     disulfides=options["Disulfides"],
                                                     nonbond_param=options["nonbond_param"],
-                                                    R_CD=options["R_CD"])
+                                                    R_CD=options["R_CD"],
+                                                    cutoff=options["Cutoff"])
     elif type == "DMC":
         model = DMCModel.DMCModel()
     else:
@@ -57,7 +59,7 @@ def get_model(type):
         print "ERROR. No such model exists."
     return model
 
-def check_options(options):
+def check_options(inputoptions):
     ''' Check that all options are compatible and in proper format. Any options
         that are omitted are given the value None (or 1 for nonbond_param) for
         completeness. Returns: options, a dictionary of completed options.'''
@@ -67,13 +69,14 @@ def check_options(options):
     beadmodels = {"HomGo":["CA"],"HetGo":["CA"]}
     contactopts = {"HetGo":["MJ","Bach","MC2004"]}
 
-    modelcode = options["Model_Code"]
-    beadmodel = options["Bead_Model"]
+    modelcode = inputoptions["Model_Code"]
+    beadmodel = inputoptions["Bead_Model"]
     
     print "Checking that options are consistent..."
     print "Inputted options:"
-    print options, "\n"
+    print inputoptions, "\n"
 
+    options = {"Model_Code":modelcode, "Bead_Model":beadmodel}
     ## Check if model code is legal.
     if modelcode not in available_models:
         print "ERROR! Invalid Model_Code"
@@ -93,9 +96,11 @@ def check_options(options):
     ## [ 1, 6, 7, 20] where the first pair of numbers 1,6 correspond to 
     ## a disulfide bond between those residue indices according to clean.pdb 
     ## indices.
-    if options.has_key("Disulfides"):
-        if options["Disulfides"] not in ["",None,False]:
-            disulf = options["Disulfides"].split()
+    if inputoptions.has_key("Disulfides"):
+        if inputoptions["Disulfides"] not in ["","None",None,False]:
+            disulf = inputoptions["Disulfides"]
+            if type(disulf) == str:
+                disulf = disulf.split()
             if (len(disulf) % 2) != 0:
                 print "ERROR! Invalid disulfides argument"
                 print "Disulide argument: ",disulf, " must be a list of pairs. Length must be even."
@@ -121,20 +126,20 @@ def check_options(options):
     ## for contact_energies should be an allowed option for the model (e.g. 'MJ'
     ## for 'HetGo') or a path to a Beadbead.dat with previously saved contact
     ## energies.
-    if options.has_key("Contact_Energies"):
-        if options["Contact_Energies"] not in ["",None,False]:
+    if inputoptions.has_key("Contact_Energies"):
+        if inputoptions["Contact_Energies"] not in ["","None",None,False]:
             if contactopts.has_key(modelcode):
-                if (options["Contact_Energies"] in contactopts[modelcode]):
-                    contact_energies = options["Contact_Energies"]
-                elif options["Contact_Energies"].split("/")[-1] == "BeadBead.dat":
-                    if os.path.exists(options["Contact_Energies"]) == False:
+                if (inputoptions["Contact_Energies"] in contactopts[modelcode]):
+                    contact_energies = inputoptions["Contact_Energies"]
+                elif inputoptions["Contact_Energies"].split("/")[-1] == "BeadBead.dat":
+                    if os.path.exists(inputoptions["Contact_Energies"]) == False:
                         print "ERROR!"
-                        print "Contact energies option: ", options["Contact_Energies"], \
+                        print "Contact energies option: ", inputoptions["Contact_Energies"], \
                             " points to a nonexistant file!"
                         print "Exiting."
                         raise SystemExit
                     else:
-                        contact_energies = options["Contact_Energies"]
+                        contact_energies = inputoptions["Contact_Energies"]
                 else:
                     print "ERROR!"
                     print "Model: ",modelcode," contact energies option must be from: ", \
@@ -160,10 +165,10 @@ def check_options(options):
 
     ## Check for R_CD option. This option fixes the ratio of contact (C) to
     ## dihedral (D) energy.
-    if options.has_key("R_CD"):
-        if options["R_CD"] not in ["",None,False]:
+    if inputoptions.has_key("R_CD"):
+        if inputoptions["R_CD"] not in ["","None",None,False]:
             try:
-                R_CD = float(options["R_CD"])
+                R_CD = float(inputoptions["R_CD"])
             except:
                 print "TypeError! R_CD value must be a float!"
                 print "Exiting."
@@ -177,10 +182,10 @@ def check_options(options):
     ## This multiplier for the nonbond_param is 1 by default, but may be
     ## different if R_CD was used. This is calculated automatically and not a command
     ## line option.
-    if options.has_key("nonbond_param"):
-        if options["nonbond_param"] not in ["",None,False]:
+    if inputoptions.has_key("nonbond_param"):
+        if inputoptions["nonbond_param"] not in ["","None",None,False]:
             try:
-                nonbond_param = float(options["nonbond_param"])
+                nonbond_param = float(inputoptions["nonbond_param"])
             except:
                 print "TypeError! nonbond_param value must be a float!"
                 print "Exiting."
@@ -193,10 +198,10 @@ def check_options(options):
 
     ## Cutoff will switch method of determining native contacts from Shadow map to 
     ## using heavy atom contacts within a cutoff of a given residue.
-    if options.has_key("Cutoff"):
-        if options["Cutoff"] not in ["",None,False]:
+    if inputoptions.has_key("Cutoff"):
+        if inputoptions["Cutoff"] not in ["","None",None,False]:
             try:
-                cutoff = float(options["Cutoff"])
+                cutoff = float(inputoptions["Cutoff"])
             except:
                 print "TypeError! cutoff value must be a float!"
                 print "Exiting."
@@ -208,12 +213,12 @@ def check_options(options):
     options["Cutoff"] = cutoff
 
     ## This option is preemptive in case we want to solvent. Not implemented.
-    if options.has_key("Solvent"):
-        if options["Solvent"] in ["",None,False]:
+    if inputoptions.has_key("Solvent"):
+        if inputoptions["Solvent"] in ["","None",None,False]:
             solvent = None
         else: 
             print "Error! Solvent option not implemented!"
-            print "Solvent variable: ", options["Solvent"], " not allowed. Only: ",["",None]
+            print "Solvent variable: ", inputoptions["Solvent"], " not allowed. Only: ",["",None]
             print "Exiting."
             raise SystemExit
     else:
@@ -231,12 +236,22 @@ def check_options(options):
 def load_model(path):
     ''' Given path that contains model.info options file. Read in options and
         create corresponding model.'''
-    info_file = open(path+'model.info','r')
+    info_file = open(path+'/model.info','r')
     line = info_file.readline()
+    options = {}
     while line != '':
         field = line.split()[1]
+        print field
         value = info_file.readline()
-        options[field] = value[:-1]
+        if field == "Reference":
+            break
+        elif field in ["Interaction_Groups","Model_Name",
+                        "Backbone_params","Backbone_param_vals",
+                        "Interaction_Types"]:
+            pass
+        else:
+            options[field] = value[:-1]
+        line = info_file.readline()
     options = check_options(options)
     Model = get_model_new(options)
     return Model
@@ -245,6 +260,7 @@ def load_models(subdirs):
     ''' Create models from saved options in model.info.'''
     Models = []
     for subdir in subdirs:
+        print "Loading model from subdirectory: ", subdir
         Model = load_model(subdir)
         Models.append(Model)
     return Models

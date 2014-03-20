@@ -26,10 +26,12 @@ class HomogeneousGoModel(CalphaBase):
         same as the original SBMs in that the non-native interactions still have
         a "shape" in the same way as the other Clementi models.'''
 
-    def __init__(self,disulfides=None,nonbond_param=1.,R_CD=None):
+    def __init__(self,disulfides=None,nonbond_param=1.,R_CD=None,cutoff=None):
         self.model_parameters(nonbond_param=nonbond_param,R_CD=R_CD)
         self.get_tables()
         self.disulfides = disulfides
+        self.cutoff = cutoff
+        self.contact_energies = None
 
     def __repr__(self):
         ''' The string representation of all the model info.'''
@@ -51,6 +53,20 @@ class HomogeneousGoModel(CalphaBase):
         repstring += "%10f\n" % self.nonbond_param
         repstring += "[ Solvent ]\n"
         repstring += "%s\n" % self.solvent
+        repstring += "[ Disulfides ]\n"
+        if self.disulfides == None:
+            repstring += "%s\n" % None
+        else:
+            temp = ''
+            for x in self.disulfides:
+                temp += " %d " % x 
+            repstring += "%s\n" % temp
+        repstring += "[ R_CD ]\n"
+        repstring += "%s\n" % str(self.R_CD)
+        repstring += "[ Cutoff ]\n"
+        repstring += "%s\n" % str(self.cutoff)
+        repstring += "[ Contact_Energies ]\n"
+        repstring += "%s\n" % str(self.contact_energies)
         repstring += "[ Reference ]\n" 
         repstring += "%s\n" % self.citation
         return repstring
