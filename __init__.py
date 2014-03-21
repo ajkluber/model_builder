@@ -72,8 +72,8 @@ def check_options(inputoptions):
     modelcode = inputoptions["Model_Code"]
     beadmodel = inputoptions["Bead_Model"]
     
-    print "Checking that options are consistent..."
-    print "Inputted options:"
+    print "Checking that model options are consistent..."
+    print "Inputted model options:"
     print inputoptions, "\n"
 
     options = {"Model_Code":modelcode, "Bead_Model":beadmodel}
@@ -226,22 +226,22 @@ def check_options(inputoptions):
     options["Solvent"] = solvent
 
 
-    print "Options cleared!"
-    print "Using options:"
+    print "Model options cleared!"
+    print "Using model options:"
     print options
     print "Proceeding...\n"
             
     return options
 
-def load_model(path):
-    ''' Given path that contains model.info options file. Read in options and
+def load_model(subdir):
+    ''' Given subdir that contains model.info options file. Read in options and
         create corresponding model.'''
-    info_file = open(path+'/model.info','r')
+    info_file = open(subdir+'/model.info','r')
     line = info_file.readline()
     options = {}
     while line != '':
+        print line
         field = line.split()[1]
-        print field
         value = info_file.readline()
         if field == "Reference":
             break
