@@ -258,17 +258,30 @@ class HomogeneousGoModel(CalphaBase):
         return nonbond_itps,beadbead_files
 
 
-    def prepare_system_new(System,options):
+    def new_prepare_system(self,System):
         ''' Extract all the topology files from Model. 
-            options:
-                disulfides
-                R_CD
-                cutoff
-                dryrun
+            1. Native contacts (clean pdb)
+            2. 
         '''
-        print "Preparing files..."
-        prots_Qref = System.shadow_contacts()
-        System.write_Native_pdb_CA()
+
+        print "Preparing input files for subdirectory: ", System.subdir
+        print "Cleaning pdb.."
+        self.clean_pdb(System.path+"/"+System.subdir+".pdb")
+        open(System.path+"/"+System.subdir+"/Native.pdb","w").write(self.cleanpdb)
+        open(System.path+"/"+System.subdir+"/Qref_shadow/clean.pdb","w").write(self.cleanpdb_full)
+        open(System.path+"/"+System.subdir+"/clean.pdb","w").write(self.cleanpdb_full)
+        self.shadow_contacts(System.subdir)
+
+        topology_files = {}
+        print "Dissecting Native.pdb for: indices, atom names, residue names, and coordinates..."
+        indices,atoms,residues,coords = self.dissect_clean_pdb(System.subdir)
+        topol_top,protein_itp,bonds_itp,angles_itp,dihedrals_itp,dihedrals_ndx,index_ndx = self.new_bonded_itp_strings(indices,atoms,residues,coords)
+
+        #print indices, atoms, residues, coords  ## DEBUGGING
+        raise SystemExit
+        ## Get index files. Should all be done by modelbase/Calphabase class.
+
+        ## Accounting for options for nonbonded interactions.
         if R_CD != None:
             for i in range(len(System.subdirs)):
                 Nc = float(sum(sum(prots_Qref[i])))
@@ -283,7 +296,9 @@ class HomogeneousGoModel(CalphaBase):
                 print "Num contacts per residue: ",Nc/N
                 System.nonbond_params.append(self.nonbond_param)
                 System.R_CD.append(None)
-        prots_indices, prots_residues, prots_coords = System.get_atom_indices(self.beadmodel)
-        prots_ndxs = self.get_index_string(prots_indices)
+
+        ##  nonbonded interactions should be done in subclass.
         topology_files = self.get_itp_strings(prots_indices, prots_residues, prots_coords,prots_ndxs,prots_Qref,R_CD=R_CD)
         System.topology_files = topology_files
+
+

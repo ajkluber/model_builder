@@ -1,4 +1,6 @@
 import numpy as np
+import os
+import subprocess as sb
 
 ''' 
 Model Class
@@ -39,6 +41,112 @@ class CalphaBase(object):
     def __init__(self):
         pass
 
+    def clean_pdb(self,pdb):
+        ''' Clean the given pdb of everything but ATOM lines. Returns an
+            all-atom pdb and a C-alpha only pdb.
+        PDB fixed-width column format is given by:
+        ATOM     44  C   ALA A  11      12.266  21.667  20.517  1.00 28.80           C  
+        '''
+        first_full = 0
+        atomid_full = 1
+        cleanpdb_full = ''
+        first_ca = 0
+        atomid_ca = 1
+        cleanpdb_ca = ''
+        for line in open(pdb,'r'):
+            if line[:3] in ['TER','END']:
+                break
+            else:
+                if line[:4] == 'ATOM':
+                    if line[13:15] == "CA":
+                        if first_ca == 0:
+                            if line[16] in ["A"," "]:
+                                newline_ca = 'ATOM%7s  %-4s%3s A%4d%s\n' % \
+                                        (atomid_ca,line[13:16],line[17:20],1,line[26:55])
+                                atomid_ca += 1
+                                first_ca = 1
+                                first_index_ca = int(line[22:26]) - 1
+                                cleanpdb_ca += newline_ca
+                        else:
+                            if line[16] in ["A"," "]:
+                                newline_ca = 'ATOM%7s  %-4s%3s A%4d%s\n' % \
+                                        (atomid_ca,line[13:16],line[17:20],int(line[22:26])-first_index_ca,line[26:55])
+                                atomid_ca += 1
+                                cleanpdb_ca += newline_ca
+
+                    if first_full == 0:
+                        if line[16] in ["A"," "]:
+                            newline_full = 'ATOM%7s  %-4s%3s A%4d%s\n' % \
+                                    (atomid_full,line[13:16],line[17:20],1,line[26:55])
+                            atomid_full += 1
+                            first_full = 1
+                            first_index_full = int(line[22:26]) - 1
+                            cleanpdb_full += newline_full
+                    else:
+                        if line[16] in ["A"," "]:
+                            newline_full = 'ATOM%7s  %-4s%3s A%4d%s\n' % \
+                                    (atomid_full,line[13:16],line[17:20],int(line[22:26])-first_index_full,line[26:55])
+                            atomid_full += 1
+                            cleanpdb_full += newline_full
+        
+        cleanpdb_full += 'END\n'
+        cleanpdb_ca += 'END\n'
+        self.cleanpdb = cleanpdb_ca
+        self.cleanpdb_full = cleanpdb_full
+
+    def dissect_clean_pdb(self,subdir):
+        ''' Extract info from the Native.pdb for making index and 
+            itp files '''
+        indices = []
+        atoms = []
+        residues = []
+        coords = []
+
+        for line in open(subdir+"/Native.pdb","r"):
+            if line.startswith("END"):
+                break
+            else:
+                indices.append(int(line[6:13]))
+                atoms.append(line[11:16].strip())
+                residues.append(line[17:20])
+                coords.append([float(line[31:39]),float(line[39:47]),float(line[47:55])]) 
+
+        #coords = np.array(coords)
+        return indices, atoms, residues, coords
+
+    def new_get_index_string(self,indices):
+        ''' Generates'''
+        #ca_indices = atom_indices[j]["CA"]
+        ca_string = ''
+        i = 1
+        for indx in indices: 
+            if (i % 15) == 0:
+                ca_string += '%4d \n' % indx
+            else:
+                ca_string += '%4d ' % indx
+            i += 1
+        ca_string += '\n'
+        indexstring = '[ System ]\n'
+        indexstring += ca_string
+        indexstring += '[ Protein ]\n'
+        indexstring += ca_string
+        indexstring += '[ Protein-H ]\n'
+        indexstring += ca_string
+        indexstring += '[ C-alpha ]\n'
+        indexstring += ca_string
+        indexstring += '[ Backbone ]\n'
+        indexstring += ca_string
+        indexstring += '[ MainChain ]\n'
+        indexstring += ca_string
+        indexstring += '[ MainChain+Cb ]\n'
+        indexstring += ca_string
+        indexstring += '[ MainChain+H ]\n'
+        indexstring += ca_string
+        indexstring += '[ SideChain ]\n\n'
+        indexstring += '[ SideChain-H ]\n\n'
+        indexs.append(indexstring)
+        return indexs
+
     def get_index_string(self,atom_indices):
         ''' Generates'''
         indexs = []
@@ -74,34 +182,52 @@ class CalphaBase(object):
             indexs.append(indexstring)
         return indexs
 
-    def get_itp_strings(self,prots_indices,prots_residues,prots_coords,prots_ndxs,prots_Qref,R_CD=None):
-        ''' Create a dictionary of all files needed to run the simulation. 
-            These files encompass all the information about the combination
-            of the model and the system. The files are returned as a list of
-            dictionaries, one dictionary for each each protein in the system.
-            Each dictionary holds the following files: *.itp, index.ndx, 
-            dihedral.ndx, topol.top, BeadBead.dat. '''
-        topol_top = self.get_topology_string()
-        protein_itp = self.get_protein_itp()
-        atomtypes_itps,atoms_itps = self.get_atomtypes_string(prots_indices,prots_residues)
-        bonds_itps = self.get_bonds_itp(prots_indices,prots_coords)
-        angles_itps = self.get_angles_itp(prots_indices,prots_coords)
-        dihedrals_itps,dihedrals_ndxs = self.get_dihedrals_itp(prots_indices,prots_coords)
-        nonbond_params_itps,beadbead_files = self.get_nonbond_params_itp(prots_indices,prots_residues,prots_coords,prots_Qref,R_CD=R_CD)
-        topology_files = []
-        for i in range(len(prots_residues)):
-            topology_files.append({"index.ndx":prots_ndxs[i],
-                             "topol.top":topol_top,
-                             "protein.itp":protein_itp,
-                             "atomtypes.itp":atomtypes_itps[i],
-                             "atoms.itp":atoms_itps[i],
-                             "bonds.itp":bonds_itps[i],
-                             "angles.itp":angles_itps[i],
-                             "dihedrals.itp":dihedrals_itps[i],
-                             "dihedrals.ndx":dihedrals_ndxs[i],
-                             "BeadBead.dat":beadbead_files[i],
-                             "nonbond_params.itp":nonbond_params_itps[i]})
-        return topology_files
+    def new_get_bonds_itp(self,indices,coords):
+        ''' Generate the bonds.itp string.'''
+        kb = self.backbone_param_vals["Kb"]
+        bonds_string = '[ bonds ]\n'
+        for j in range(len(indices)-1):
+            i_idx = indices[j]-1
+            j_idx = indices[j+1]-1
+            dist = np.linalg.norm(coords[i_idx] - coords[j_idx])
+            bonds_string += "%5d%5d%5d%16.8f%16.8f\n" %  \
+                          (i_idx+1,j_idx+1,1,dist/10.,kb)
+        return bonds_string
+
+    def new_get_angles_itp(self,indices,coords):
+        ''' Generate the angles.itp string.'''
+        ka = self.backbone_param_vals["Ka"]
+        angles_string = '[ angles ]\n'
+        for j in range(len(indices)-2):
+            i_idx = indices[j]-1
+            j_idx = indices[j+1]-1
+            k_idx = indices[j+2]-1
+            xkj = coords[k_idx] - coords[j_idx]
+            xkj /= np.linalg.norm(xkj)
+            xij = coords[i_idx] - coords[j_idx]
+            xij /= np.linalg.norm(xij)
+            theta = (180./np.pi)*np.arccos(np.dot(xkj, xij))
+            angles_string += "%5d%5d%5d%5d%16.8f%16.8f\n" %  \
+                          (i_idx+1,j_idx+1,k_idx+1,1,theta,ka)
+        return angles_string
+
+    def new_get_dihedrals_itp(self,indices,coords):
+        ''' Write the dihedrals.itp string.'''
+        kd = self.backbone_param_vals["Kd"]
+        dihedrals_string = '[ dihedrals ]\n'
+        dihedrals_ndx_string = '[ dihedrals ]\n'
+        for j in range(len(indices)-3):
+            i_idx = indices[j]-1
+            j_idx = indices[j+1]-1
+            k_idx = indices[j+2]-1
+            l_idx = indices[j+3]-1
+            phi = self.dihedral(coords,i_idx,j_idx,k_idx,l_idx)
+            dihedrals_string += "%5d%5d%5d%5d%5d%16.8f%16.8f%5d\n" %  \
+                          (i_idx+1,j_idx+1,k_idx+1,l_idx+1,1,phi,kd,1)
+            dihedrals_string += "%5d%5d%5d%5d%5d%16.8f%16.8f%5d\n" %  \
+                          (i_idx+1,j_idx+1,k_idx+1,l_idx+1,1,3.*phi,kd/2.,3)
+            dihedrals_ndx_string += '%4d %4d %4d %4d\n' % (i_idx+1,j_idx+1,k_idx+1,l_idx+1,)
+        return dihedrals_string, dihedrals_ndx_string
 
     def get_bonds_itp(self,prots_indices,prots_coords):
         ''' Write the bonds.itp string.'''
@@ -184,6 +310,74 @@ class CalphaBase(object):
             dihedrals_ndxs.append(dihedrals_ndx_string)
         return dihedrals_itps, dihedrals_ndxs
 
+    def new_bonded_itp_strings(self,indices,atoms,residues,coords):
+        ''' Create a dictionary of all files needed to run the simulation. 
+            These files encompass all the information about the combination
+            of the model and the system. The files are returned as a list of
+            dictionaries, one dictionary for each each protein in the system.
+            Each dictionary holds the following files: *.itp, index.ndx, 
+            dihedral.ndx, topol.top, BeadBead.dat. '''
+        ## Bonded itp files
+        topol_top = self.get_topology_string()
+        protein_itp = self.get_protein_itp()
+        bonds_itp = self.get_bonds_itp(indices,coords)
+        angles_itp = self.get_angles_itp(indices,coords)
+        dihedrals_itp,dihedrals_ndx = self.get_dihedrals_itp(indices,coords)
+        index_ndx = self.get_index_string(indices)
+        return topol_top,protein_itp,bonds_itp,angles_itp,dihedrals_itp,dihedrals_ndx,index_ndx
+
+        ### Move nonbonded file generation to subclass
+        #atomtypes_itps,atoms_itps = self.get_atomtypes_string(prots_indices,prots_residues)
+        #nonbond_params_itps,beadbead_files = self.get_nonbond_params_itp(prots_indices,prots_residues,prots_coords,prots_Qref,R_CD=R_CD)
+
+        #topology_files = []
+        #for i in range(len(prots_residues)):
+        #    topology_files.append({"index.ndx":prots_ndxs[i],
+        #                     "topol.top":topol_top,
+        #                     "protein.itp":protein_itp,
+        #                     "atomtypes.itp":atomtypes_itps[i],
+        #                     "atoms.itp":atoms_itps[i],
+        #                     "bonds.itp":bonds_itps[i],
+        #                     "angles.itp":angles_itps[i],
+        #                     "dihedrals.itp":dihedrals_itps[i],
+        #                     "dihedrals.ndx":dihedrals_ndxs[i],
+        #                     "BeadBead.dat":beadbead_files[i],
+        #                     "nonbond_params.itp":nonbond_params_itps[i]})
+        #return topology_files
+
+    def get_itp_strings(self,prots_indices,prots_residues,prots_coords,prots_ndxs,prots_Qref,R_CD=None):
+        ''' Create a dictionary of all files needed to run the simulation. 
+            These files encompass all the information about the combination
+            of the model and the system. The files are returned as a list of
+            dictionaries, one dictionary for each each protein in the system.
+            Each dictionary holds the following files: *.itp, index.ndx, 
+            dihedral.ndx, topol.top, BeadBead.dat. '''
+        ## Bonded itp files
+        topol_top = self.get_topology_string()
+        protein_itp = self.get_protein_itp()
+        bonds_itps = self.get_bonds_itp(prots_indices,prots_coords)
+        angles_itps = self.get_angles_itp(prots_indices,prots_coords)
+        dihedrals_itps,dihedrals_ndxs = self.get_dihedrals_itp(prots_indices,prots_coords)
+
+        ## Move nonbonded file generation to subclass
+        atomtypes_itps,atoms_itps = self.get_atomtypes_string(prots_indices,prots_residues)
+        nonbond_params_itps,beadbead_files = self.get_nonbond_params_itp(prots_indices,prots_residues,prots_coords,prots_Qref,R_CD=R_CD)
+
+        topology_files = []
+        for i in range(len(prots_residues)):
+            topology_files.append({"index.ndx":prots_ndxs[i],
+                             "topol.top":topol_top,
+                             "protein.itp":protein_itp,
+                             "atomtypes.itp":atomtypes_itps[i],
+                             "atoms.itp":atoms_itps[i],
+                             "bonds.itp":bonds_itps[i],
+                             "angles.itp":angles_itps[i],
+                             "dihedrals.itp":dihedrals_itps[i],
+                             "dihedrals.ndx":dihedrals_ndxs[i],
+                             "BeadBead.dat":beadbead_files[i],
+                             "nonbond_params.itp":nonbond_params_itps[i]})
+        return topology_files
+
     def get_protein_itp(self):
         protein_itp_string = '; molecular topology file for coarse-grained protein\n\n'
         protein_itp_string += '[ moleculetype ]\n'
@@ -246,6 +440,46 @@ class CalphaBase(object):
                         'SER': 'S', 'THR': 'T', 'TRP': 'W',
                         'TYR': 'Y', 'VAL': 'V'}
         return residue_code
+
+    def shadow_contacts(self,subdir):
+        ''' Call SMOG Shadow jar code to determine the shadow contacts. If 
+            the reference matrix Qref_cryst.dat doesn't exist then create 
+            and dive into a subdirectory to run shadow map. Then save 
+            Qref_cryst.dat in the parent directory.'''
+
+        cwd = os.getcwd()
+        print "Calculating native contacts for: ",subdir
+        if os.path.exists(cwd+"/"+subdir+"/Qref_cryst.dat"):
+            print "Native contact map "+subdir+"/Qref_cryst.dat exists."
+            print "Skipping shadow map calculation. Loading native contact map..."
+            Qref = np.loadtxt(cwd+"/"+subdir+"/Qref_cryst.dat")
+        else:
+            print "Native contact map "+subdir+"/Qref_cryst.dat does not exist."
+            print "Doing shadow map calculation..."
+            print "*** NOTE: module load jdk/1.7.0.21 required for shadow map ***"
+            os.chdir(cwd+"/"+subdir+"/Qref_shadow")
+            #loadjava = 'module load jdk/1.7.0.21'
+            #sb.call(loadjava,shell=True)
+            #cmd0 = 'cp /projects/cecilia/ajk8/model_builder/SCM.1.31.jar .'
+            cmd0 = 'cp /projects/cecilia/SCM.1.31.jar .'
+            sb.call(cmd0,shell=True,stdout=open("contacts.out","w"),stderr=open("contacts.err","w"))
+            cmd1 = 'echo -e "9\\n3\\n" | pdb2gmx -f clean.pdb -o %s.gro -p %s.top' % (subdir,subdir)
+            sb.call(cmd1,shell=True,stdout=open("convert.out","w"),stderr=open("convert.err","w"))
+            cmd2 = 'java -jar SCM.1.31.jar -g %s.gro -t %s.top -o %s.contacts -m shadow --coarse CA' % (subdir,subdir,subdir)
+            sb.call(cmd2,shell=True,stdout=open("contacts.out","w"),stderr=open("contacts.err","w"))
+
+            conts = np.loadtxt(subdir+".contacts",usecols=(1,3))
+            N = max(conts.ravel())
+            Qref = np.zeros((N,N))
+            for pair in conts:
+                Qref[pair[0]-1,pair[1]-1] = 1
+
+            print "Native contact map calculated with shadow map. Saving Qref_cryst.dat..."
+            np.savetxt("Qref_cryst.dat",Qref,delimiter=" ",fmt="%1d")
+            np.savetxt(cwd+"/"+subdir+"/Qref_cryst.dat",Qref,delimiter=" ",fmt="%1d")
+        os.chdir(cwd)
+        print "Subdir %s  N=%d  Nc=%d  Nc/N=%.4f" % (subdir,len(Qref),sum(sum(Qref)),float(sum(sum(Qref)))/float(len(Qref)))
+        self.Qref = Qref
 
     def write_info_file(self,sub):
         ''' Writes model.info file in subdirectory. The data of the Model object    
