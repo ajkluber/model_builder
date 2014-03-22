@@ -31,13 +31,15 @@ def get_model_new(options):
         model = HomogeneousGoModel.HomogeneousGoModel(disulfides=options["Disulfides"],
                                                     nonbond_param=options["nonbond_param"],
                                                     R_CD=options["R_CD"],
-                                                    cutoff=options["Cutoff"])
+                                                    cutoff=options["Cutoff"],
+                                                    dryrun=options["Dry_Run"])
     elif type == "HetGo":
         model = HeterogeneousGoModel.HeterogeneousGoModel(options["Contact_Energies"],
                                                     disulfides=options["Disulfides"],
                                                     nonbond_param=options["nonbond_param"],
                                                     R_CD=options["R_CD"],
-                                                    cutoff=options["Cutoff"])
+                                                    cutoff=options["Cutoff"],
+                                                    dryrun=options["Dry_Run"])
     elif type == "DMC":
         model = DMCModel.DMCModel()
     else:
@@ -226,6 +228,11 @@ def check_options(inputoptions):
         solvent = None
     options["Solvent"] = solvent
 
+    if inputoptions["Dry_Run"] == True:
+        dryflag = True
+    else:
+        dryflag = False
+    options["Dry_Run"] = dryflag
 
     print "Model options cleared!"
     print "Using model options:"
@@ -234,12 +241,12 @@ def check_options(inputoptions):
             
     return options
 
-def load_model(subdir):
+def load_model(subdir,dryrun=False):
     ''' Given subdir that contains model.info options file. Read in options and
         create corresponding model.'''
     info_file = open(subdir+'/model.info','r')
     line = info_file.readline()
-    options = {}
+    options = {"Dry_Run":dryrun}
     while line != '':
         field = line.split()[1]
         value = info_file.readline()
@@ -256,12 +263,12 @@ def load_model(subdir):
     Model = get_model_new(options)
     return Model
 
-def load_models(subdirs):
+def load_models(subdirs,dryrun=False):
     ''' Create models from saved options in model.info.'''
     Models = []
     for subdir in subdirs:
         print "Loading model from subdirectory: ", subdir
-        Model = load_model(subdir)
+        Model = load_model(subdir,dryrun=dryrun)
         Models.append(Model)
     return Models
 

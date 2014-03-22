@@ -22,11 +22,12 @@ class HeterogeneousGoModel(HomogeneousGoModel):
     ''' All that needs to be computed is the interaction matrix between residues
         i and j.'''
 
-    def __init__(self,contact_energies,disulfides=None,nonbond_param=1.,R_CD=None):
+    def __init__(self,contact_energies,disulfides=None,nonbond_param=1.,R_CD=None,dryrun=False):
         self.model_parameters(nonbond_param=nonbond_param,R_CD=R_CD,)
         self.get_interaction_tables()
         self.disulfides = disulfides
         self.cont_type = contact_energies
+        self.dryrun = dryrun
 
     def model_parameters(self,nonbond_param=1.,R_CD=None):
         ''' Contains all the parameter information about the model, as well as

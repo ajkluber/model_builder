@@ -19,19 +19,17 @@ Description:
 '''
 
 class HomogeneousGoModel(CalphaBase):
-    ''' This model is the closest model to the classical structure-based model 
-        used by Clementi, et.al.(2000). The native contacts are the only 
-        attractive terms in the non-bonded potential. The non-native contacts
-        are treated with the repulsive r**12 term. This model is not exactly the
-        same as the original SBMs in that the non-native interactions still have
-        a "shape" in the same way as the other Clementi models.'''
+    ''' This model is the classic Go-model used by Clementi, et.al.(2000).
+        Attractive LJ12-10 native contacts and repulsive LJ12 non-contacts.
+    '''
 
-    def __init__(self,disulfides=None,nonbond_param=1.,R_CD=None,cutoff=None):
+    def __init__(self,disulfides=None,nonbond_param=1.,R_CD=None,cutoff=None,dryrun=False):
         self.model_parameters(nonbond_param=nonbond_param,R_CD=R_CD)
         self.get_interaction_tables()
         self.disulfides = disulfides
         self.cutoff = cutoff
         self.contact_energies = None
+        self.dryrun = dryrun
 
     def __repr__(self):
         ''' The string representation of all the model info.'''
@@ -393,6 +391,7 @@ class HomogeneousGoModel(CalphaBase):
         atomtypes_itp, atoms_itp = self.new_get_atomtypes_string(indices,residues)
         nonbond_params_itp, BeadBead_dat = self.new_get_nonbonded_itp_strings(indices,atoms,residues,coords)
 
+        topology_files["Native.pdb"] = self.cleanpdb
         topology_files["atomtypes.itp"] = atomtypes_itp
         topology_files["atoms.itp"] = atoms_itp
         topology_files["BeadBead.dat"] = BeadBead_dat
