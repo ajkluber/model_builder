@@ -213,8 +213,8 @@ class HomogeneousGoModel(CalphaBase):
         if self.R_CD != None:
             print "    Using R_C/D option: ", self.R_CD
             Nc = float(sum(sum(self.Qref)))
-            Nd = float(len(Qref)-4)
-            Knb = (R_CD*Nd/Nc)*self.backbone_param_vals["Kd"]
+            Nd = float(len(self.Qref)-4)
+            Knb = (self.R_CD*Nd/Nc)*self.backbone_param_vals["Kd"]
             self.nonbond_param = Knb 
         else:
             Knb = self.nonbond_param

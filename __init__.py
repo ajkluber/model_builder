@@ -47,7 +47,7 @@ def get_model_new(options):
     return model
     
 def get_model(type):
-    ''' SOON TO BE DEPRECATED. 3-10-14 AK'''
+    ''' DEPRECATED. 3-10-14 AK'''
     if type == "HomGo":
         model = HomogeneousGoModel.HomogeneousGoModel()
     elif type == "HetGo":
@@ -231,7 +231,6 @@ def check_options(inputoptions):
     print "Using model options:"
     for key in options.keys():
         print "  ", key , " = ", options[key]
-    print "Proceeding...\n"
             
     return options
 
@@ -242,7 +241,6 @@ def load_model(subdir):
     line = info_file.readline()
     options = {}
     while line != '':
-        print line
         field = line.split()[1]
         value = info_file.readline()
         if field == "Reference":
