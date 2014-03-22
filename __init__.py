@@ -74,7 +74,8 @@ def check_options(inputoptions):
     
     print "Checking that model options are consistent..."
     print "Inputted model options:"
-    print inputoptions, "\n"
+    for key in inputoptions.keys():
+        print "  ", key , " = ", inputoptions[key]
 
     options = {"Model_Code":modelcode, "Bead_Model":beadmodel}
     ## Check if model code is legal.
@@ -228,7 +229,8 @@ def check_options(inputoptions):
 
     print "Model options cleared!"
     print "Using model options:"
-    print options
+    for key in options.keys():
+        print "  ", key , " = ", options[key]
     print "Proceeding...\n"
             
     return options
