@@ -163,7 +163,7 @@ def check_options(inputoptions):
             else:
                 contact_energies = None
     else:
-        Contact_Energies = None
+        contact_energies = None
     options["Contact_Energies"] = contact_energies
 
     ## Check for R_CD option. This option fixes the ratio of contact (C) to
