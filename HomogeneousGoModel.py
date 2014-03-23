@@ -120,7 +120,7 @@ class HomogeneousGoModel(CalphaBase):
         table[:,5] = 12./(r**13)
         return table
 
-    def new_get_atomtypes_string(self,indices,residues):
+    def get_atomtypes_string(self,indices,residues):
         ''' Generate atomtypes string.'''
         print "    Creating atomtypes.itp, atoms.itp"
         atoms_itp = '[ atoms ]\n'
@@ -140,33 +140,6 @@ class HomogeneousGoModel(CalphaBase):
             atoms_itp += "%5s%8s%5s%5s%8s%5s    %10.6f    %10.6f\n" % \
                     (index,resname+index,index,resname,resname+index,index,charge,mass)
         return atomtypes_itp, atoms_itp
-
-    def get_atomtypes_string(self,atom_indices,residue_names):
-        ''' Create atomtypes string.'''
-        atomtypes_itps = []
-        atoms_itps = []
-        for i in range(len(residue_names)):
-            atoms = '[ atoms ]\n'
-            atoms += ' ;  nr  type  resnr  residue  atom  cgnr   charge  mass \n'
-            atomtypes = '[ atomtypes ]\n'
-            atomtypes += ' ;  name  index      mass         charge  ptype     c10           c12\n'
-            res_names = residue_names[i]
-            indices = atom_indices[i]["CA"]
-            for j in range(len(res_names)):
-                resname = res_names[j]
-                ## Potentially just one one-letter code here for the atomtypes.
-                ## rescode = residue_code[resname]
-                ndx = str(indices[j])
-                mass = 100.0
-                charge = 0.0 
-                ptype = "A"
-                atomtypes += "%8s%5s    %10.6f    %10.6f  %s    %10.6f    %10.6f\n" % \
-                        (resname+ndx,ndx,mass,charge,ptype,0.,0.)
-                atoms += "%5s%8s%5s%5s%8s%5s    %10.6f    %10.6f\n" % \
-                        (ndx,resname+ndx,ndx,resname,resname+ndx,ndx,charge,mass)
-            atomtypes_itps.append(atomtypes)
-            atoms_itps.append(atoms)
-        return atomtypes_itps, atoms_itps
 
     def get_nonbond_sigma(self,resi,resj,delta,xi,xj):
         ''' Extract the equilibrium non-bonded interaction distance from the 
@@ -199,15 +172,10 @@ class HomogeneousGoModel(CalphaBase):
             native = 0
         return newsig, native
 
-    def new_get_nonbonded_itp_strings(self,indices,atoms,residues,coords):
+    def get_nonbonded_itp_strings(self,indices,atoms,residues,coords):
         ''' Get the nonbond_params.itp and BeadBead.dat strings. '''
     
-        ## Options to check:
-        ## R_CD
-        ## disulfides
-        
         print "    Creating nonbond_params.itp, BeadBead.dat"
-
         if self.R_CD != None:
             print "    Using R_C/D option: ", self.R_CD
             Nc = float(sum(sum(self.Qref)))
@@ -216,9 +184,7 @@ class HomogeneousGoModel(CalphaBase):
             self.nonbond_param = Knb 
         else:
             Knb = self.nonbond_param
-
         print "    Nonbonded multiplier: ", Knb
-        
         print "    Disulfides: ", self.disulfides
         native = 0
         interaction_counter = 1
@@ -260,7 +226,6 @@ class HomogeneousGoModel(CalphaBase):
                     interaction_counter += 1
                 else:
                     ## Non-native interactions are repulsive at constant distance of 3.5A.
-                    #sig, delta = self.get_nonbond_sigma(resi,resj,delta,xi,xj)  ## DEPRECATED
                     sig = 0.35
                     delta = 0
                     c12 = Knb*5.0*(sig**12)
@@ -271,72 +236,7 @@ class HomogeneousGoModel(CalphaBase):
                         (i_idx,j_idx,resi+str(i_idx),resj+str(j_idx),interaction_num,sig,Knb,delta)
                 nonbond_params_string += "%8s%8s%3d  %10.8e  %10.8e\n" % \
                         (resi+str(i_idx),resj+str(j_idx),1,c10,c12)
-                         #(resi+str(i_idx),resj+str(j_idx),1,sig,c12) ## DEBUGGING
-            #print native   ## DEBUGGING
-            #print nonbond_params_string ## DEBUGGING
-            #raise SystemExit
         return nonbond_params_string,beadbead_string
-
-    def get_nonbond_params_itp(self,prots_indices,prots_residues,prots_coords,prots_Qref,R_CD=None):
-        ''' Get the nonbond_params.itp and BeadBead.dat strings. Select bond
-            distances for native contacts. This is the core of what 
-            distinquishes the different models. Also collects the native 
-            contacts. '''
-    
-        nonbond_itps = []
-        beadbead_files = []
-        for prot_num in range(len(prots_indices)):
-            indices = prots_indices[prot_num]["CA"]
-            residues = prots_residues[prot_num]
-            coords = prots_coords[prot_num]/10.
-
-            if R_CD != None:
-                Nc = float(sum(sum(prots_Qref[prot_num])))
-                Nd = float(len(prots_Qref[prot_num])-4)
-                Knb = (R_CD*Nd/Nc)*self.backbone_param_vals["Kd"]
-            else:
-                Knb = self.nonbond_param
-            
-            beadbead_string = ''
-            native = 0
-            interaction_num = 1
-            nonbond_params_string = '[ nonbond_params ]\n'
-            for i in range(len(indices)):
-                for j in range(i+4,len(indices)):
-                    resi = residues[i]
-                    resj = residues[j]
-                    i_idx = indices[i]
-                    j_idx = indices[j]
-                    delta = j - i
-                    xi = coords[i]
-                    xj = coords[j]
-                    if prots_Qref[prot_num][i][j] == 1:
-                        ## Native contact are attractive.
-                        sig = np.linalg.norm(xi - xj)
-                        delta = 1
-                        c12 = Knb*5.0*(sig**12)
-                        c10 = Knb*6.0*(sig**10)*delta
-                    else:
-                        ## Non-native interactions are repulsive at constant distance of 3.5A.
-                        #sig, delta = self.get_nonbond_sigma(resi,resj,delta,xi,xj)
-                        sig = 0.35
-                        delta = 0
-                        c12 = Knb*5.0*(sig**12)
-                        c10 = Knb*6.0*(sig**10)*delta
-                    native += delta
-                    beadbead_string += '%5d%5d%8s%8s%5d%16.8E%16.8E%16.8E\n' % \
-                            (i_idx,j_idx,resi+str(i_idx),resj+str(j_idx),interaction_num,sig,Knb,delta)
-                    nonbond_params_string += "%8s%8s%3d  %10.8e  %10.8e\n" % \
-                            (resi+str(i_idx),resj+str(j_idx),1,c10,c12)
-                             #(resi+str(i_idx),resj+str(j_idx),1,sig,c12) ## DEBUGGING
-                    interaction_num += 1
-            #print native   ## DEBUGGING
-            #print nonbond_params_string ## DEBUGGING
-            #raise SystemExit
-            nonbond_itps.append(nonbond_params_string)
-            beadbead_files.append(beadbead_string)
-        return nonbond_itps,beadbead_files
-
 
     def check_disulfides(self,residues,coords):
         ''' Check that specified disulfides are between cysteine and that 
@@ -366,9 +266,8 @@ class HomogeneousGoModel(CalphaBase):
         else:
             print "  No disulfides to check."
 
-    def new_prepare_system(self,System):
-        ''' Extract all the topology files from Model. 
-        '''
+    def prepare_system(self,System):
+        ''' Extract all the topology files from Model. '''
 
         print "Preparing input files for subdirectory:", System.subdir
         print "  Cleaning pdb..."
@@ -382,26 +281,20 @@ class HomogeneousGoModel(CalphaBase):
         print "  Dissecting Native.pdb for: indices, atom names, residue names, and coordinates..."
         indices,atoms,residues,coords = self.dissect_clean_pdb(System.subdir)
         print "  Generating bonded files:"
-        topology_files = self.new_get_bonded_itp_strings(indices,atoms,residues,coords)
+        topology_files = self.get_bonded_itp_strings(indices,atoms,residues,coords)
 
         ## Make sure disulfide
         self.check_disulfides(residues,coords)
 
         print "  Generating nonbonded files:"
-        atomtypes_itp, atoms_itp = self.new_get_atomtypes_string(indices,residues)
-        nonbond_params_itp, BeadBead_dat = self.new_get_nonbonded_itp_strings(indices,atoms,residues,coords)
+        atomtypes_itp, atoms_itp = self.get_atomtypes_string(indices,residues)
+        nonbond_params_itp, BeadBead_dat = self.get_nonbonded_itp_strings(indices,atoms,residues,coords)
 
         topology_files["Native.pdb"] = self.cleanpdb
         topology_files["atomtypes.itp"] = atomtypes_itp
         topology_files["atoms.itp"] = atoms_itp
         topology_files["BeadBead.dat"] = BeadBead_dat
         topology_files["nonbond_params.itp"] = nonbond_params_itp
-
-        #print coords  ## DEBUGGING
-        #print indices, atoms, residues, coords  ## DEBUGGING
-        #print atoms_itp        ## DEBUGGING
-        #print atomtypes_itp        ## DEBUGGING
-        #print nonbond_params_itp        ## DEBUGGING
         print "Done preparing:", System.subdir
 
         System.topology_files = topology_files

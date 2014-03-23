@@ -3,7 +3,7 @@ import os
 import subprocess as sb
 
 ''' 
-Model Class
+CalphaBase
 
 Purpose:
     The Model class contains all information of the particular 
@@ -26,13 +26,6 @@ Description:
 simulate, like the form and constants of the Hamiltonian. The methods of 
 the different Model subclasses are not the most elegant, but they're 
 written to maximize readable.
-
-To Do:
-- Code a documentation method. Possibly a __repr__ or __str__ method that
-  returns a complete summary of the model details in a format that can be
-  easily read in later as well.
-- Probably going to pop the particular model codes into their own classes.
-  (E.g. HomogeneousGoModel.py, DMCModel.py)
 
 '''
 
@@ -115,9 +108,8 @@ class CalphaBase(object):
         coords = np.array(coords)/10.
         return indices, atoms, residues, coords
 
-    def new_get_index_string(self,indices):
+    def get_index_string(self,indices):
         ''' Generates'''
-        #ca_indices = atom_indices[j]["CA"]
         ca_string = ''
         i = 1
         for indx in indices: 
@@ -147,7 +139,7 @@ class CalphaBase(object):
         indexstring += '[ SideChain-H ]\n\n'
         return indexstring
 
-    def new_get_bonds_itp(self,indices,coords):
+    def get_bonds_itp(self,indices,coords):
         ''' Generate the bonds.itp string.'''
         kb = self.backbone_param_vals["Kb"]
         bonds_string = '[ bonds ]\n'
@@ -159,7 +151,7 @@ class CalphaBase(object):
                           (i_idx+1,j_idx+1,1,dist,kb)
         return bonds_string
 
-    def new_get_angles_itp(self,indices,coords):
+    def get_angles_itp(self,indices,coords):
         ''' Generate the angles.itp string.'''
         ka = self.backbone_param_vals["Ka"]
         angles_string = '[ angles ]\n'
@@ -176,7 +168,7 @@ class CalphaBase(object):
                           (i_idx+1,j_idx+1,k_idx+1,1,theta,ka)
         return angles_string
 
-    def new_get_dihedrals_itp(self,indices,coords):
+    def get_dihedrals_itp(self,indices,coords):
         ''' Write the dihedrals.itp string.'''
         kd = self.backbone_param_vals["Kd"]
         dihedrals_string = '[ dihedrals ]\n'
@@ -194,7 +186,7 @@ class CalphaBase(object):
             dihedrals_ndx_string += '%4d %4d %4d %4d\n' % (i_idx+1,j_idx+1,k_idx+1,l_idx+1,)
         return dihedrals_string, dihedrals_ndx_string
 
-    def new_get_bonded_itp_strings(self,indices,atoms,residues,coords):
+    def get_bonded_itp_strings(self,indices,atoms,residues,coords):
         ''' Create a dictionary of simulation files concerning only 
             bonded interactions. '''
         topology_files = {}
@@ -203,13 +195,13 @@ class CalphaBase(object):
         print "    Creating protein.itp"
         protein_itp = self.get_protein_itp()
         print "    Creating bonds.itp"
-        bonds_itp = self.new_get_bonds_itp(indices,coords)
+        bonds_itp = self.get_bonds_itp(indices,coords)
         print "    Creating angles.itp"
-        angles_itp = self.new_get_angles_itp(indices,coords)
+        angles_itp = self.get_angles_itp(indices,coords)
         print "    Creating dihedrals.itp, dihedrals.ndx"
-        dihedrals_itp,dihedrals_ndx = self.new_get_dihedrals_itp(indices,coords)
+        dihedrals_itp,dihedrals_ndx = self.get_dihedrals_itp(indices,coords)
         print "    Creating index.ndx"
-        index_ndx = self.new_get_index_string(indices)
+        index_ndx = self.get_index_string(indices)
         topology_files = {"index.ndx":index_ndx,
                          "topol.top":topol_top,
                          "protein.itp":protein_itp,
@@ -218,80 +210,6 @@ class CalphaBase(object):
                          "dihedrals.itp":dihedrals_itp,
                          "dihedrals.ndx":dihedrals_ndx}
         return topology_files
-
-    def get_index_string(self,atom_indices):
-        ''' Generates'''
-        indexs = []
-        for j in range(len(atom_indices)):
-            ca_indices = atom_indices[j]["CA"]
-            ca_string = ''
-            i = 1
-            for indx in ca_indices: 
-                if (i % 15) == 0:
-                    ca_string += '%4d \n' % indx
-                else:
-                    ca_string += '%4d ' % indx
-                i += 1
-            ca_string += '\n'
-            indexstring = '[ System ]\n'
-            indexstring += ca_string
-            indexstring += '[ Protein ]\n'
-            indexstring += ca_string
-            indexstring += '[ Protein-H ]\n'
-            indexstring += ca_string
-            indexstring += '[ C-alpha ]\n'
-            indexstring += ca_string
-            indexstring += '[ Backbone ]\n'
-            indexstring += ca_string
-            indexstring += '[ MainChain ]\n'
-            indexstring += ca_string
-            indexstring += '[ MainChain+Cb ]\n'
-            indexstring += ca_string
-            indexstring += '[ MainChain+H ]\n'
-            indexstring += ca_string
-            indexstring += '[ SideChain ]\n\n'
-            indexstring += '[ SideChain-H ]\n\n'
-            indexs.append(indexstring)
-        return indexs
-
-    def get_bonds_itp(self,prots_indices,prots_coords):
-        ''' Write the bonds.itp string.'''
-        kb = self.backbone_param_vals["Kb"]
-        bonds_itps = []
-        for i in range(len(prots_indices)):
-            indices = prots_indices[i]["CA"]
-            coords = prots_coords[i]
-            bonds_string = '[ bonds ]\n'
-            for j in range(len(indices)-1):
-                i_idx = indices[j]-1
-                j_idx = indices[j+1]-1
-                dist = np.linalg.norm(coords[i_idx] - coords[j_idx])
-                bonds_string += "%5d%5d%5d%16.8f%16.8f\n" %  \
-                              (i_idx+1,j_idx+1,1,dist/10.,kb)
-            bonds_itps.append(bonds_string)
-        return bonds_itps
-
-    def get_angles_itp(self,prots_indices,prots_coords):
-        ''' Write the angles.itp string.'''
-        ka = self.backbone_param_vals["Ka"]
-        angles_itps = []
-        for i in range(len(prots_indices)):
-            indices = prots_indices[i]["CA"]
-            coords = prots_coords[i]
-            angles_string = '[ angles ]\n'
-            for j in range(len(indices)-2):
-                i_idx = indices[j]-1
-                j_idx = indices[j+1]-1
-                k_idx = indices[j+2]-1
-                xkj = coords[k_idx] - coords[j_idx]
-                xkj /= np.linalg.norm(xkj)
-                xij = coords[i_idx] - coords[j_idx]
-                xij /= np.linalg.norm(xij)
-                theta = (180./np.pi)*np.arccos(np.dot(xkj, xij))
-                angles_string += "%5d%5d%5d%5d%16.8f%16.8f\n" %  \
-                              (i_idx+1,j_idx+1,k_idx+1,1,theta,ka)
-            angles_itps.append(angles_string)
-        return angles_itps
 
     def dihedral(self,coords,i_idx,j_idx,k_idx,l_idx):
         ''' Compute the dihedral between planes. '''
@@ -309,65 +227,6 @@ class CalphaBase(object):
             sign = 1.
         phi = 180. + sign*(180./np.pi)*np.arccos(np.dot(v21xv31,v32xv42))
         return phi
-
-    def get_dihedrals_itp(self,prots_indices,prots_coords):
-        ''' Write the dihedrals.itp string.'''
-        kd = self.backbone_param_vals["Kd"]
-        dihedrals_itps = []
-        dihedrals_ndxs = []
-        for i in range(len(prots_indices)):
-            indices = prots_indices[i]["CA"]
-            coords = prots_coords[i]
-            dihedrals_string = '[ dihedrals ]\n'
-            dihedrals_ndx_string = '[ dihedrals ]\n'
-            for j in range(len(indices)-3):
-                i_idx = indices[j]-1
-                j_idx = indices[j+1]-1
-                k_idx = indices[j+2]-1
-                l_idx = indices[j+3]-1
-                phi = self.dihedral(coords,i_idx,j_idx,k_idx,l_idx)
-                dihedrals_string += "%5d%5d%5d%5d%5d%16.8f%16.8f%5d\n" %  \
-                              (i_idx+1,j_idx+1,k_idx+1,l_idx+1,1,phi,kd,1)
-                dihedrals_string += "%5d%5d%5d%5d%5d%16.8f%16.8f%5d\n" %  \
-                              (i_idx+1,j_idx+1,k_idx+1,l_idx+1,1,3.*phi,kd/2.,3)
-                dihedrals_ndx_string += '%4d %4d %4d %4d\n' % (i_idx+1,j_idx+1,k_idx+1,l_idx+1,)
-            dihedrals_itps.append(dihedrals_string)
-            dihedrals_ndxs.append(dihedrals_ndx_string)
-        return dihedrals_itps, dihedrals_ndxs
-
-
-    def get_itp_strings(self,prots_indices,prots_residues,prots_coords,prots_ndxs,prots_Qref,R_CD=None):
-        ''' Create a dictionary of all files needed to run the simulation. 
-            These files encompass all the information about the combination
-            of the model and the system. The files are returned as a list of
-            dictionaries, one dictionary for each each protein in the system.
-            Each dictionary holds the following files: *.itp, index.ndx, 
-            dihedral.ndx, topol.top, BeadBead.dat. '''
-        ## Bonded itp files
-        topol_top = self.get_topology_string()
-        protein_itp = self.get_protein_itp()
-        bonds_itps = self.get_bonds_itp(prots_indices,prots_coords)
-        angles_itps = self.get_angles_itp(prots_indices,prots_coords)
-        dihedrals_itps,dihedrals_ndxs = self.get_dihedrals_itp(prots_indices,prots_coords)
-
-        ## Move nonbonded file generation to subclass
-        atomtypes_itps,atoms_itps = self.get_atomtypes_string(prots_indices,prots_residues)
-        nonbond_params_itps,beadbead_files = self.get_nonbond_params_itp(prots_indices,prots_residues,prots_coords,prots_Qref,R_CD=R_CD)
-
-        topology_files = []
-        for i in range(len(prots_residues)):
-            topology_files.append({"index.ndx":prots_ndxs[i],
-                             "topol.top":topol_top,
-                             "protein.itp":protein_itp,
-                             "atomtypes.itp":atomtypes_itps[i],
-                             "atoms.itp":atoms_itps[i],
-                             "bonds.itp":bonds_itps[i],
-                             "angles.itp":angles_itps[i],
-                             "dihedrals.itp":dihedrals_itps[i],
-                             "dihedrals.ndx":dihedrals_ndxs[i],
-                             "BeadBead.dat":beadbead_files[i],
-                             "nonbond_params.itp":nonbond_params_itps[i]})
-        return topology_files
 
     def get_protein_itp(self):
         protein_itp_string = '; molecular topology file for coarse-grained protein\n\n'
@@ -472,7 +331,3 @@ class CalphaBase(object):
         print "  Length = %d  Number of contacts = %d  Nc/L=%.4f" % (len(Qref),sum(sum(Qref)),float(sum(sum(Qref)))/float(len(Qref)))
         self.Qref = Qref
 
-    def write_info_file(self,sub):
-        ''' Writes model.info file in subdirectory. The data of the Model object    
-            is static, so this is straightforward documentation.'''
-        open(sub+"/model.info","w").write(self.__repr__())

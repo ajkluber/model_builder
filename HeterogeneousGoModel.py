@@ -64,8 +64,6 @@ class HeterogeneousGoModel(HomogeneousGoModel):
             beadbead.dat. Assigns contacts into a Beadbead.dat format i.e. enumerate
             all contact strengths
 
-            
-
         '''
 
         if option == "MJ":
@@ -78,64 +76,69 @@ class HeterogeneousGoModel(HomogeneousGoModel):
             else:
                 pass
 
-    def get_nonbond_params_itp(self,prots_indices,prots_residues,prots_coords,prots_Qref,R_CD=None):
-        ''' Get the nonbond_params.itp and BeadBead.dat strings. Select bond
-            distances for native contacts. This is the core of what 
-            distinquishes the different models. Also collects the native 
-            contacts. '''
+    def get_nonbonded_itp_strings(self,indices,atoms,residues,coords):
+        ''' Get the nonbond_params.itp and BeadBead.dat strings. '''
     
-        nonbond_itps = []
-        beadbead_files = []
-        for prot_num in range(len(prots_indices)):
-            indices = prots_indices[prot_num]["CA"]
-            residues = prots_residues[prot_num]
-            coords = prots_coords[prot_num]/10.
-
-            if R_CD != None:
-                Nc = float(sum(sum(prots_Qref[prot_num])))
-                Nd = float(len(prots_Qref[prot_num])-4)
-                Knb = (R_CD*Nd/Nc)*self.backbone_param_vals["Kd"]
+        print "    Creating nonbond_params.itp, BeadBead.dat"
+        if self.R_CD != None:
+            print "    Using R_C/D option: ", self.R_CD
+            Nc = float(sum(sum(self.Qref)))
+            Nd = float(len(self.Qref)-4)
+            Knb = (self.R_CD*Nd/Nc)*self.backbone_param_vals["Kd"]
+            self.nonbond_param = Knb 
+        else:
+            Knb = self.nonbond_param
+        print "    Nonbonded multiplier: ", Knb
+        print "    Disulfides: ", self.disulfides
+        native = 0
+        interaction_counter = 1
+        nonbond_params_string = '[ nonbond_params ]\n'
+        beadbead_string = ''
+        for i in range(len(indices)):
+            if self.disulfides != None:
+                if (i+1) in self.disulfides[::2]:
+                    #print self.disulfides[::2]     ## DEBUGGING
+                    ds_flag = 1
+                    partner = self.disulfides[self.disulfides.index(i+1) + 1] - 1
+                    #print "## Residue ", i+1, " is in a disulfide with ", partner+1    ## DEBUGGING
+                else:
+                    ds_flag = 0
             else:
-                Knb = self.nonbond_param
-            
-            beadbead_string = ''
-            native = 0
-            interaction_num = 1
-            nonbond_params_string = '[ nonbond_params ]\n'
-            for i in range(len(indices)):
-                for j in range(i+4,len(indices)):
-                    resi = residues[i]
-                    resj = residues[j]
-                    print resi,resj
-                    raise SystemExit
-                    i_idx = indices[i]
-                    j_idx = indices[j]
-                    delta = j - i
-                    xi = coords[i]
-                    xj = coords[j]
-                    if prots_Qref[prot_num][i][j] == 1:
-                        ## Native contact are attractive.
-                        sig = np.linalg.norm(xi - xj)
-                        delta = 1
-                        c12 = Knb*5.0*(sig**12)
-                        c10 = Knb*6.0*(sig**10)*delta
-                    else:
-                        ## Non-native interactions are repulsive at constant distance of 3.5A.
-                        #sig, delta = self.get_nonbond_sigma(resi,resj,delta,xi,xj)
-                        sig = 0.35
-                        delta = 0
-                        c12 = Knb*5.0*(sig**12)
-                        c10 = Knb*6.0*(sig**10)*delta
-                    native += delta
-                    beadbead_string += '%5d%5d%8s%8s%5d%16.8E%16.8E%16.8E\n' % \
-                            (i_idx,j_idx,resi+str(i_idx),resj+str(j_idx),interaction_num,sig,Knb,delta)
-                    nonbond_params_string += "%8s%8s%3d  %10.8e  %10.8e\n" % \
-                            (resi+str(i_idx),resj+str(j_idx),1,c10,c12)
-                             #(resi+str(i_idx),resj+str(j_idx),1,sig,c12) ## DEBUGGING
-                    interaction_num += 1
-            #print native   ## DEBUGGING
-            #print nonbond_params_string ## DEBUGGING
-            #raise SystemExit
-            nonbond_itps.append(nonbond_params_string)
-            beadbead_files.append(beadbead_string)
-        return nonbond_itps,beadbead_files
+                ds_flag = 0
+
+            for j in range(i+4,len(indices)):
+                resi = residues[i]
+                resj = residues[j]
+                i_idx = indices[i]
+                j_idx = indices[j]
+                delta = j - i
+                xi = coords[i]
+                xj = coords[j]
+                if (ds_flag == 1) and (j == partner):
+                    ## Making the link between disulfides stronger. Special interaction number.
+                    print "    Linking disulfides between residues: ",residues[i]+str(i+1)," and ",residues[partner]+str(partner+1)
+                    c12 = self.backbone_param_vals["Kb"]*5.0*(sig**12)
+                    c10 = self.backbone_param_vals["Kb"]*6.0*(sig**10)*delta
+                    interaction_num = 'ss'
+                elif self.Qref[i][j] == 1:
+                    ## Regular native contact are attractive.
+                    sig = np.linalg.norm(xi - xj)
+                    delta = 1
+                    c12 = Knb*5.0*(sig**12)
+                    c10 = Knb*6.0*(sig**10)*delta
+                    interaction_num = str(interaction_counter)
+                    interaction_counter += 1
+                else:
+                    ## Non-native interactions are repulsive at constant distance of 3.5A.
+                    sig = 0.35
+                    delta = 0
+                    c12 = Knb*5.0*(sig**12)
+                    c10 = Knb*6.0*(sig**10)*delta
+                    interaction_num = '0'
+                native += delta
+                beadbead_string += '%5d%5d%8s%8s%5s%16.8E%16.8E%16.8E\n' % \
+                        (i_idx,j_idx,resi+str(i_idx),resj+str(j_idx),interaction_num,sig,Knb,delta)
+                nonbond_params_string += "%8s%8s%3d  %10.8e  %10.8e\n" % \
+                        (resi+str(i_idx),resj+str(j_idx),1,c10,c12)
+        return nonbond_params_string,beadbead_string
+    
