@@ -22,11 +22,12 @@ class HeterogeneousGoModel(HomogeneousGoModel):
     ''' All that needs to be computed is the interaction matrix between residues
         i and j.'''
 
-    def __init__(self,contact_energies,disulfides=None,nonbond_param=1.,R_CD=None,dryrun=False):
+    def __init__(self,contact_energies,disulfides=None,nonbond_param=1.,cutoff=None,R_CD=None,dryrun=False):
         self.model_parameters(nonbond_param=nonbond_param,R_CD=R_CD,)
         self.get_interaction_tables()
         self.disulfides = disulfides
-        self.cont_type = contact_energies
+        self.cutoff = cutoff
+        self.contact_energies = contact_energies
         self.dryrun = dryrun
 
     def model_parameters(self,nonbond_param=1.,R_CD=None):
@@ -52,29 +53,53 @@ class HeterogeneousGoModel(HomogeneousGoModel):
         self.R_CD = None
         self.citation = self.citation_info(self.modelnameshort)
     
-    def MJ_weights(resi,resj):
-        pass
+    def get_MJ_weights(self,resi,resj):
+        return 1.
 
-    def Bach_weights(resi,resj):
-        pass
+    def get_Bach_weights(self,resi,resj):
+        return 1.
 
-    def get_contact_strengths(self,option,path=''):
+    def get_MC2004_weights(self):
+        ''' Load in contact strengths from BeadBead.dat file.'''
+        beadbead = np.loadtxt(self.contact_energies,dtype=str)
+        contact_epsilons = beadbead[:,6].astype(float)
+        return contact_epsilons
+
+    def get_contact_strengths(self,indices,residues):
         ''' Load in the interaction strengths for the desired option. Native contact
             strengths can be taken from MJ parameters, bach parameters, or a saved
             beadbead.dat. Assigns contacts into a Beadbead.dat format i.e. enumerate
             all contact strengths
 
         '''
-
-        if option == "MJ":
-            pass
-        elif option == "bach":
-            pass
-        elif option == "load":
-            if path != "":
-                pass
-            else:
-                pass
+        if self.contact_energies.endswith("BeadBead.dat"):
+            ## Load contact strengths from file.
+            contact_epsilons = self.get_MC2004_weights()
+        else:
+            ## Load contact strengths.
+            N = len(self.Qref)
+            contact_epsilons = np.zeros(int(((N-3)*(N-4))/2),float)
+            k = 0
+            for i in range(len(residues)):
+                for j in range(i+4,len(residues)):
+                    if self.Qref[i][j] == 1:
+                        resi = residues[i]
+                        resj = residues[j]
+                        if self.contact_energies == "MJ":
+                            eps = self.get_MJ_weights(resi,resj) 
+                        elif self.contact_energies == "Bach":
+                            eps = self.get_Bach_weight(resi,resj)
+                        elif self.contact_energies == "MC2004":
+                            eps = 1.0
+                        else:
+                            print "ERROR!"
+                            print "  Couldn't find contact_energies for:", self.contact_energies
+                            print "  Exiting."
+                            raise SystemExit
+                        contact_epsilons[k] = eps
+                    k += 1
+        return contact_epsilons
+        
 
     def get_nonbonded_itp_strings(self,indices,atoms,residues,coords):
         ''' Get the nonbond_params.itp and BeadBead.dat strings. '''
@@ -90,10 +115,12 @@ class HeterogeneousGoModel(HomogeneousGoModel):
             Knb = self.nonbond_param
         print "    Nonbonded multiplier: ", Knb
         print "    Disulfides: ", self.disulfides
-        native = 0
+
+        contact_epsilons = self.get_contact_strengths(indices,residues)
         interaction_counter = 1
         nonbond_params_string = '[ nonbond_params ]\n'
         beadbead_string = ''
+        k = 0
         for i in range(len(indices)):
             if self.disulfides != None:
                 if (i+1) in self.disulfides[::2]:
@@ -117,11 +144,14 @@ class HeterogeneousGoModel(HomogeneousGoModel):
                 if (ds_flag == 1) and (j == partner):
                     ## Making the link between disulfides stronger. Special interaction number.
                     print "    Linking disulfides between residues: ",residues[i]+str(i+1)," and ",residues[partner]+str(partner+1)
+                    sig = np.linalg.norm(xi - xj)
                     c12 = self.backbone_param_vals["Kb"]*5.0*(sig**12)
                     c10 = self.backbone_param_vals["Kb"]*6.0*(sig**10)*delta
                     interaction_num = 'ss'
                 elif self.Qref[i][j] == 1:
                     ## Regular native contact are attractive.
+                    
+                    Knb = contact_epsilons[k]
                     sig = np.linalg.norm(xi - xj)
                     delta = 1
                     c12 = Knb*5.0*(sig**12)
@@ -135,7 +165,7 @@ class HeterogeneousGoModel(HomogeneousGoModel):
                     c12 = Knb*5.0*(sig**12)
                     c10 = Knb*6.0*(sig**10)*delta
                     interaction_num = '0'
-                native += delta
+                k += 1
                 beadbead_string += '%5d%5d%8s%8s%5s%16.8E%16.8E%16.8E\n' % \
                         (i_idx,j_idx,resi+str(i_idx),resj+str(j_idx),interaction_num,sig,Knb,delta)
                 nonbond_params_string += "%8s%8s%3d  %10.8e  %10.8e\n" % \

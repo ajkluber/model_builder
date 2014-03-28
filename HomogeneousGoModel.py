@@ -92,6 +92,9 @@ class HomogeneousGoModel(CalphaBase):
         self.R_CD = R_CD
         self.citation = self.citation_info(self.modelnameshort)
 
+    def nonbond_interaction(self,r,sig,delta):
+        return 5.*((sig/r))**12. - 6.*((sig/r)**10.)
+
     def get_interaction_tables(self):
         ''' Returns the table for interaction type 'i'. The values of the
             potential is set to 0.0 when r is too close to zero to avoid
@@ -213,6 +216,7 @@ class HomogeneousGoModel(CalphaBase):
                 if (ds_flag == 1) and (j == partner):
                     ## Making the link between disulfides stronger. Special interaction number.
                     print "    Linking disulfides between residues: ",residues[i]+str(i+1)," and ",residues[partner]+str(partner+1)
+                    sig = np.linalg.norm(xi - xj)
                     c12 = self.backbone_param_vals["Kb"]*5.0*(sig**12)
                     c10 = self.backbone_param_vals["Kb"]*6.0*(sig**10)*delta
                     interaction_num = 'ss'

@@ -134,8 +134,8 @@ def check_options(inputoptions):
             if contactopts.has_key(modelcode):
                 if (inputoptions["Contact_Energies"] in contactopts[modelcode]):
                     contact_energies = inputoptions["Contact_Energies"]
-                elif inputoptions["Contact_Energies"].split("/")[-1] == "BeadBead.dat":
-                    if os.path.exists(inputoptions["Contact_Energies"]) == False:
+                elif inputoptions["Contact_Energies"].endswith("BeadBead.dat"):
+                    if not os.path.exists(inputoptions["Contact_Energies"]):
                         print "ERROR!"
                         print "Contact energies option: ", inputoptions["Contact_Energies"], \
                             " points to a nonexistant file!"

@@ -68,7 +68,7 @@ class CalphaBase(object):
                                 cleanpdb_ca += newline_ca
 
                     if first_full == 0:
-                        if line[16] in ["A"," "]:
+                        if (line[16] in ["A"," "]) and line[13] not in ["E","D"]:
                             newline_full = 'ATOM%7s  %-4s%3s A%4d%s\n' % \
                                     (atomid_full,line[13:16],line[17:20],1,line[26:55])
                             atomid_full += 1
@@ -76,7 +76,7 @@ class CalphaBase(object):
                             first_index_full = int(line[22:26]) - 1
                             cleanpdb_full += newline_full
                     else:
-                        if line[16] in ["A"," "]:
+                        if (line[16] in ["A"," "]) and line[13] not in ["E","D"]:
                             newline_full = 'ATOM%7s  %-4s%3s A%4d%s\n' % \
                                     (atomid_full,line[13:16],line[17:20],int(line[22:26])-first_index_full,line[26:55])
                             atomid_full += 1
@@ -313,7 +313,8 @@ class CalphaBase(object):
             #cmd0 = 'cp /projects/cecilia/ajk8/model_builder/SCM.1.31.jar .'
             cmd0 = 'cp /projects/cecilia/SCM.1.31.jar .'
             sb.call(cmd0,shell=True,stdout=open("contacts.out","w"),stderr=open("contacts.err","w"))
-            cmd1 = 'echo -e "9\\n3\\n" | pdb2gmx -f clean.pdb -o %s.gro -p %s.top' % (subdir,subdir)
+            #cmd1 = 'echo -e "9\\n3\\n" | pdb2gmx -f clean.pdb -o %s.gro -p %s.top -ignh' % (subdir,subdir)
+            cmd1 = 'echo -e "6\\n6\\n" | pdb2gmx -f clean.pdb -o %s.gro -p %s.top -ignh' % (subdir,subdir)
             sb.call(cmd1,shell=True,stdout=open("convert.out","w"),stderr=open("convert.err","w"))
             cmd2 = 'java -jar SCM.1.31.jar -g %s.gro -t %s.top -o %s.contacts -m shadow --coarse CA' % (subdir,subdir,subdir)
             sb.call(cmd2,shell=True,stdout=open("contacts.out","w"),stderr=open("contacts.err","w"))
