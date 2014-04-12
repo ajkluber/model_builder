@@ -93,7 +93,7 @@ class HomogeneousGoModel(CalphaBase):
         self.citation = self.citation_info(self.modelnameshort)
 
     def nonbond_interaction(self,r,sig,delta):
-        return 5.*((sig/r))**12. - 6.*((sig/r)**10.)
+        return 5.*((sig/r))**12. - 6.*delta*((sig/r)**10.)
 
     def get_interaction_tables(self):
         ''' Returns the table for interaction type 'i'. The values of the
