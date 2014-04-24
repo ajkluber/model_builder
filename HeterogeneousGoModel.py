@@ -22,15 +22,15 @@ class HeterogeneousGoModel(HomogeneousGoModel):
     ''' All that needs to be computed is the interaction matrix between residues
         i and j.'''
 
-    def __init__(self,contact_energies,disulfides=None,nonbond_param=1.,cutoff=None,R_CD=None,dryrun=False):
-        self.model_parameters(nonbond_param=nonbond_param,R_CD=R_CD,)
+    def __init__(self,contact_energies,disulfides=None,nonbond_param=1.,cutoff=None,R_CD=None,epsilon_bar=None,dryrun=False):
+        self.model_parameters(nonbond_param=nonbond_param,R_CD=R_CD,epsilon_bar=epsilon_bar)
         self.get_interaction_tables()
         self.disulfides = disulfides
         self.cutoff = cutoff
         self.contact_energies = contact_energies
         self.dryrun = dryrun
 
-    def model_parameters(self,nonbond_param=1.,R_CD=None):
+    def model_parameters(self,nonbond_param=1.,R_CD=None,epsilon_bar=None):
         ''' Contains all the parameter information about the model, as well as
             what types of interactions are included.'''
         self.modelname = "Heterogeneous Go Model"
@@ -51,7 +51,7 @@ class HeterogeneousGoModel(HomogeneousGoModel):
         self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
         self.nonbond_param = 1.
         self.R_CD = None
-        self.epsilon_bar = 1.
+        self.epsilon_bar = epsilon_bar
         self.citation = self.citation_info(self.modelnameshort)
     
     def get_MJ_weights(self,resi,resj):

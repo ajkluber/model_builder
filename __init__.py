@@ -31,6 +31,7 @@ def get_model_new(options):
         model = HomogeneousGoModel.HomogeneousGoModel(disulfides=options["Disulfides"],
                                                     nonbond_param=options["nonbond_param"],
                                                     R_CD=options["R_CD"],
+                                                    epsilon_bar=options["Epsilon_Bar"],
                                                     cutoff=options["Cutoff"],
                                                     dryrun=options["Dry_Run"])
     elif type == "HetGo":

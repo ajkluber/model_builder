@@ -23,8 +23,8 @@ class HomogeneousGoModel(CalphaBase):
         Attractive LJ12-10 native contacts and repulsive LJ12 non-contacts.
     '''
 
-    def __init__(self,disulfides=None,nonbond_param=1.,R_CD=None,cutoff=None,dryrun=False):
-        self.model_parameters(nonbond_param=nonbond_param,R_CD=R_CD)
+    def __init__(self,disulfides=None,nonbond_param=1.,R_CD=None,epsilon_bar=None,cutoff=None,dryrun=False):
+        self.model_parameters(nonbond_param=nonbond_param,R_CD=R_CD,epsilon_bar=epsilon_bar)
         self.get_interaction_tables()
         self.disulfides = disulfides
         self.cutoff = cutoff
@@ -62,7 +62,7 @@ class HomogeneousGoModel(CalphaBase):
         repstring += "[ R_CD ]\n"
         repstring += "%s\n" % str(self.R_CD)
         repstring += "[ Epsilon_Bar ]\n"
-        repstring += "%s\n" % str(self.R_CD)
+        repstring += "%s\n" % str(self.epsilon_bar)
         repstring += "[ Cutoff ]\n"
         repstring += "%s\n" % str(self.cutoff)
         repstring += "[ Contact_Energies ]\n"
@@ -71,7 +71,7 @@ class HomogeneousGoModel(CalphaBase):
         repstring += "%s\n" % self.citation
         return repstring
 
-    def model_parameters(self,nonbond_param=1.,R_CD=None):
+    def model_parameters(self,nonbond_param=1.,R_CD=None,epsilon_bar=None):
         ''' Contains all the parameter information about the model, as well as
             what types of interactions are included.'''
         self.modelname = "Homogenous Go Model"
@@ -92,7 +92,7 @@ class HomogeneousGoModel(CalphaBase):
         self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
         self.nonbond_param = nonbond_param
         self.R_CD = R_CD
-        self.epsilon_bar = None
+        self.epsilon_bar = epsilon_bar
         self.citation = self.citation_info(self.modelnameshort)
 
     def nonbond_interaction(self,r,sig,delta):
@@ -207,6 +207,8 @@ class HomogeneousGoModel(CalphaBase):
                 self.epsilon_bar = 1.
                 Knb = self.epsilon_bar
                 print "    Using epsilon_bar: ", self.epsilon_bar
+
+        #print " *** DEBUGGING: epsilon_bar: ",self.epsilon_bar ## DEBUGGING
         print "    Nonbonded multiplier: ", Knb
         print "    Disulfides: ", self.disulfides
         native = 0
@@ -236,10 +238,11 @@ class HomogeneousGoModel(CalphaBase):
                 if (ds_flag == 1) and (j == partner):
                     ## Making the link between disulfides stronger. Special interaction number.
                     print "    Linking disulfides between residues: ",residues[i]+str(i+1)," and ",residues[partner]+str(partner+1)
-                    ss_strength = 1000.
+                    ss_strength = 100.
+                    delta = 1
                     sig = np.linalg.norm(xi - xj)
-                    c12 = ss_strength*self.backbone_param_vals["Kb"]*5.0*(sig**12)
-                    c10 = ss_strength*self.backbone_param_vals["Kb"]*6.0*(sig**10)*delta
+                    c12 = ss_strength*5.0*(sig**12)
+                    c10 = ss_strength*6.0*(sig**10)*delta
                     interaction_num = 'ss'
                 elif self.Qref[i][j] == 1:
                     ## Regular native contact are attractive.
@@ -310,7 +313,6 @@ class HomogeneousGoModel(CalphaBase):
         indices,atoms,residues,coords = self.dissect_clean_pdb(System.subdir)
         print "  Generating bonded files:"
         topology_files = self.get_bonded_itp_strings(indices,atoms,residues,coords)
-
 
         #print self.n_contacts,self.n_residues  ## DEBUGGING
 
