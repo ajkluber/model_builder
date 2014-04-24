@@ -166,8 +166,25 @@ def check_options(inputoptions):
         contact_energies = None
     options["Contact_Energies"] = contact_energies
 
+    ## Check if average contact strength parameter, epsilon_bar, is set. This 
+    ## keeps the average contact strength normalized to some number.
+    if inputoptions.has_key("Epsilon_Bar"):
+        if inputoptions["Epsilon_Bar"] not in ["","None",None,False]:
+            try:
+                epsilon_bar = float(inputoptions["Epsilon_Bar"])
+            except:
+                print "TypeError! epsilon_bar value must be a float!"
+                print "Exiting."
+                raise SystemExit
+        else:
+            epsilon_bar = None
+    else:
+        epsilon_bar = None
+    options["Epsilon_Bar"] = epsilon_bar
+
+
     ## Check for R_CD option. This option fixes the ratio of contact (C) to
-    ## dihedral (D) energy.
+    ## dihedral (D) energy. Soon to be deprecated, replaced by epsilon_bar.
     if inputoptions.has_key("R_CD"):
         if inputoptions["R_CD"] not in ["","None",None,False]:
             try:
@@ -200,7 +217,8 @@ def check_options(inputoptions):
     options["nonbond_param"] = nonbond_param
 
     ## Cutoff will switch method of determining native contacts from Shadow map to 
-    ## using heavy atom contacts within a cutoff of a given residue.
+    ## using heavy atom contacts within a cutoff of a given residue. Not currently
+    ## implemented.
     if inputoptions.has_key("Cutoff"):
         if inputoptions["Cutoff"] not in ["","None",None,False]:
             try:
@@ -228,6 +246,8 @@ def check_options(inputoptions):
         solvent = None
     options["Solvent"] = solvent
 
+    ## Dry run flag will prevent any simulations from being submitted. Used to see if file 
+    ## preparation runs smoothly.
     if inputoptions["Dry_Run"] == True:
         dryflag = True
     else:

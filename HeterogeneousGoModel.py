@@ -51,6 +51,7 @@ class HeterogeneousGoModel(HomogeneousGoModel):
         self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
         self.nonbond_param = 1.
         self.R_CD = None
+        self.epsilon_bar = 1.
         self.citation = self.citation_info(self.modelnameshort)
     
     def get_MJ_weights(self,resi,resj):

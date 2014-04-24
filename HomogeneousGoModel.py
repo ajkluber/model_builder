@@ -61,6 +61,8 @@ class HomogeneousGoModel(CalphaBase):
             repstring += "%s\n" % temp
         repstring += "[ R_CD ]\n"
         repstring += "%s\n" % str(self.R_CD)
+        repstring += "[ Epsilon_Bar ]\n"
+        repstring += "%s\n" % str(self.R_CD)
         repstring += "[ Cutoff ]\n"
         repstring += "%s\n" % str(self.cutoff)
         repstring += "[ Contact_Energies ]\n"
@@ -90,6 +92,7 @@ class HomogeneousGoModel(CalphaBase):
         self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
         self.nonbond_param = nonbond_param
         self.R_CD = R_CD
+        self.epsilon_bar = None
         self.citation = self.citation_info(self.modelnameshort)
 
     def nonbond_interaction(self,r,sig,delta):
@@ -179,14 +182,31 @@ class HomogeneousGoModel(CalphaBase):
         ''' Get the nonbond_params.itp and BeadBead.dat strings. '''
     
         print "    Creating nonbond_params.itp, BeadBead.dat"
+        ## Planning on removing R_CD as a parameter in favor of epsilon_bar.
+        ## Even though they are related R_CD = (Nc/Nd)*epsilon_bar 
+        ## (where Nc = # contacts, Nd = # dihedrals), epsilon_bar is more 
+        ## physically intuitive/relevant.
         if self.R_CD != None:
-            print "    Using R_C/D option: ", self.R_CD
-            Nc = float(sum(sum(self.Qref)))
-            Nd = float(len(self.Qref)-4)
-            Knb = (self.R_CD*Nd/Nc)*self.backbone_param_vals["Kd"]
-            self.nonbond_param = Knb 
+            if self.epsilon_bar != None:
+                print "    Using epsilon_bar: ", self.epsilon_bar
+                self.nonbond_param = self.epsilon_bar 
+            else:
+                print "    Using R_C/D option: ", self.R_CD
+                Nc = float(sum(sum(self.Qref)))
+                Nd = float(len(self.Qref)-4)
+                Knb = (self.R_CD*Nd/Nc)*self.backbone_param_vals["Kd"]
+                self.nonbond_param = Knb 
+                self.epsilon_bar = self.R_CD*(Nd/Nc)
+                print "    Setting epsilon_bar: ", self.epsilon_bar
         else:
-            Knb = self.nonbond_param
+            if self.epsilon_bar != None:
+                print "    Using epsilon_bar: ", self.epsilon_bar
+                Knb = self.epsilon_bar 
+                self.nonbond_param = self.epsilon_bar 
+            else:
+                self.epsilon_bar = 1.
+                Knb = self.epsilon_bar
+                print "    Using epsilon_bar: ", self.epsilon_bar
         print "    Nonbonded multiplier: ", Knb
         print "    Disulfides: ", self.disulfides
         native = 0
@@ -216,9 +236,10 @@ class HomogeneousGoModel(CalphaBase):
                 if (ds_flag == 1) and (j == partner):
                     ## Making the link between disulfides stronger. Special interaction number.
                     print "    Linking disulfides between residues: ",residues[i]+str(i+1)," and ",residues[partner]+str(partner+1)
+                    ss_strength = 1000.
                     sig = np.linalg.norm(xi - xj)
-                    c12 = self.backbone_param_vals["Kb"]*5.0*(sig**12)
-                    c10 = self.backbone_param_vals["Kb"]*6.0*(sig**10)*delta
+                    c12 = ss_strength*self.backbone_param_vals["Kb"]*5.0*(sig**12)
+                    c10 = ss_strength*self.backbone_param_vals["Kb"]*6.0*(sig**10)*delta
                     interaction_num = 'ss'
                 elif self.Qref[i][j] == 1:
                     ## Regular native contact are attractive.
@@ -266,6 +287,9 @@ class HomogeneousGoModel(CalphaBase):
                 else:
                     print "   ",residues[cys1-1]+str(cys1), residues[cys2-1]+str(cys2), \
                           " are separated by: %.4f nm. Good." % separation
+                if self.Qref[cys1-1][cys2-1] == 1:
+                    #print "    Subtracting 1 from n_contacts for ", cys1,cys2, " disulfide"
+                    self.n_contacts -= 1
 
         else:
             print "  No disulfides to check."
@@ -287,7 +311,11 @@ class HomogeneousGoModel(CalphaBase):
         print "  Generating bonded files:"
         topology_files = self.get_bonded_itp_strings(indices,atoms,residues,coords)
 
-        ## Make sure disulfide
+
+        #print self.n_contacts,self.n_residues  ## DEBUGGING
+
+        ## Make sure specified disulfides are reasonable: close in space and corresponding with 
+        ## cysteine pair.
         self.check_disulfides(residues,coords)
 
         print "  Generating nonbonded files:"

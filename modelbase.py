@@ -331,4 +331,6 @@ class CalphaBase(object):
         os.chdir(cwd)
         print "  Length = %d  Number of contacts = %d  Nc/L=%.4f" % (len(Qref),sum(sum(Qref)),float(sum(sum(Qref)))/float(len(Qref)))
         self.Qref = Qref
+        self.n_contacts = sum(sum(Qref))
+        self.n_residues = len(Qref)
 
