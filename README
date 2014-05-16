@@ -1,0 +1,52 @@
+
+---------------------------- ModelBuilder --------------------------------
+Created: November 2013
+Author: Alexander Kluber
+
+Created in 2013 for doing structure-based modeling (and other variations) in
+Dr. Cecilia Clementi's research group at Rice University. 
+--------------------------------------------------------------------------
+
+Purpose:
+    The purpose of the ModelBuilder module is to serve as a top-level
+simulation handler for starting structure-based model simulations. Most of
+the actual data of the simulation is stored in the Model and System objects
+(see model.py system.py for more information). The ModelBuilder class
+handles these objects so that most of the details are compartamentalized and
+out of sight.
+    At the top-level of a project we are concerned with large conceptual
+tasks, such as determining the folding temperature. Of course many smaller
+steps are required to acheive this task, but if there is a robust method in
+place for these smaller tasks then we don't need to deal with the details.
+Breaking down our tasks into conceptual steps is ideal for coding classes
+that are intuitive. The goal is that the names of the classes, functions,
+and variables will reflect this organizational logic and be
+self-documenting. 
+
+--------------------------------------------------------------------------
+Description:
+    ModelBuilder works with two data structures: Model and System. 
+ModelBuilder only needs a PDB file and some command line options to prepare
+and initialize simulation.
+
+
+
+--------------------------------------------------------------------------
+How To Use this Module:
+    ModelBuilder depends on Gromacs and python (also many non-standard
+python modules).
+
+
+--------------------------------------------------------------------------
+References:
+Clementi, C.; Nymeyer, H.; Onuchic, J. N.  Topological and Energetic
+Factors: What Determines the Structural Details of the Transition State
+Ensemble and 'En-Route' Intermediates for Protein Folding? An Investigation
+for Small Globular Proteins. J. Mol. Biol. 2000, 298, 937-53.
+
+Matysiak, S; Clementi, C. Optimal Combination of Theory and Experiment for
+the Characterization of the Protein Folding Landscape of S6: How Far Can a
+Minimalist Model Go?  J. Mol. Biol. 2004, 343, 235-48
+
+Matyiak, S; Clementi, C. Minimalist Protein Model as a Diagnostic Tool for
+Misfolding and Aggregation. J. Mol. Biol.  2006, 363, 297-308.
