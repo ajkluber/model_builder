@@ -1,66 +1,17 @@
-import system
+""" Class to hold system-specific info. 
 
-'''
-Fri Mar 21 16:12:34 CDT 2014
-Alexander Kluber
+Description:
 
     This is the start of the new format for the System class. Hopefully
 the cleaning style will enable it to be more.
-'''
 
-def get_system(opts):
-    System = system.System(opts["Subdir"],Tf_it=opts["Tf_Iteration"],
-                                Tf_act_dir=opts["Tf_Active_Directory"],Tf_refine=opts["Tf_Refinements"],
-                                Mut_it=opts["Mut_Iteration"],Mut_act_dir=opts["Mut_Active_Directory"])
-    return System
 
-def new_system(subdir):
-    System = system.System(subdir)
-    return System
+Example:
 
-def load_systems(subdirs):
-    ''' Create systems from saved options in system.info'''
-    Systems = []
-    for subdir in subdirs:
-        print "Loading system from subdirectory: ", subdir
-        System = load_system(subdir)
-        Systems.append(System)
-    return Systems
+>>>  
+"""
 
-def new_systems(subdirs):
-    ''' Create systems from saved options in system.info'''
-    Systems = []
-    for subdir in subdirs:
-        print "Creating system for: ", subdir
-        System = new_system(subdir)
-        Systems.append(System)
-    print "Proceeding...\n"
-    return Systems
-
-def load_system(subdir):
-    ''' Given subdir that contains model.info options file. Read in options and
-        create corresponding model.'''
-    info_file = open(subdir+'/system.info','r')
-    line = info_file.readline()
-    options = {}
-    while line != '':
-        field = line.split()[1]
-        value = info_file.readline()
-        if field == "Tf_refinements":
-            temp = [int(value[:-1].split()[0])]
-            line = info_file.readline()
-            while (line[:1] != '[') and (line != ''):
-                temp.append(int(line[:-1].split()[0]))
-                line = info_file.readline()
-                print line
-            options[field] = temp
-        else:
-            options[field] = value[:-1]
-            line = info_file.readline()
-    options = check_fields(options)
-    System = get_system(options)
-    print "Proceeding...\n"
-    return System
+import system
 
 def check_fields(fields):
     ''' Update names of inputted fields for backward compatibility.'''
@@ -94,3 +45,59 @@ def check_fields(fields):
         print "  ", key , " = ", fields[key]
 
     return fields
+
+def get_system(opts):
+    System = system.System(
+            opts["Subdir"],Tf_it=opts["Tf_Iteration"],
+            Tf_act_dir=opts["Tf_Active_Directory"],Tf_refine=opts["Tf_Refinements"],
+            Mut_it=opts["Mut_Iteration"],Mut_act_dir=opts["Mut_Active_Directory"])
+    return System
+
+def load_system(subdir):
+    ''' Given subdir that contains model.info options file. Read in options and
+        create corresponding model.'''
+    info_file = open(subdir+'/system.info','r')
+    line = info_file.readline()
+    options = {}
+    while line != '':
+        field = line.split()[1]
+        value = info_file.readline()
+        if field == "Tf_refinements":
+            temp = [int(value[:-1].split()[0])]
+            line = info_file.readline()
+            while (line[:1] != '[') and (line != ''):
+                temp.append(int(line[:-1].split()[0]))
+                line = info_file.readline()
+                print line
+            options[field] = temp
+        else:
+            options[field] = value[:-1]
+            line = info_file.readline()
+    options = check_fields(options)
+    System = get_system(options)
+    print "Proceeding...\n"
+    return System
+
+def load_systems(subdirs):
+    ''' Create systems from saved options in system.info'''
+    Systems = []
+    for subdir in subdirs:
+        print "Loading system from subdirectory: ", subdir
+        System = load_system(subdir)
+        Systems.append(System)
+    return Systems
+
+def new_system(subdir):
+    System = system.System(subdir)
+    return System
+
+def new_systems(subdirs):
+    ''' Create systems from saved options in system.info'''
+    Systems = []
+    for subdir in subdirs:
+        print "Creating system for: ", subdir
+        System = new_system(subdir)
+        Systems.append(System)
+    print "Proceeding...\n"
+    return Systems
+

@@ -1,28 +1,49 @@
+""" C-alpha Go-model with non-uniform contact energies.
+
+Description:
+    Class to generate Gromacs topology files for a heterogeneous Go-model. This For
+a detailed description of the C-alpha homogeneous Go-model see reference (1). 
+
+
+Classes:
+
+HomogeneousGoModel
+    Variant of homogeneous Go-model (see (1)) with non-uniform contact strengths
+
+
+References:
+
+(1) Clementi, C.; Nymeyer, H.; Onuchic, J. N. Topological and Energetic
+Factors: What Determines the Structural Details of the Transition State
+Ensemble and "En-Route" Intermediates for Protein Folding? An Investigation for
+Small Globular Proteins. J. Mol. Biol. 2000, 298, 937-953
+"""
+
 import numpy as np
 
 from HomogeneousGoModel import HomogeneousGoModel
 
-'''
-Mon Mar 3 2014
-Alexander Kluber
-
-Heterogeneous Go Model
-
-Purpose:
-    The heterogeneous (C-alpha) Go model is very similar to the homogeneous
-one, so it is just a sub-class of HomogeneousGoModel with a couple of functions
-redefined. 
-    It will just take.
-
-Description:
-
-'''
-
 class HeterogeneousGoModel(HomogeneousGoModel):
-    ''' All that needs to be computed is the interaction matrix between residues
-        i and j.'''
+    """ C-alpha Go-model with non-uniform contact strengths.
 
-    def __init__(self,contact_energies,disulfides=None,nonbond_param=1.,cutoff=None,R_CD=None,epsilon_bar=None,dryrun=False):
+    Description:
+        
+        A subclass of HomogeneousGoModel
+
+
+
+    References:
+
+    (1) Clementi, C.; Nymeyer, H.; Onuchic, J. N. Topological and Energetic
+    Factors: What Determines the Structural Details of the Transition State
+    Ensemble and "En-Route" Intermediates for Protein Folding? An Investigation for
+    Small Globular Proteins. J. Mol. Biol. 2000, 298, 937-953
+
+    """
+
+    def __init__(
+            self,contact_energies,disulfides=None,nonbond_param=1.,
+            cutoff=None,R_CD=None,epsilon_bar=None,dryrun=False):
         self.model_parameters(nonbond_param=nonbond_param,R_CD=R_CD,epsilon_bar=epsilon_bar)
         self.get_interaction_tables()
         self.disulfides = disulfides

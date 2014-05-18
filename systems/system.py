@@ -1,3 +1,10 @@
+""" Class to hold system- and project- specific info.
+
+Description:
+
+
+"""
+
 import os
 import time
 

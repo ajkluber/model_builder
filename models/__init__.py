@@ -1,66 +1,35 @@
+""" Submodule with classes of coarse-grain models.
+
+Description:
+
+    A module that prepares the Model object which contains the functions and
+parameters needed to prepare input files for coarse-grain protein simulations
+in Gromacs. Each model is a seperate class. 
+
+
+Classes:
+
+
+
+HomogeneousGoModel
+    Model with only native contacts and homogeneous contact energies
+
+HeterogeneousGoModel 
+    Model with only native contacts and heterogeneous contact energies
+
+DMCModel (coming soon)
+
+References:
+
+
+
+"""
+
 import os
 
 import DMCModel
 import HeterogeneousGoModel
 import HomogeneousGoModel
-
-
-
-'''
-Author: Alexander Kluber
-
-Purpose:
-    A module that prepares the Model object which contains the functions and
-parameters needed to prepare input files for coarse-grain protein simulations
-in Gromacs. 
-
-Description:
-    models takes as input a dictionary of options or a subdirectory where to 
-load options from a file. After checking options for consistency it returns 
-it creates the corresponding Model objects.  
-
-Changelog:
-3-10-14 Created the options checker.
-'''
-
-def get_model_new(options):
-    ''' Return a model with the following options. Options should have been
-        previously checked for consistencty. '''
-    type = options["Model_Code"]
-    if type == "HomGo":
-        model = HomogeneousGoModel.HomogeneousGoModel(disulfides=options["Disulfides"],
-                                                    nonbond_param=options["nonbond_param"],
-                                                    R_CD=options["R_CD"],
-                                                    epsilon_bar=options["Epsilon_Bar"],
-                                                    cutoff=options["Cutoff"],
-                                                    dryrun=options["Dry_Run"])
-    elif type == "HetGo":
-        model = HeterogeneousGoModel.HeterogeneousGoModel(options["Contact_Energies"],
-                                                    disulfides=options["Disulfides"],
-                                                    nonbond_param=options["nonbond_param"],
-                                                    R_CD=options["R_CD"],
-                                                    cutoff=options["Cutoff"],
-                                                    dryrun=options["Dry_Run"])
-    elif type == "DMC":
-        model = DMCModel.DMCModel()
-    else:
-        ## Due to previous error checking this should never be seen.
-        print "ERROR! "
-        print "Model: ",type," doesn't exist!"
-    return model
-    
-def get_model(type):
-    ''' DEPRECATED. 3-10-14 AK'''
-    if type == "HomGo":
-        model = HomogeneousGoModel.HomogeneousGoModel()
-    elif type == "HetGo":
-        pass
-        model = HeterogeneousGoModel.HeterogeneousGoModel()
-    elif type == "DMC":
-        model = DMCModel.DMCModel()
-    else:
-        print "ERROR. No such model exists."
-    return model
 
 def check_options(inputoptions):
     ''' Check that all options are compatible and in proper format. Any options
@@ -262,9 +231,34 @@ def check_options(inputoptions):
             
     return options
 
+def get_model(options):
+    ''' Return a model with the inputted dictionary of options'''
+    type = options["Model_Code"]
+    if type == "HomGo":
+        model = HomogeneousGoModel.HomogeneousGoModel(disulfides=options["Disulfides"],
+                                                    nonbond_param=options["nonbond_param"],
+                                                    R_CD=options["R_CD"],
+                                                    epsilon_bar=options["Epsilon_Bar"],
+                                                    cutoff=options["Cutoff"],
+                                                    dryrun=options["Dry_Run"])
+    elif type == "HetGo":
+        model = HeterogeneousGoModel.HeterogeneousGoModel(options["Contact_Energies"],
+                                                    disulfides=options["Disulfides"],
+                                                    nonbond_param=options["nonbond_param"],
+                                                    R_CD=options["R_CD"],
+                                                    cutoff=options["Cutoff"],
+                                                    dryrun=options["Dry_Run"])
+    elif type == "DMC":
+        model = DMCModel.DMCModel()
+    else:
+        ## Due to previous error checking this should never be seen.
+        print "ERROR! "
+        print "Model: ",type," doesn't exist!"
+    return model
+
+
 def load_model(subdir,dryrun=False):
-    ''' Given subdir that contains model.info options file. Read in options and
-        create corresponding model.'''
+    ''' Read model.info files in subdirectories and create models.'''
     info_file = open(subdir+'/model.info','r')
     line = info_file.readline()
     options = {"Dry_Run":dryrun}
@@ -281,7 +275,7 @@ def load_model(subdir,dryrun=False):
             options[field] = value[:-1]
         line = info_file.readline()
     options = check_options(options)
-    Model = get_model_new(options)
+    Model = get_model(options)
     return Model
 
 def load_models(subdirs,dryrun=False):
@@ -294,9 +288,9 @@ def load_models(subdirs,dryrun=False):
     return Models
 
 def new_models(subdirs,options):
-    ''' Create new models with options.'''
+    ''' Create new models with inputted options.'''
     Models = []
     for subdir in subdirs:
-        Model = get_model_new(options)
+        Model = get_model(options)
         Models.append(Model)
     return Models

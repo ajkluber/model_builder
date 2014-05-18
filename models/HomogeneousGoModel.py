@@ -1,29 +1,58 @@
-import numpy as np
-
-from modelbase import CalphaBase 
-
-
-'''
-Nov 2013
-Alexander Kluber
-
-Homogeneous Go Model
-
-Purpose:
-    This class generates the non-bonded interactions for the homogeneous go
-model.  It inherihits a lot of functionality from CalphaBase. In this model the
-only non-bonded interactions are attractive native interactions.
+""" Go-model with uniform contact energies.
 
 Description:
+    Class to generate Gromacs topology files for the homogeneous Go-model. For
+a detailed description of C-alpha homogeneous Go-model see reference (1). 
 
-'''
+
+Classes:
+
+HomogeneousGoModel
+    Original off-lattice Go-model used in reference (1)
+
+
+References:
+
+(1) Clementi, C.; Nymeyer, H.; Onuchic, J. N. Topological and Energetic
+Factors: What Determines the Structural Details of the Transition State
+Ensemble and "En-Route" Intermediates for Protein Folding? An Investigation for
+Small Globular Proteins. J. Mol. Biol. 2000, 298, 937-953
+"""
+
+import numpy as np
+
+from CalphaBase import CalphaBase 
 
 class HomogeneousGoModel(CalphaBase):
-    ''' This model is the classic Go-model used by Clementi, et.al.(2000).
-        Attractive LJ12-10 native contacts and repulsive LJ12 non-contacts.
-    '''
+    """ C-alpha Go-model with uniform contact strengths. See Ref (1) Clementi 2000
 
-    def __init__(self,disulfides=None,nonbond_param=1.,R_CD=None,epsilon_bar=None,cutoff=None,dryrun=False):
+    Description:
+        In the C-alpha Go-model only native contacts are made attractive while
+    all non-native contacts are repulsive. Native contacts interact by a 
+    Lennard-Jones 12-10 potential (instead of 12-6) because it makes the contact
+    minimum narrower. Non-native contacts have a  
+
+
+    References:
+
+    (1) Clementi, C.; Nymeyer, H.; Onuchic, J. N. Topological and Energetic
+    Factors: What Determines the Structural Details of the Transition State
+    Ensemble and "En-Route" Intermediates for Protein Folding? An Investigation for
+    Small Globular Proteins. J. Mol. Biol. 2000, 298, 937-953
+
+
+    Example:
+
+    >>> ls
+    3PHY.pdb
+    >>> system = model_builder.systems.new_system("3PHY")
+    >>> model = HomogeneousGoModel()
+    >>> model.prepare_system(system)
+    """
+
+    def __init__(
+            self,disulfides=None,nonbond_param=1.,R_CD=None,
+            epsilon_bar=None,cutoff=None,dryrun=False):
         self.model_parameters(nonbond_param=nonbond_param,R_CD=R_CD,epsilon_bar=epsilon_bar)
         self.get_interaction_tables()
         self.disulfides = disulfides

@@ -1,33 +1,16 @@
+""" CalphaBase
+
+Description:
+
+
+Classes
+
+CalphaBase
+"""
+
 import numpy as np
 import os
 import subprocess as sb
-
-''' 
-CalphaBase
-
-Purpose:
-    The Model class contains all information of the particular 
-structure-based model being used. At this level the Model class is still
-general. Each particular model (e.g. Homogeneous Go model, Heterogeneous
-Go model, DMC model) has a specific procedure for creating the Gromacs
-files so each particular model is a subclass of Model 
-(e.g. HomogeneousGoModel).
-    This is designed this way so that different models can be easily 
-interchanged. Since the model specifics are primarily used to generate
-the Gromacs input files (e.g. nonbond_params.itp), the other details
-of the model are accessed rarely but are included for completeness and
-in the hope that the models will become self-documenting.
-    New Model subclasses can be easily written by using the existing 
-one as a template. A lot of the functions will be redundant but that is
-ok because the most important part is that it is readable.
-
-Description:
-    Model contains all the details of the theoretical model we want to 
-simulate, like the form and constants of the Hamiltonian. The methods of 
-the different Model subclasses are not the most elegant, but they're 
-written to maximize readable.
-
-'''
 
 class CalphaBase(object):
 
