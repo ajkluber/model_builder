@@ -65,14 +65,16 @@ class CalphaBase(object):
                             first_index_full = int(line[22:26]) - 1
                             cleanpdb_full += newline_full
                             ## strip Hydrogens
-                            cleanpdb_full_noH += newline_full
+                            if not line[12:16].strip().startswith("H"):
+                                cleanpdb_full_noH += newline_full
                     else:
                         if (line[16] in ["A"," "]) and line[13] not in ["E","D"]:
                             newline_full = 'ATOM%7s  %-5s%3s A%4d%s\n' % \
                                     (atomid_full,line[12:16],line[17:20],int(line[22:26])-first_index_full,line[26:55])
                             atomid_full += 1
                             cleanpdb_full += newline_full
-                            cleanpdb_full_noH += newline_full
+                            if not line[12:16].strip().startswith("H"):
+                                cleanpdb_full_noH += newline_full
         
         cleanpdb_full += 'END\n'
         cleanpdb_full_noH += 'END\n'

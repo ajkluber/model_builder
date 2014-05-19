@@ -335,6 +335,7 @@ class HomogeneousGoModel(CalphaBase):
         open(System.path+"/"+System.subdir+"/Native.pdb","w").write(self.cleanpdb)
         open(System.path+"/"+System.subdir+"/Qref_shadow/clean.pdb","w").write(self.cleanpdb_full)
         open(System.path+"/"+System.subdir+"/clean.pdb","w").write(self.cleanpdb_full)
+        open(System.path+"/"+System.subdir+"/clean_noH.pdb","w").write(self.cleanpdb_full_noH)
         self.shadow_contacts(System.subdir)
 
         ## Get index files. Should all be done by modelbase/Calphabase class.
