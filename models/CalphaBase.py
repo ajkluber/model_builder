@@ -30,6 +30,7 @@ class CalphaBase(object):
         first_full = 0
         atomid_full = 1
         cleanpdb_full = ''
+        cleanpdb_full_noH = ''
         first_ca = 0
         atomid_ca = 1
         cleanpdb_ca = ''
@@ -78,6 +79,7 @@ class CalphaBase(object):
         cleanpdb_ca += 'END\n'
         self.cleanpdb = cleanpdb_ca
         self.cleanpdb_full = cleanpdb_full
+        self.cleanpdb_full_noH = cleanpdb_full
 
     def dissect_clean_pdb(self,subdir):
         ''' Extract info from the Native.pdb for making index and 
