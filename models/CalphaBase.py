@@ -43,7 +43,7 @@ class CalphaBase(object):
                     if line[13:17].strip() == "CA":
                         if first_ca == 0:
                             if line[16] in ["A"," "]:
-                                newline_ca = 'ATOM%7s  %-5s%3s A%4d%s\n' % \
+                                newline_ca = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                         (atomid_ca,line[12:16],line[17:20],1,line[26:55])
                                 atomid_ca += 1
                                 first_ca = 1
@@ -51,14 +51,14 @@ class CalphaBase(object):
                                 cleanpdb_ca += newline_ca
                         else:
                             if line[16] in ["A"," "]:
-                                newline_ca = 'ATOM%7s  %-5s%3s A%4d%s\n' % \
+                                newline_ca = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                         (atomid_ca,line[12:16],line[17:20],int(line[22:26])-first_index_ca,line[26:55])
                                 atomid_ca += 1
                                 cleanpdb_ca += newline_ca
 
                     if first_full == 0:
                         if (line[16] in ["A"," "]) and line[13] not in ["E","D"]:
-                            newline_full = 'ATOM%7s  %-5s%3s A%4d%s\n' % \
+                            newline_full = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                     (atomid_full,line[12:16],line[17:20],1,line[26:55])
                             atomid_full += 1
                             first_full = 1
@@ -69,7 +69,7 @@ class CalphaBase(object):
                                 cleanpdb_full_noH += newline_full
                     else:
                         if (line[16] in ["A"," "]) and line[13] not in ["E","D"]:
-                            newline_full = 'ATOM%7s  %-5s%3s A%4d%s\n' % \
+                            newline_full = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                     (atomid_full,line[12:16],line[17:20],int(line[22:26])-first_index_full,line[26:55])
                             atomid_full += 1
                             cleanpdb_full += newline_full
