@@ -183,8 +183,8 @@ class HeterogeneousGoModel(HomogeneousGoModel):
                     ## Non-native interactions are repulsive at constant distance of 3.5A.
                     sig = 0.35
                     delta = 0
-                    c12 = Knb*5.0*(sig**12)
-                    c10 = Knb*6.0*(sig**10)*delta
+                    c12 = 5.0*(sig**12)
+                    c10 = 6.0*(sig**10)*delta
                     interaction_num = '0'
                 k += 1
                 beadbead_string += '%5d%5d%8s%8s%5s%16.8E%16.8E%16.8E\n' % \

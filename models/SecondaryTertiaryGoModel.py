@@ -18,6 +18,8 @@ Small Globular Proteins. J. Mol. Biol. 2000, 298, 937-953
 """
 
 import numpy as np
+import subprocess as sb
+import shutil
 import os
 
 import mdtraj as md
@@ -77,17 +79,19 @@ class SecondaryTertiaryGoModel(HomogeneousGoModel):
 
     def extract_backbone_Hbonds(self,System):
         """ Use Gromacs and MDTraj to get backbone hydrogen bonds """
+
         name = System.subdir
 
         cwd = os.getcwd()
-        os.chdir(System.path+"/"+System.subdir)
         
-        if not os.path.exists("hbonds"):
-            os.makedirs("hbonds")
-        if not os.path.exists("hbonds/hbonds.dat"):
-            os.chdir("hbonds")
-            prep_script += "#!/bin/bash\n"
-            prep_script += "echo -e '1\n6\n' | pdb2gmx -f %s.pdb -o %s.gro\n" % (name,name)
+        if not os.path.exists(System.path+"/"+name+"/hbonds"):
+            os.makedirs(System.path+"/"+name+"/hbonds")
+        if not os.path.exists(System.path+"/"+name+"/hbonds/hbonds.dat"):
+            ## Determine backbone H-bonds with Gromacs and MDTraj
+            shutil.copy(name+".pdb",System.path+"/"+name+"/hbonds/")
+            os.chdir(System.path+"/"+name+"/hbonds")
+            prep_script = "#!/bin/bash\n"
+            prep_script += "echo -e '1\\n6\\n' | pdb2gmx -f %s.pdb -o %s.gro\n" % (name,name)
             prep_script += "trjconv -f %s.gro -o %s.xtc\n" % (name,name)
             prep_script += "editconf -f %s.gro -o %s_withH.pdb\n" % (name,name)
             open("prep_pdb.sh","w").write(prep_script)
@@ -194,8 +198,8 @@ class SecondaryTertiaryGoModel(HomogeneousGoModel):
                     ## Non-native interactions are repulsive at constant distance of 3.5A.
                     sig = 0.35
                     delta = 0
-                    c12 = Knb*5.0*(sig**12)
-                    c10 = Knb*6.0*(sig**10)*delta
+                    c12 = 5.0*(sig**12)
+                    c10 = 6.0*(sig**10)*delta
                     interaction_num = '0'
                 k += 1
                 beadbead_string += '%5d%5d%8s%8s%5s%16.8E%16.8E%16.8E\n' % \
@@ -210,7 +214,7 @@ class SecondaryTertiaryGoModel(HomogeneousGoModel):
 
         print "Preparing input files for subdirectory:", System.subdir
         print "  Extracting backbone H-bonds..."
-        extract_backbone_Hbonds(System)
+        self.extract_backbone_Hbonds(System)
 
         print "  Cleaning pdb..."
         self.clean_pdb(System.path+"/"+System.subdir+".pdb")

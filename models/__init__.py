@@ -40,7 +40,7 @@ def check_options(inputoptions):
     ## List of supported models & corresponding representations.
     available_models = ["HomGo","HetGo","DMC"]
     beadmodels = {"HomGo":["CA"],"HetGo":["CA"]}
-    contactopts = {"HetGo":["MJ","Bach","MC2004","FRETFit"]}
+    contactopts = {"HetGo":["MJ","Bach","MC2004","FRETFit","SecTer"]}
 
     modelcode = inputoptions["Model_Code"]
     beadmodel = inputoptions["Bead_Model"]
