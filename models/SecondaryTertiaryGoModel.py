@@ -95,7 +95,7 @@ class SecondaryTertiaryGoModel(HomogeneousGoModel):
             prep_script += "trjconv -f %s.gro -o %s.xtc\n" % (name,name)
             prep_script += "editconf -f %s.gro -o %s_withH.pdb\n" % (name,name)
             open("prep_pdb.sh","w").write(prep_script)
-            sb.call("bash prep_pdb.sh", shell=True)
+            sb.call("bash prep_pdb.sh", shell=True,stdout=open("hbonds.out","w"),stderr=open("hbonds.err","w"))
 
             traj = md.load("%s.xtc" % name, top="%s_withH.pdb" % name)
             M = (md.kabsch_sander(traj))[0]
@@ -108,7 +108,7 @@ class SecondaryTertiaryGoModel(HomogeneousGoModel):
 
         self.Hbonds = Hbonds
 
-    def get_contact_strengths(self,indices,residues):
+    def get_contact_strengths(self):
         """ Calculate contact strengths depending on secondary + tertiary contacts
         
         Description:
@@ -118,22 +118,125 @@ class SecondaryTertiaryGoModel(HomogeneousGoModel):
 
         """
 
-        N = len(self.Qref)
+        N = self.n_residues
+        print N, self.Hbonds.shape
         contact_epsilons = np.zeros(int(((N-2)*(N-3))/2),float)
         k = 0
-        for i in range(len(residues)):
-            for j in range(i+3,len(residues)):
+        for i in range(N):
+            for j in range(i+3,N):
                 eps = 0
-                if self.Hbonds[i][j] < -0.5:
-                    eps += 0.3
-                if self.Hbonds[j][i] < -0.5:
-                    eps += 0.3
-                if self.Hbonds[j][i-1] < -0.5:
-                    eps += 0.3
-                if self.Hbonds[j][i+1] < -0.5:
-                    eps += 0.3
-                if self.Qref[i][j] == 1:
-                    eps += 1.0
+                if i == 0:
+                    ## The donor IS the first residue
+                    ## Boundary case
+                    if j == i+3:
+                         
+                        if j == N-1:
+                            if self.Hbonds[i][j] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[j][i] < -0.5:
+                                eps += 0.33
+                            pass 
+                        else:
+                            if self.Hbonds[i][j+1] < -0.5:
+                                eps += 0.33
+                    elif j == i+4:
+                        if j == N-1:
+                            if self.Hbonds[i][j] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[j][i] < -0.5:
+                                eps += 0.33
+                        else:
+                            if self.Hbonds[i][j] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[j][i] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[i][j+1] < -0.5:
+                                eps += 0.33
+                    elif j == N-1:
+                        ## Boundary case
+                        if self.Hbonds[i][j] < -0.5:
+                            eps += 0.33
+                        if self.Hbonds[j][i] < -0.5:
+                            eps += 0.33
+                        if self.Qref[i][j] == 1:
+                            pass
+                            #eps += 1.0
+                    else:
+                        if self.Hbonds[i][j] < -0.5:
+                            eps += 0.33
+                        if self.Hbonds[j][i] < -0.5:
+                            eps += 0.33
+                        if self.Hbonds[j][i+1] < -0.5:
+                            eps += 0.33
+                        if (self.Hbonds[i][j-1] < -0.5) or (self.Hbonds[i][j+1] < -0.5):
+                            eps += 0.33
+                        if self.Qref[i][j] == 1:
+                            pass
+                            #eps += 1.0
+                else:
+                    ## The donor is NOT the first residue
+                    if j == i+3:
+                        if j == N-1:
+                            ## Boundary case
+                            if self.Hbonds[i][j] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[j][i] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[j][i-1] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[i-1][j] < -0.5:
+                                eps += 0.33
+                        else:
+                            if self.Hbonds[i][j+1] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[j][i-1] < -0.5:
+                                eps += 0.33
+                    elif j == i+4:
+                        if j == N-1:
+                            ## Boundary case
+                            if self.Hbonds[i][j] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[j][i] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[j][i-1] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[i-1][j] < -0.5:
+                                eps += 0.33
+                        else:
+                            if self.Hbonds[i][j] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[j][i] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[i][j+1] < -0.5:
+                                eps += 0.33
+                            if self.Hbonds[j][i-1] < -0.5:
+                                eps += 0.33
+                    elif j == N-1:
+                        if self.Hbonds[i][j] < -0.5:
+                            eps += 0.33
+                        if self.Hbonds[j][i] < -0.5:
+                            eps += 0.33
+                        if self.Hbonds[j][i-1] < -0.5:
+                            eps += 0.33
+                        if self.Hbonds[i-1][j] < -0.5:
+                            eps += 0.33
+                        if self.Hbonds[i+1][j] < -0.5:
+                            eps += 0.33
+                        if self.Qref[i][j] == 1:
+                            pass
+                            #eps += 1.0
+                    else:
+                        if self.Hbonds[i][j] < -0.5:
+                            eps += 0.33
+                        if self.Hbonds[j][i] < -0.5:
+                            eps += 0.33
+                        if (self.Hbonds[j][i-1] < -0.5) or (self.Hbonds[j][i+1] < -0.5):
+                            eps += 0.33
+                        if (self.Hbonds[i][j-1] < -0.5) or (self.Hbonds[i][j+1] < -0.5):
+                            eps += 0.33
+                        if self.Qref[i][j] == 1:
+                            pass
+                            #eps += 1.0
                 contact_epsilons[k] = eps
                 k += 1
         return contact_epsilons
@@ -153,7 +256,7 @@ class SecondaryTertiaryGoModel(HomogeneousGoModel):
         print "    Nonbonded multiplier: ", Knb
         print "    Disulfides: ", self.disulfides
 
-        contact_epsilons = self.get_contact_strengths(indices,residues)
+        contact_epsilons = self.get_contact_strengths()
         interaction_counter = 1
         nonbond_params_string = '[ nonbond_params ]\n'
         beadbead_string = ''
@@ -215,6 +318,7 @@ class SecondaryTertiaryGoModel(HomogeneousGoModel):
         print "Preparing input files for subdirectory:", System.subdir
         print "  Extracting backbone H-bonds..."
         self.extract_backbone_Hbonds(System)
+        np.savetxt(System.path+"/"+System.subdir+"/hbonds.dat",self.Hbonds)
 
         print "  Cleaning pdb..."
         self.clean_pdb(System.path+"/"+System.subdir+".pdb")
