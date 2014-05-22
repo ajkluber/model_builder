@@ -172,7 +172,6 @@ class HeterogeneousGoModel(HomogeneousGoModel):
                     interaction_num = 'ss'
                 elif self.Qref[i][j] == 1:
                     ## Regular native contact are attractive.
-                    
                     Knb = contact_epsilons[k]
                     sig = np.linalg.norm(xi - xj)
                     delta = 1

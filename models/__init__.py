@@ -30,6 +30,7 @@ import os
 import DMCModel
 import HeterogeneousGoModel
 import HomogeneousGoModel
+import SecondaryTertiaryGoModel
 
 def check_options(inputoptions):
     ''' Check that all options are compatible and in proper format. Any options
@@ -39,7 +40,7 @@ def check_options(inputoptions):
     ## List of supported models & corresponding representations.
     available_models = ["HomGo","HetGo","DMC"]
     beadmodels = {"HomGo":["CA"],"HetGo":["CA"]}
-    contactopts = {"HetGo":["MJ","Bach","MC2004"]}
+    contactopts = {"HetGo":["MJ","Bach","MC2004","FRETFit"]}
 
     modelcode = inputoptions["Model_Code"]
     beadmodel = inputoptions["Bead_Model"]
@@ -235,19 +236,30 @@ def get_model(options):
     ''' Return a model with the inputted dictionary of options'''
     type = options["Model_Code"]
     if type == "HomGo":
-        model = HomogeneousGoModel.HomogeneousGoModel(disulfides=options["Disulfides"],
-                                                    nonbond_param=options["nonbond_param"],
-                                                    R_CD=options["R_CD"],
-                                                    epsilon_bar=options["Epsilon_Bar"],
-                                                    cutoff=options["Cutoff"],
-                                                    dryrun=options["Dry_Run"])
+        model = HomogeneousGoModel.HomogeneousGoModel(
+                            disulfides=options["Disulfides"],
+                            nonbond_param=options["nonbond_param"],
+                            R_CD=options["R_CD"],
+                            epsilon_bar=options["Epsilon_Bar"],
+                            cutoff=options["Cutoff"],
+                            dryrun=options["Dry_Run"])
     elif type == "HetGo":
-        model = HeterogeneousGoModel.HeterogeneousGoModel(options["Contact_Energies"],
-                                                    disulfides=options["Disulfides"],
-                                                    nonbond_param=options["nonbond_param"],
-                                                    R_CD=options["R_CD"],
-                                                    cutoff=options["Cutoff"],
-                                                    dryrun=options["Dry_Run"])
+        if options["Contact_Energies"] == "SecTer":
+            model = SecondaryTertiaryGoModel.SecondaryTertiaryGoModel(
+                            options["Contact_Energies"],
+                            disulfides=options["Disulfides"],
+                            nonbond_param=options["nonbond_param"],
+                            R_CD=options["R_CD"],
+                            cutoff=options["Cutoff"],
+                            dryrun=options["Dry_Run"])
+        else:
+            model = HeterogeneousGoModel.HeterogeneousGoModel(
+                            options["Contact_Energies"],
+                            disulfides=options["Disulfides"],
+                            nonbond_param=options["nonbond_param"],
+                            R_CD=options["R_CD"],
+                            cutoff=options["Cutoff"],
+                            dryrun=options["Dry_Run"])
     elif type == "DMC":
         model = DMCModel.DMCModel()
     else:
