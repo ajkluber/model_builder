@@ -103,7 +103,7 @@ class SecondaryTertiaryGoModel(HomogeneousGoModel):
             np.savetxt("hbonds.dat",Hbonds)
             os.chdir("..")
         else:
-            M = np.loadtxt("hbonds/hbonds.dat")
+            M = np.loadtxt(System.path+"/"+name+"/hbonds/hbonds.dat")
         os.chdir(cwd)
 
         self.Hbonds = Hbonds

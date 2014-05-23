@@ -40,7 +40,7 @@ def check_options(inputoptions):
     ## List of supported models & corresponding representations.
     available_models = ["HomGo","HetGo","DMC"]
     beadmodels = {"HomGo":["CA"],"HetGo":["CA"]}
-    contactopts = {"HetGo":["MJ","Bach","MC2004","FRETFit","SecTer"]}
+    contactopts = {"HetGo":["MJ","Bach","MC2004","FRETFit","SecTer","SecTerSec","SecTerTer"]}
 
     modelcode = inputoptions["Model_Code"]
     beadmodel = inputoptions["Bead_Model"]
@@ -244,7 +244,7 @@ def get_model(options):
                             cutoff=options["Cutoff"],
                             dryrun=options["Dry_Run"])
     elif type == "HetGo":
-        if options["Contact_Energies"] == "SecTer":
+        if options["Contact_Energies"].startswith("SecTer"):
             model = SecondaryTertiaryGoModel.SecondaryTertiaryGoModel(
                             options["Contact_Energies"],
                             disulfides=options["Disulfides"],
