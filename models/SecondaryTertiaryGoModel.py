@@ -103,7 +103,7 @@ class SecondaryTertiaryGoModel(HomogeneousGoModel):
             np.savetxt("hbonds.dat",Hbonds)
             os.chdir("..")
         else:
-            M = np.loadtxt(System.path+"/"+name+"/hbonds/hbonds.dat")
+            Hbonds = np.loadtxt(System.path+"/"+name+"/hbonds/hbonds.dat")
         os.chdir(cwd)
 
         self.Hbonds = Hbonds
@@ -116,6 +116,9 @@ class SecondaryTertiaryGoModel(HomogeneousGoModel):
             Add additional contacts depending on if residues i and j are H-bonding.
         Increase the strength 
 
+
+        TO DO: ASSIGN HYDROGEN BOND INTERACTIONS CORRECTLY
+
         """
 
         N = self.n_residues
@@ -125,6 +128,14 @@ class SecondaryTertiaryGoModel(HomogeneousGoModel):
         for i in range(N):
             for j in range(i+3,N):
                 eps = 0
+                
+                #if boundary_contact_case(i,j):
+                #    pass
+                #    ## eps = boundary_contact_assign(i,j,eps) 
+                #else:
+                #    pass
+
+
                 if i == 0:
                     ## The donor IS the first residue
                     ## Boundary case
