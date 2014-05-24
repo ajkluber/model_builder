@@ -63,13 +63,13 @@ def load_system(subdir):
         field = line.split()[1]
         value = info_file.readline()
         if field == "Tf_refinements":
-            temp = [int(value[:-1].split()[0])]
-            line = info_file.readline()
-            while (line[:1] != '[') and (line != ''):
-                temp.append(int(line[:-1].split()[0]))
-                line = info_file.readline()
-                print line
-            options[field] = temp
+            #temp = [int(value[:-1].split()[0])]
+            #line = info_file.readline()
+            #while (line[:1] != '[') and (line != ''):
+            #    temp.append(int(line[:-1].split()[0]))
+            #    line = info_file.readline()
+            #    print line
+            options[field] = [0]
         else:
             options[field] = value[:-1]
             line = info_file.readline()
