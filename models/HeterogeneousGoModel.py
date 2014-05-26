@@ -122,7 +122,6 @@ class HeterogeneousGoModel(HomogeneousGoModel):
                     k += 1
         return contact_epsilons
         
-
     def get_nonbonded_itp_strings(self,indices,atoms,residues,coords):
         ''' Get the nonbond_params.itp and BeadBead.dat strings. '''
     
@@ -181,6 +180,7 @@ class HeterogeneousGoModel(HomogeneousGoModel):
                     interaction_counter += 1
                 else:
                     ## Non-native interactions are repulsive at constant distance of 3.5A.
+                    Knb = 1.0
                     sig = 0.35
                     delta = 0
                     c12 = 5.0*(sig**12)

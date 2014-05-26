@@ -57,7 +57,7 @@ class CalphaBase(object):
                                 cleanpdb_ca += newline_ca
 
                     if first_full == 0:
-                        if (line[16] in ["A"," "]) and line[13] not in ["E","D"]:
+                        if (line[16] in ["A"," "]) and (line[13] not in ["E","D"]):
                             newline_full = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                     (atomid_full,line[12:16],line[17:20],1,line[26:55])
                             atomid_full += 1
@@ -330,3 +330,7 @@ class CalphaBase(object):
         self.n_contacts = sum(sum(Qref))
         self.n_residues = len(Qref)
 
+if __name__ == "__main__":
+    pdb = "r16.pdb"
+    base = CalphaBase()
+    base.clean_pdb(pdb)
