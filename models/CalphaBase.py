@@ -24,6 +24,9 @@ class CalphaBase(object):
             
             Returns an all-atom pdb and a C-alpha only pdb.
 
+        Find the full PDB format specification at:
+        http://www.wwpdb.org/documentation/format33/sect9.html#ATOM
+
         PDB fixed-width column format is given by:
         ATOM     44  C   ALA A  11      12.266  21.667  20.517  1.00 28.80           C  
         """
@@ -51,7 +54,6 @@ class CalphaBase(object):
                                 cleanpdb_ca += newline_ca
                         else:
                             if line[16] in ["A"," "]:
-                                #print int(line[22:26])-first_index_ca
                                 newline_ca = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                         (atomid_ca,line[12:16],line[17:20],int(line[22:26])-first_index_ca,line[26:55])
                                 atomid_ca += 1
@@ -83,7 +85,6 @@ class CalphaBase(object):
         self.cleanpdb = cleanpdb_ca
         self.cleanpdb_full = cleanpdb_full
         self.cleanpdb_full_noH = cleanpdb_full
-        print cleanpdb_ca
 
     def dissect_clean_pdb(self,subdir):
         ''' Extract info from the Native.pdb for making index and 
