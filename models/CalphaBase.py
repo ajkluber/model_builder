@@ -40,7 +40,7 @@ class CalphaBase(object):
             else:
                 ## Keep only ATOM lines.
                 if line[:4] == 'ATOM':
-                    if line[13:17].strip() == "CA":
+                    if line[13:16].strip() == "CA":
                         if first_ca == 0:
                             if line[16] in ["A"," "]:
                                 newline_ca = 'ATOM%7s %-5s%3s A%4d%s\n' % \
@@ -51,6 +51,7 @@ class CalphaBase(object):
                                 cleanpdb_ca += newline_ca
                         else:
                             if line[16] in ["A"," "]:
+                                #print int(line[22:26])-first_index_ca
                                 newline_ca = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                         (atomid_ca,line[12:16],line[17:20],int(line[22:26])-first_index_ca,line[26:55])
                                 atomid_ca += 1
@@ -82,6 +83,7 @@ class CalphaBase(object):
         self.cleanpdb = cleanpdb_ca
         self.cleanpdb_full = cleanpdb_full
         self.cleanpdb_full_noH = cleanpdb_full
+        print cleanpdb_ca
 
     def dissect_clean_pdb(self,subdir):
         ''' Extract info from the Native.pdb for making index and 
@@ -334,3 +336,4 @@ if __name__ == "__main__":
     pdb = "r16.pdb"
     base = CalphaBase()
     base.clean_pdb(pdb)
+ 
