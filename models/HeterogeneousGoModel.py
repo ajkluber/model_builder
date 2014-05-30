@@ -100,8 +100,10 @@ class HeterogeneousGoModel(HomogeneousGoModel):
         else:
             ## Load contact strengths.
             N = len(self.Qref)
+            n_contacts = float(sum(sum(self.Qref)))
             contact_epsilons = np.zeros(int(((N-3)*(N-4))/2),float)
             k = 0
+            total_energy = 0.
             for i in range(len(residues)):
                 for j in range(i+4,len(residues)):
                     if self.Qref[i][j] == 1:
@@ -111,7 +113,7 @@ class HeterogeneousGoModel(HomogeneousGoModel):
                             eps = self.get_MJ_weights(resi,resj) 
                         elif self.contact_energies == "Bach":
                             eps = self.get_Bach_weight(resi,resj)
-                        elif self.contact_energies == "MC2004":
+                        elif self.contact_energies in ["MC2004","FRETFit"]:
                             eps = 1.0
                         else:
                             print "ERROR!"
@@ -119,7 +121,14 @@ class HeterogeneousGoModel(HomogeneousGoModel):
                             print "  Exiting."
                             raise SystemExit
                         contact_epsilons[k] = eps
+                        total_energy += eps
                     k += 1
+
+        if self.epsilon_bar != None:
+            print "    Setting avg. contact strength to: ", self.epsilon_bar
+            avg_cont_strength = (total_energy/n_contacts)
+            contact_epsilons *= self.epsilon_bar/avg_cont_strength
+            
         return contact_epsilons
         
     def get_nonbonded_itp_strings(self,indices,atoms,residues,coords):

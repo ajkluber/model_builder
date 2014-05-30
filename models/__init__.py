@@ -259,6 +259,7 @@ def get_model(options):
                             disulfides=options["Disulfides"],
                             nonbond_param=options["nonbond_param"],
                             R_CD=options["R_CD"],
+                            epsilon_bar=options["Epsilon_Bar"],
                             cutoff=options["Cutoff"],
                             dryrun=options["Dry_Run"])
     elif type == "DMC":
