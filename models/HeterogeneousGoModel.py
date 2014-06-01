@@ -168,23 +168,21 @@ class HeterogeneousGoModel(HomogeneousGoModel):
                 resj = residues[j]
                 i_idx = indices[i]
                 j_idx = indices[j]
-                delta = j - i
+                #delta = j - i
                 xi = coords[i]
                 xj = coords[j]
                 if (ds_flag == 1) and (j == partner):
                     ## Making the link between disulfides stronger. Special interaction number.
                     print "    Linking disulfides between residues: ",residues[i]+str(i+1)," and ",residues[partner]+str(partner+1)
+                    Knb = 50.
                     sig = np.linalg.norm(xi - xj)
-                    c12 = self.backbone_param_vals["Kb"]*5.0*(sig**12)
-                    c10 = self.backbone_param_vals["Kb"]*6.0*(sig**10)*delta
+                    delta = 1
                     interaction_num = 'ss'
                 elif self.Qref[i][j] == 1:
                     ## Regular native contact are attractive.
                     Knb = contact_epsilons[k]
                     sig = np.linalg.norm(xi - xj)
                     delta = 1
-                    c12 = Knb*5.0*(sig**12)
-                    c10 = Knb*6.0*(sig**10)*delta
                     interaction_num = str(interaction_counter)
                     interaction_counter += 1
                 else:
@@ -192,9 +190,9 @@ class HeterogeneousGoModel(HomogeneousGoModel):
                     Knb = 1.0
                     sig = 0.35
                     delta = 0
-                    c12 = 5.0*(sig**12)
-                    c10 = 6.0*(sig**10)*delta
                     interaction_num = '0'
+                c12 = Knb*5.0*(sig**12)
+                c10 = Knb*6.0*(sig**10)*delta
                 k += 1
                 beadbead_string += '%5d%5d%8s%8s%5s%16.8E%16.8E%16.8E\n' % \
                         (i_idx,j_idx,resi+str(i_idx),resj+str(j_idx),interaction_num,sig,Knb,delta)
