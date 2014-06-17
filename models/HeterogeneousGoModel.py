@@ -102,7 +102,7 @@ class HeterogeneousGoModel(HomogeneousGoModel):
         else:
             #Leave the door open for other types of models
             print '.dat file not found. Other input options for deltas not coded yet, setting default deltas to one'
-            contact_deltas = np.ones(Nc)
+            contact_deltas = np.ones(total_contacts)
 
         return contact_deltas
 
