@@ -93,7 +93,7 @@ class HeterogeneousGoModel(HomogeneousGoModel):
         contact_deltas = beadbead[:,7].astype(float)
         return contact_deltas
 
-    def get_contact_deltas(self, Nc):
+    def get_contact_deltas(self, total_contacts):
         ''' Load contact deltas, so far only coded for MC2004. This allows for native contacts to be repulsive (introduction of frustration)
         Use cautiosly '''
         if self.contact_energies.endswith(".dat"):
@@ -171,7 +171,7 @@ class HeterogeneousGoModel(HomogeneousGoModel):
 
         contact_epsilons = self.get_contact_strengths(indices,residues)
         #Added contact deltas reading from file, defaults to ones. Needs the number of contacts Nc as an input
-        contact_deltas = self.get_contact_deltas(Nc)
+        contact_deltas = self.get_contact_deltas(len(contact_epsilons))
         interaction_counter = 1
         nonbond_params_string = '[ nonbond_params ]\n'
         beadbead_string = ''
