@@ -87,6 +87,25 @@ class HeterogeneousGoModel(HomogeneousGoModel):
         contact_epsilons = beadbead[:,6].astype(float)
         return contact_epsilons
 
+    def get_MC2004_deltas(self):
+        ''' Load in contact strengths from BeadBead.dat file.'''
+        beadbead = np.loadtxt(self.contact_energies,dtype=str)
+        contact_deltas = beadbead[:,7].astype(float)
+        return contact_deltas
+
+    def get_contact_deltas(self):
+        ''' Load contact deltas, so far only coded for MC2004. This allows for native contacts to be repulsive (introduction of frustration)
+        Use cautiosly '''
+        if self.contact_energies.endswith("BeadBead.dat"):
+            # Load contact strengths from file.                                                                                                               
+            contact_deltas = self.get_MC2004_deltas()
+        else:
+            #Leave the door open for other types of models
+            print 'BeadBead.dat file not found. Other input options for deltas not coded yet'
+            raise SystemExit
+
+        return contact_deltas
+
     def get_contact_strengths(self,indices,residues):
         ''' Load in the interaction strengths for the desired option. Native contact
             strengths can be taken from MJ parameters, bach parameters, or a saved
@@ -147,6 +166,8 @@ class HeterogeneousGoModel(HomogeneousGoModel):
         print "    Disulfides: ", self.disulfides
 
         contact_epsilons = self.get_contact_strengths(indices,residues)
+        #Added contact deltas reading from file
+        contact_deltas = self.get_contact_deltas()
         interaction_counter = 1
         nonbond_params_string = '[ nonbond_params ]\n'
         beadbead_string = ''
@@ -179,10 +200,10 @@ class HeterogeneousGoModel(HomogeneousGoModel):
                     delta = 1
                     interaction_num = 'ss'
                 elif self.Qref[i][j] == 1:
-                    ## Regular native contact are attractive.
+                    ## Regular native contact are attractive, unless flipped in BeadBead.dat file (following ddG error minimization)
                     Knb = contact_epsilons[k]
                     sig = np.linalg.norm(xi - xj)
-                    delta = 1
+                    delta = contact_deltas[k]
                     interaction_num = str(interaction_counter)
                     interaction_counter += 1
                 else:
