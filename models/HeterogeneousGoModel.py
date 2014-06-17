@@ -93,16 +93,16 @@ class HeterogeneousGoModel(HomogeneousGoModel):
         contact_deltas = beadbead[:,7].astype(float)
         return contact_deltas
 
-    def get_contact_deltas(self):
+    def get_contact_deltas(self, Nc):
         ''' Load contact deltas, so far only coded for MC2004. This allows for native contacts to be repulsive (introduction of frustration)
         Use cautiosly '''
-        if self.contact_energies.endswith("BeadBead.dat"):
+        if self.contact_energies.endswith(".dat"):
             # Load contact strengths from file.                                                                                                               
             contact_deltas = self.get_MC2004_deltas()
         else:
             #Leave the door open for other types of models
-            print 'BeadBead.dat file not found. Other input options for deltas not coded yet'
-            raise SystemExit
+            print '.dat file not found. Other input options for deltas not coded yet, setting default deltas to one'
+            contact_deltas = np.ones(Nc)
 
         return contact_deltas
 
@@ -113,7 +113,7 @@ class HeterogeneousGoModel(HomogeneousGoModel):
             all contact strengths
 
         '''
-        if self.contact_energies.endswith("BeadBead.dat"):
+        if self.contact_energies.endswith(".dat"):
             ## Load contact strengths from file.
             contact_epsilons = self.get_MC2004_weights()
         else:
@@ -147,6 +147,10 @@ class HeterogeneousGoModel(HomogeneousGoModel):
             print "    Setting avg. contact strength to: ", self.epsilon_bar
             avg_cont_strength = (total_energy/n_contacts)
             contact_epsilons *= self.epsilon_bar/avg_cont_strength
+        #Raise exception if any epsilons are negative
+        for i in range(len(contact_epsilons)):
+            if contact_epsilons[i]<0.:
+                raise SystemExit('Negative epsilons found. Please check your data')
             
         return contact_epsilons
         
@@ -166,8 +170,8 @@ class HeterogeneousGoModel(HomogeneousGoModel):
         print "    Disulfides: ", self.disulfides
 
         contact_epsilons = self.get_contact_strengths(indices,residues)
-        #Added contact deltas reading from file
-        contact_deltas = self.get_contact_deltas()
+        #Added contact deltas reading from file, defaults to ones. Needs the number of contacts Nc as an input
+        contact_deltas = self.get_contact_deltas(Nc)
         interaction_counter = 1
         nonbond_params_string = '[ nonbond_params ]\n'
         beadbead_string = ''
