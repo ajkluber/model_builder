@@ -1,4 +1,4 @@
-""" CalphaBase
+""" SmogCalphaBase
 
 Description:
 
@@ -87,8 +87,7 @@ class CalphaBase(object):
         self.cleanpdb_full_noH = cleanpdb_full
 
     def dissect_clean_pdb(self,subdir):
-        ''' Extract info from the Native.pdb for making index and 
-            itp files '''
+        ''' Extract info from the Native.pdb for making index and itp files '''
         indices = []
         atoms = []
         residues = []
@@ -107,8 +106,25 @@ class CalphaBase(object):
         coords = np.array(coords)/10.
         return indices, atoms, residues, coords
 
+    def dihedral(self,coords,i_idx,j_idx,k_idx,l_idx):
+        ''' Compute the dihedral between planes. '''
+        v21 = coords[j_idx] - coords[i_idx]
+        v31 = coords[k_idx] - coords[i_idx]
+        v32 = coords[k_idx] - coords[j_idx]
+        v42 = coords[l_idx] - coords[j_idx]
+        v21xv31 = np.cross(v21,v31)
+        v21xv31 /= np.linalg.norm(v21xv31)
+        v32xv42 = np.cross(v32,v42)
+        v32xv42 /= np.linalg.norm(v32xv42)
+        if np.dot(v21,v32xv42) < 0.:
+            sign = -1.
+        else:
+            sign = 1.
+        phi = 180. + sign*(180./np.pi)*np.arccos(np.dot(v21xv31,v32xv42))
+        return phi
+
     def get_index_string(self,indices):
-        ''' Generates'''
+        ''' Generates index file for gromacs analysis utilities. '''
         ca_string = ''
         i = 1
         for indx in indices: 
@@ -118,30 +134,19 @@ class CalphaBase(object):
                 ca_string += '%4d ' % indx
             i += 1
         ca_string += '\n'
-        indexstring = '[ System ]\n'
-        indexstring += ca_string
-        indexstring += '[ Protein ]\n'
-        indexstring += ca_string
-        indexstring += '[ Protein-H ]\n'
-        indexstring += ca_string
-        indexstring += '[ C-alpha ]\n'
-        indexstring += ca_string
-        indexstring += '[ Backbone ]\n'
-        indexstring += ca_string
-        indexstring += '[ MainChain ]\n'
-        indexstring += ca_string
-        indexstring += '[ MainChain+Cb ]\n'
-        indexstring += ca_string
-        indexstring += '[ MainChain+H ]\n'
-        indexstring += ca_string
+        headings = ["System","Protein","Protein-H","C-alpha",\
+                    "Backbone","MainChain","MainChain+Cb","MainChain+H"]
+        for heading in headings:
+            indexstring = "[ "+heading+" ]\n"
+            indexstring += ca_string
         indexstring += '[ SideChain ]\n\n'
         indexstring += '[ SideChain-H ]\n\n'
         return indexstring
 
     def get_bonds_itp(self,indices,coords):
-        ''' Generate the bonds.itp string.'''
+        ''' Generate the [ bonds ] string.'''
         kb = self.backbone_param_vals["Kb"]
-        bonds_string = '[ bonds ]\n'
+        bonds_string = ""
         for j in range(len(indices)-1):
             i_idx = indices[j]-1
             j_idx = indices[j+1]-1
@@ -151,9 +156,9 @@ class CalphaBase(object):
         return bonds_string
 
     def get_angles_itp(self,indices,coords):
-        ''' Generate the angles.itp string.'''
+        ''' Generate the [ angles ] string.'''
         ka = self.backbone_param_vals["Ka"]
-        angles_string = '[ angles ]\n'
+        angles_string = ""
         for j in range(len(indices)-2):
             i_idx = indices[j]-1
             j_idx = indices[j+1]-1
@@ -168,10 +173,9 @@ class CalphaBase(object):
         return angles_string
 
     def get_dihedrals_itp(self,indices,coords):
-        ''' Write the dihedrals.itp string.'''
+        ''' Generate the [ dihedrals ] string.'''
         kd = self.backbone_param_vals["Kd"]
-        dihedrals_string = '[ dihedrals ]\n'
-        dihedrals_ndx_string = '[ dihedrals ]\n'
+        dihedrals_string = ""
         for j in range(len(indices)-3):
             i_idx = indices[j]-1
             j_idx = indices[j+1]-1
@@ -182,8 +186,82 @@ class CalphaBase(object):
                           (i_idx+1,j_idx+1,k_idx+1,l_idx+1,1,phi,kd,1)
             dihedrals_string += "%5d%5d%5d%5d%5d%16.8f%16.8f%5d\n" %  \
                           (i_idx+1,j_idx+1,k_idx+1,l_idx+1,1,3.*phi,kd/2.,3)
-            dihedrals_ndx_string += '%4d %4d %4d %4d\n' % (i_idx+1,j_idx+1,k_idx+1,l_idx+1,)
-        return dihedrals_string, dihedrals_ndx_string
+        return dihedrals_string
+
+    def get_dihedrals_ndx(self,indices,coords):
+        ''' Generate the dihedrals.ndx string.'''
+        kd = self.backbone_param_vals["Kd"]
+        dihedrals_ndx_string = '[ dihedrals ]\n'
+        for j in range(len(indices)-3):
+            i_idx = indices[j]
+            j_idx = indices[j+1]
+            k_idx = indices[j+2]
+            l_idx = indices[j+3]
+            dihedrals_ndx_string += '%4d %4d %4d %4d\n' % (i_idx,j_idx,k_idx,l_idx)
+        return dihedrals_ndx_string
+
+    def generate_topology():
+        """ Return a structure-based topology file. SMOG-style."""
+
+        top_string =  " ; Structure-based  topology file for Gromacs:\n"
+        top_string += " [ defaults ]\n"
+        top_string += " ;nbfunc comb-rule gen-pairs\n"
+        top_string += "      1           1 no\n"
+        top_string += "\n"
+
+        top_string += " [ system ]\n"
+        top_string += " ; name\n"
+        top_string += " Macromolecule\n"
+        top_string += "\n"
+
+        top_string += " [ moleculetype ]\n"
+        top_string += " ;name   nrexcl\n"
+        top_string += " Macromolecule           3\n"
+        top_string += "\n"
+
+        top_string += " [ molecules ]\n"
+        top_string += " ; name molec \n"
+        top_string += " Macromolecule 1\n"
+        top_string += "\n"
+
+        top_string += " [ atomtypes ]\n"
+        top_string += " ;name  mass     charge   ptype c10       c12\n"
+        top_string += " CA     1.000    0.000 A    0.000   0.167772160E-04\n"
+        top_string += "\n"
+
+        top_string += " [ atoms ]\n"
+        top_string += " ;nr  type  resnr residue atom  cgnr charge  mass\n"
+        atoms_string = self.get_atoms_string()
+        top_string += "\n"
+
+        top_string += " [ bonds ]\n"
+        top_string += " ; ai aj func r0(nm) Kb\n"
+        bonds_string = self.get_bonds_itp(indices,coords)
+        top_string += bonds_string
+        top_string += "\n"
+
+        top_string += " [ angles ]\n"
+        top_string += " ; ai  aj  ak  func  th0(deg)   Ka\n"
+        angles_string = self.get_angles_itp(indices,coords)
+        top_string += angles_string
+        top_string += "\n"
+
+        top_string += " [ dihedrals ]\n"
+        top_string += " ; ai  aj  ak al  func  phi0(deg)   Kd mult\n"
+        dihedrals_string = self.get_dihedrals_itp(indices,coords)
+        top_string += dihedrals_string
+        top_string += "\n"
+
+        top_string += " [ pairs ]\n"
+        top_string += " ; i j type and weights\n"
+        pairs_string = self.get_pairs_string()
+        top_string += "\n"
+
+        top_string += " [ exclusions ]\n"
+        top_string += " ; ai aj \n"
+        top_string += "\n"
+
+
 
     def get_bonded_itp_strings(self,indices,atoms,residues,coords):
         ''' Create a dictionary of simulation files concerning only 
@@ -210,22 +288,6 @@ class CalphaBase(object):
                          "dihedrals.ndx":dihedrals_ndx}
         return topology_files
 
-    def dihedral(self,coords,i_idx,j_idx,k_idx,l_idx):
-        ''' Compute the dihedral between planes. '''
-        v21 = coords[j_idx] - coords[i_idx]
-        v31 = coords[k_idx] - coords[i_idx]
-        v32 = coords[k_idx] - coords[j_idx]
-        v42 = coords[l_idx] - coords[j_idx]
-        v21xv31 = np.cross(v21,v31)
-        v21xv31 /= np.linalg.norm(v21xv31)
-        v32xv42 = np.cross(v32,v42)
-        v32xv42 /= np.linalg.norm(v32xv42)
-        if np.dot(v21,v32xv42) < 0.:
-            sign = -1.
-        else:
-            sign = 1.
-        phi = 180. + sign*(180./np.pi)*np.arccos(np.dot(v21xv31,v32xv42))
-        return phi
 
     def get_protein_itp(self):
         protein_itp_string = '; molecular topology file for coarse-grained protein\n\n'
