@@ -90,7 +90,7 @@ class SmogCalphaBase(object):
         self.cleanpdb_full = cleanpdb_full
         self.cleanpdb_full_noH = cleanpdb_full
 
-    def dissect_clean_pdb(self,subdir):
+    def dissect_native_pdb(self,subdir):
         ''' Extract info from the Native.pdb for making index and top file'''
         indices = []
         atoms = []
@@ -275,24 +275,14 @@ class SmogCalphaBase(object):
         top_string += "      1           1 no\n"
         top_string += "\n"
 
-        top_string += " [ system ]\n"
-        top_string += " ; name\n"
-        top_string += " Macromolecule\n"
+        top_string += " [ atomtypes ]\n"
+        top_string += " ;name  mass     charge   ptype c10       c12\n"
+        top_string += " CA     1.000    0.000 A    0.000   0.167772160E-04\n"
         top_string += "\n"
 
         top_string += " [ moleculetype ]\n"
         top_string += " ;name   nrexcl\n"
         top_string += " Macromolecule           3\n"
-        top_string += "\n"
-
-        top_string += " [ molecules ]\n"
-        top_string += " ; name molec \n"
-        top_string += " Macromolecule 1\n"
-        top_string += "\n"
-
-        top_string += " [ atomtypes ]\n"
-        top_string += " ;name  mass     charge   ptype c10       c12\n"
-        top_string += " CA     1.000    0.000 A    0.000   0.167772160E-04\n"
         top_string += "\n"
 
         top_string += " [ atoms ]\n"
@@ -329,6 +319,16 @@ class SmogCalphaBase(object):
         top_string += " ; ai aj \n"
         exclusions_string = self.get_exclusions_string()
         top_string += exclusions_string
+        top_string += "\n"
+
+        top_string += " [ system ]\n"
+        top_string += " ; name\n"
+        top_string += " Macromolecule\n"
+        top_string += "\n"
+
+        top_string += " [ molecules ]\n"
+        top_string += " ; name molec \n"
+        top_string += " Macromolecule 1\n"
         top_string += "\n"
 
         self.topology = top_string
@@ -454,13 +454,13 @@ if __name__ == "__main__":
     open("clean_noH.pdb","w").write(base.cleanpdb_full_noH)
     base.shadow_contacts(".")
 
-    base.dissect_clean_pdb(".")
+    base.dissect_native_pdb(".")
     base.generate_topology()
     open("1SHG.top","w").write(base.topology)
     base.generate_grofile()
     open("1SHG.gro","w").write(base.grofile)
 
     base.get_interaction_table()
-    np.savetxt("table.xvg",base.table,fmt="%16.15e",delimiter=" ")
+    np.savetxt("table.xvg",base.table,fmt="%18.15e",delimiter=" ")
 
 

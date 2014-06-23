@@ -32,6 +32,7 @@ import HeterogeneousGoModel
 import HomogeneousGoModel
 import SecondaryTertiaryGoModel
 import CalphaBase
+import SmogCalphaBase
 
 def check_options(inputoptions):
     ''' Check that all options are compatible and in proper format. Any options
