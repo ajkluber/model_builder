@@ -414,12 +414,34 @@ class SmogCalphaBase(object):
         self.n_contacts = sum(sum(Qref))
         self.n_residues = len(Qref)
 
+    def get_interaction_table(self):
+        ''' Returns the table for interaction type 'i'. The values of the
+            potential is set to 0.0 when r is too close to zero to avoid
+            blowup. 
+        '''
+        r = np.arange(0.0,4.0,0.002)
+        self.table = np.zeros((len(r),7),float)
+        self.table[:,0] = r
+        self.table[20:,1:7] = self.LJ1210_table(r[20:])
+
+    def LJ1210_table(self,r):
+        ''' LJ12-10 interaction potential ''' 
+        table = np.zeros((len(r),6),float)
+        table[:,0] = 1./r
+        table[:,1] = 1./(r**2)
+        table[:,2] = -1./(r**10)
+        table[:,3] = -10./(r**11)
+        table[:,4] = 1./(r**12)
+        table[:,5] = 12./(r**13)
+        return table
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Build a SMOG model.')
     parser.add_argument('--pdb', type=str, required=True, help='pdb')
     args = parser.parse_args() 
     pdb = args.pdb
+
 
     base = SmogCalphaBase()
     base.clean_pdb(pdb)
@@ -438,5 +460,7 @@ if __name__ == "__main__":
     base.generate_grofile()
     open("1SHG.gro","w").write(base.grofile)
 
+    base.get_interaction_table()
+    np.savetxt("table.xvg",base.table,fmt="%16.15e",delimiter=" ")
 
 
