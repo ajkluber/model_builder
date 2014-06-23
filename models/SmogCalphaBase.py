@@ -130,7 +130,7 @@ class SmogCalphaBase(object):
         phi = 180. + sign*(180./np.pi)*np.arccos(np.dot(v21xv31,v32xv42))
         return phi
 
-    def get_index_string(self):
+    def get_index_ndx(self):
         ''' Generates index file for gromacs analysis utilities. '''
         ca_string = ''
         i = 1
@@ -149,7 +149,7 @@ class SmogCalphaBase(object):
             indexstring += ca_string
         indexstring += '[ SideChain ]\n\n'
         indexstring += '[ SideChain-H ]\n\n'
-        return indexstring
+        self.index_ndx = indexstring
 
     def get_atoms_string(self):
         ''' Generate the [ atoms ] string.'''
@@ -218,7 +218,7 @@ class SmogCalphaBase(object):
             l_idx = self.indices[j+3]
             dihedrals_ndx_string += '%4d %4d %4d %4d\n' % \
                                 (i_idx,j_idx,k_idx,l_idx)
-        return dihedrals_ndx_string
+        self.dihedrals_ndx = dihedrals_ndx_string
 
     def get_pairs_string(self):
         """ Get the [ pairs ] string"""
