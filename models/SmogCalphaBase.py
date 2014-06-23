@@ -9,13 +9,16 @@ CalphaBase
 """
 
 import numpy as np
-import os
 import subprocess as sb
+import os
+import argparse
 
-class CalphaBase(object):
+class SmogCalphaBase(object):
 
     def __init__(self):
-        pass
+        self.contact_params = None
+        self.backbone_params = ["Kb","Ka","Kd"]
+        self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
 
     def clean_pdb(self,pdb):
         """ Grab only the lines of the pdb that we want. 
@@ -38,6 +41,7 @@ class CalphaBase(object):
         atomid_ca = 1
         cleanpdb_ca = ''
         for line in open(pdb,'r'):
+            line = line.rstrip("\n")
             if line[:3] in ['TER','END']:
                 break
             else:
@@ -78,7 +82,7 @@ class CalphaBase(object):
                             cleanpdb_full += newline_full
                             if not line[12:16].strip().startswith("H"):
                                 cleanpdb_full_noH += newline_full
-        
+         
         cleanpdb_full += 'END\n'
         cleanpdb_full_noH += 'END\n'
         cleanpdb_ca += 'END\n'
@@ -87,7 +91,7 @@ class CalphaBase(object):
         self.cleanpdb_full_noH = cleanpdb_full
 
     def dissect_clean_pdb(self,subdir):
-        ''' Extract info from the Native.pdb for making index and itp files '''
+        ''' Extract info from the Native.pdb for making index and top file'''
         indices = []
         atoms = []
         residues = []
@@ -104,7 +108,10 @@ class CalphaBase(object):
 
         ## Coordinates in pdb files are Angstroms. Convert to nanometers.
         coords = np.array(coords)/10.
-        return indices, atoms, residues, coords
+        self.indices = indices
+        self.atoms = atoms
+        self.residues = residues
+        self.coords = coords
 
     def dihedral(self,coords,i_idx,j_idx,k_idx,l_idx):
         ''' Compute the dihedral between planes. '''
@@ -123,11 +130,12 @@ class CalphaBase(object):
         phi = 180. + sign*(180./np.pi)*np.arccos(np.dot(v21xv31,v32xv42))
         return phi
 
-    def get_index_string(self,indices):
+    def get_index_string(self):
         ''' Generates index file for gromacs analysis utilities. '''
         ca_string = ''
         i = 1
-        for indx in indices: 
+        
+        for indx in self.indices: 
             if (i % 15) == 0:
                 ca_string += '%4d \n' % indx
             else:
@@ -143,64 +151,122 @@ class CalphaBase(object):
         indexstring += '[ SideChain-H ]\n\n'
         return indexstring
 
-    def get_bonds_itp(self,indices,coords):
+    def get_atoms_string(self):
+        ''' Generate the [ atoms ] string.'''
+        atoms_string = ""
+        for j in range(len(self.indices)):
+            atomnum = self.indices[j]
+            resnum = self.indices[j]
+            resid = self.residues[j]
+            atoms_string += " %5d%4s%8d%5s%4s%8d%8.3f%8.3f\n" % \
+                        (atomnum,"CA",resnum,resid,"CA",atomnum,0.0,1.0)
+        return atoms_string
+
+    def get_bonds_string(self):
         ''' Generate the [ bonds ] string.'''
         kb = self.backbone_param_vals["Kb"]
         bonds_string = ""
-        for j in range(len(indices)-1):
-            i_idx = indices[j]-1
-            j_idx = indices[j+1]-1
-            dist = np.linalg.norm(coords[i_idx] - coords[j_idx])
-            bonds_string += "%5d%5d%5d%16.8f%16.8f\n" %  \
+        for j in range(len(self.indices)-1):
+            i_idx = self.indices[j]-1
+            j_idx = self.indices[j+1]-1
+            dist = np.linalg.norm(self.coords[i_idx] - self.coords[j_idx])
+            bonds_string += "%6d %6d%2d%18.9e%18.9e\n" %  \
                           (i_idx+1,j_idx+1,1,dist,kb)
         return bonds_string
 
-    def get_angles_itp(self,indices,coords):
+    def get_angles_string(self):
         ''' Generate the [ angles ] string.'''
         ka = self.backbone_param_vals["Ka"]
         angles_string = ""
-        for j in range(len(indices)-2):
-            i_idx = indices[j]-1
-            j_idx = indices[j+1]-1
-            k_idx = indices[j+2]-1
-            xkj = coords[k_idx] - coords[j_idx]
+        for j in range(len(self.indices)-2):
+            i_idx = self.indices[j]-1
+            j_idx = self.indices[j+1]-1
+            k_idx = self.indices[j+2]-1
+            xkj = self.coords[k_idx] - self.coords[j_idx]
             xkj /= np.linalg.norm(xkj)
-            xij = coords[i_idx] - coords[j_idx]
+            xij = self.coords[i_idx] - self.coords[j_idx]
             xij /= np.linalg.norm(xij)
             theta = (180./np.pi)*np.arccos(np.dot(xkj, xij))
-            angles_string += "%5d%5d%5d%5d%16.8f%16.8f\n" %  \
+            angles_string += "%6d %6d %6d%2d%18.9e%18.9e\n" %  \
                           (i_idx+1,j_idx+1,k_idx+1,1,theta,ka)
         return angles_string
 
-    def get_dihedrals_itp(self,indices,coords):
+    def get_dihedrals_string(self):
         ''' Generate the [ dihedrals ] string.'''
         kd = self.backbone_param_vals["Kd"]
         dihedrals_string = ""
-        for j in range(len(indices)-3):
-            i_idx = indices[j]-1
-            j_idx = indices[j+1]-1
-            k_idx = indices[j+2]-1
-            l_idx = indices[j+3]-1
-            phi = self.dihedral(coords,i_idx,j_idx,k_idx,l_idx)
-            dihedrals_string += "%5d%5d%5d%5d%5d%16.8f%16.8f%5d\n" %  \
+        for j in range(len(self.indices)-3):
+            i_idx = self.indices[j]-1
+            j_idx = self.indices[j+1]-1
+            k_idx = self.indices[j+2]-1
+            l_idx = self.indices[j+3]-1
+            phi = self.dihedral(self.coords,i_idx,j_idx,k_idx,l_idx)
+            dihedrals_string += "%6d %6d %6d %6d%2d%18.9e%18.9e%2d\n" %  \
                           (i_idx+1,j_idx+1,k_idx+1,l_idx+1,1,phi,kd,1)
-            dihedrals_string += "%5d%5d%5d%5d%5d%16.8f%16.8f%5d\n" %  \
+            dihedrals_string += "%6d %6d %6d %6d%2d%18.9e%18.9e%2d\n" %  \
                           (i_idx+1,j_idx+1,k_idx+1,l_idx+1,1,3.*phi,kd/2.,3)
         return dihedrals_string
 
-    def get_dihedrals_ndx(self,indices,coords):
+    def get_dihedrals_ndx(self):
         ''' Generate the dihedrals.ndx string.'''
         kd = self.backbone_param_vals["Kd"]
         dihedrals_ndx_string = '[ dihedrals ]\n'
-        for j in range(len(indices)-3):
-            i_idx = indices[j]
-            j_idx = indices[j+1]
-            k_idx = indices[j+2]
-            l_idx = indices[j+3]
-            dihedrals_ndx_string += '%4d %4d %4d %4d\n' % (i_idx,j_idx,k_idx,l_idx)
+        for j in range(len(self.indices)-3):
+            i_idx = self.indices[j]
+            j_idx = self.indices[j+1]
+            k_idx = self.indices[j+2]
+            l_idx = self.indices[j+3]
+            dihedrals_ndx_string += '%4d %4d %4d %4d\n' % \
+                                (i_idx,j_idx,k_idx,l_idx)
         return dihedrals_ndx_string
 
-    def generate_topology():
+    def get_pairs_string(self):
+        """ Get the [ pairs ] string"""
+        if self.contact_params == None:
+            print "  No contact parameters set. Setting contacts to homogeneous model. 1"
+            self.contact_params = np.ones(len(self.contacts),float)
+
+        pairs_string = ""
+        for i in range(len(self.contacts)):
+            res_a = self.contacts[i][0]
+            res_b = self.contacts[i][1]
+            x_a = self.coords[res_a-1]
+            x_b = self.coords[res_b-1]
+            sig_ab = np.linalg.norm(x_a - x_b)
+            eps_ab = self.contact_params[i] 
+
+            c12 = eps_ab*5.0*(sig_ab**12)
+            c10 = eps_ab*6.0*(sig_ab**10)
+
+            pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
+                            (res_a,res_b,1,c10,c12)
+
+        return pairs_string
+
+    def get_exclusions_string(self):
+        """ Get the [ exclusions ] string"""
+
+        exclusions_string = ""
+        for i in range(len(self.contacts)):
+            res_a = self.contacts[i][0]
+            res_b = self.contacts[i][1]
+            exclusions_string += "%6d %6d\n" % (res_a,res_b)
+
+        return exclusions_string
+
+    def generate_grofile(self):
+
+        gro_string = " Structure-based Gro file\n"
+        gro_string += "%12d\n" % len(self.atoms)
+        for i in range(len(self.atoms)):
+            gro_string += "%5d%5s%4s%6d%8.3f%8.3f%8.3f\n" % \
+                (self.indices[i],self.residues[i],self.atoms[i],self.indices[i],
+                self.coords[i][0],self.coords[i][1],self.coords[i][2])
+        gro_string += "   %-25.16f%-25.16f%-25.16f" % (5.0,5.0,5.0)
+
+        self.grofile = gro_string
+
+    def generate_topology(self):
         """ Return a structure-based topology file. SMOG-style."""
 
         top_string =  " ; Structure-based  topology file for Gromacs:\n"
@@ -232,87 +298,40 @@ class CalphaBase(object):
         top_string += " [ atoms ]\n"
         top_string += " ;nr  type  resnr residue atom  cgnr charge  mass\n"
         atoms_string = self.get_atoms_string()
+        top_string += atoms_string
         top_string += "\n"
 
         top_string += " [ bonds ]\n"
         top_string += " ; ai aj func r0(nm) Kb\n"
-        bonds_string = self.get_bonds_itp(indices,coords)
+        bonds_string = self.get_bonds_string()
         top_string += bonds_string
         top_string += "\n"
 
         top_string += " [ angles ]\n"
         top_string += " ; ai  aj  ak  func  th0(deg)   Ka\n"
-        angles_string = self.get_angles_itp(indices,coords)
+        angles_string = self.get_angles_string()
         top_string += angles_string
         top_string += "\n"
 
         top_string += " [ dihedrals ]\n"
         top_string += " ; ai  aj  ak al  func  phi0(deg)   Kd mult\n"
-        dihedrals_string = self.get_dihedrals_itp(indices,coords)
+        dihedrals_string = self.get_dihedrals_string()
         top_string += dihedrals_string
         top_string += "\n"
 
         top_string += " [ pairs ]\n"
         top_string += " ; i j type and weights\n"
         pairs_string = self.get_pairs_string()
+        top_string += pairs_string
         top_string += "\n"
 
         top_string += " [ exclusions ]\n"
         top_string += " ; ai aj \n"
+        exclusions_string = self.get_exclusions_string()
+        top_string += exclusions_string
         top_string += "\n"
 
-
-
-    def get_bonded_itp_strings(self,indices,atoms,residues,coords):
-        ''' Create a dictionary of simulation files concerning only 
-            bonded interactions. '''
-        topology_files = {}
-        print "    Creating topol.top"
-        topol_top = self.get_topology_string()
-        print "    Creating protein.itp"
-        protein_itp = self.get_protein_itp()
-        print "    Creating bonds.itp"
-        bonds_itp = self.get_bonds_itp(indices,coords)
-        print "    Creating angles.itp"
-        angles_itp = self.get_angles_itp(indices,coords)
-        print "    Creating dihedrals.itp, dihedrals.ndx"
-        dihedrals_itp,dihedrals_ndx = self.get_dihedrals_itp(indices,coords)
-        print "    Creating index.ndx"
-        index_ndx = self.get_index_string(indices)
-        topology_files = {"index.ndx":index_ndx,
-                         "topol.top":topol_top,
-                         "protein.itp":protein_itp,
-                         "bonds.itp":bonds_itp,
-                         "angles.itp":angles_itp,
-                         "dihedrals.itp":dihedrals_itp,
-                         "dihedrals.ndx":dihedrals_ndx}
-        return topology_files
-
-
-    def get_protein_itp(self):
-        protein_itp_string = '; molecular topology file for coarse-grained protein\n\n'
-        protein_itp_string += '[ moleculetype ]\n'
-        protein_itp_string += '; name number.of.exclusions\n'
-        protein_itp_string += 'HomGo     3\n\n'
-        protein_itp_string += '#include "atoms.itp"\n'
-        protein_itp_string += '#include "bonds.itp"\n'
-        protein_itp_string += '#include "angles.itp"\n'
-        protein_itp_string += '#include "dihedrals.itp"\n'
-        return protein_itp_string
-
-    def get_topology_string(self):
-        ''' String for topol.top. Need blank line between sections.'''
-        topstring = '[ defaults ]\n'
-        topstring += '; nbfunc        comb-rule       gen-pairs       fudgeLJ fudgeQQ\n'
-        topstring += '  1             1               no              1.0     1.0\n\n'
-        topstring += '#include "atomtypes.itp"\n\n'
-        topstring += '#include "nonbond_params.itp"\n\n'
-        topstring += '#include "protein.itp"\n\n'
-        topstring += '[ system ]\n'
-        topstring += 'coarse-grained protein\n\n'
-        topstring += '[ molecules ]\n'
-        topstring +=  'HomGo     1\n'
-        return topstring
+        self.topology = top_string
 
     def citation_info(self,key):
         ''' Dictionary of references'''
@@ -327,7 +346,7 @@ class CalphaBase(object):
                     "J. Mol. Biol. 2004, 343, 235-48", 
                      'DMC':"Matyiak, S; Clementi, C. Minimalist Protein Model as \n"+  \
                     "a Diagnostic Tool for Misfolding and Aggregation. J. Mol. Biol. \n"+ \
-                    "2006, 363, 297-308."}
+                    "2006, 363, 297-308.",}
         return citations[key]
 
     def residue_mass(self):
@@ -364,14 +383,13 @@ class CalphaBase(object):
             print "  Native contact map "+subdir+"/Qref_cryst.dat exists."
             print "  Skipping shadow map calculation. Loading native contact map..."
             Qref = np.loadtxt(cwd+"/"+subdir+"/Qref_cryst.dat")
+            self.contacts = np.loadtxt(cwd+"/"+subdir+"/contacts.dat")
         else:
             print "  Native contact map "+subdir+"/Qref_cryst.dat does not exist."
             print "  Doing shadow map calculation..."
             print "  *** NOTE: module load jdk/1.7.0.21 required for shadow map ***"
+            #if not os.path.exists("Qref_shadow"):
             os.chdir(cwd+"/"+subdir+"/Qref_shadow")
-            #loadjava = 'module load jdk/1.7.0.21'
-            #sb.call(loadjava,shell=True)
-            #cmd0 = 'cp /projects/cecilia/ajk8/model_builder/SCM.1.31.jar .'
             cmd0 = 'cp /projects/cecilia/SCM.1.31.jar .'
             sb.call(cmd0,shell=True,stdout=open("contacts.out","w"),stderr=open("contacts.err","w"))
             #cmd1 = 'echo -e "9\\n3\\n" | pdb2gmx -f clean.pdb -o %s.gro -p %s.top -ignh' % (subdir,subdir)
@@ -380,15 +398,16 @@ class CalphaBase(object):
             cmd2 = 'java -jar SCM.1.31.jar -g %s.gro -t %s.top -o %s.contacts -m shadow --coarse CA' % (subdir,subdir,subdir)
             sb.call(cmd2,shell=True,stdout=open("contacts.out","w"),stderr=open("contacts.err","w"))
 
-            conts = np.loadtxt(subdir+".contacts",usecols=(1,3))
-            N = max(conts.ravel())
+            self.contacts = np.loadtxt(subdir+".contacts",usecols=(1,3))
+            N = max(self.contacts.ravel())
             Qref = np.zeros((N,N))
-            for pair in conts:
+            for pair in self.contacts:
                 Qref[pair[0]-1,pair[1]-1] = 1
 
             print "  Native contact map calculated with shadow map. Saving Qref_cryst.dat..."
             np.savetxt("Qref_cryst.dat",Qref,delimiter=" ",fmt="%1d")
             np.savetxt(cwd+"/"+subdir+"/Qref_cryst.dat",Qref,delimiter=" ",fmt="%1d")
+            np.savetxt(cwd+"/"+subdir+"/contacts.dat",self.contacts,delimiter=" ",fmt="%4d")
         os.chdir(cwd)
         print "  Length = %d  Number of contacts = %d  Nc/L=%.4f" % (len(Qref),sum(sum(Qref)),float(sum(sum(Qref)))/float(len(Qref)))
         self.Qref = Qref
@@ -396,7 +415,28 @@ class CalphaBase(object):
         self.n_residues = len(Qref)
 
 if __name__ == "__main__":
-    pdb = "r16.pdb"
-    base = CalphaBase()
+
+    parser = argparse.ArgumentParser(description='Build a SMOG model.')
+    parser.add_argument('--pdb', type=str, required=True, help='pdb')
+    args = parser.parse_args() 
+    pdb = args.pdb
+
+    base = SmogCalphaBase()
     base.clean_pdb(pdb)
- 
+    if not os.path.exists("Qref_shadow"):
+        os.mkdir("Qref_shadow")
+
+    open("Native.pdb","w").write(base.cleanpdb)
+    open("Qref_shadow/clean.pdb","w").write(base.cleanpdb_full)
+    open("clean.pdb","w").write(base.cleanpdb_full)
+    open("clean_noH.pdb","w").write(base.cleanpdb_full_noH)
+    base.shadow_contacts(".")
+
+    base.dissect_clean_pdb(".")
+    base.generate_topology()
+    open("1SHG.top","w").write(base.topology)
+    base.generate_grofile()
+    open("1SHG.gro","w").write(base.grofile)
+
+
+
