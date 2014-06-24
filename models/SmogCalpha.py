@@ -5,22 +5,161 @@ Description:
 
 Classes
 
-CalphaBase
+SmogCalpha
+
+
+Example Usage:
+    See project_tools/examples
+
 """
 
 import numpy as np
 import subprocess as sb
 import os
 import argparse
+import time
 
-class SmogCalphaBase(object):
+class SmogCalpha(object):
+    """ This class creates a smog-like topology and grofile """
 
-    def __init__(self):
-        self.contact_params = None
+    def __init__(self,pdb,contact_epsilons=None,contact_deltas=None,
+            epsilon_bar=None,modelcode=None,disulfides=None,dryrun=False,
+            Tf_iteration=0,Mut_iteration=0):
+
+        self.beadmodel = "CA"
         self.backbone_params = ["Kb","Ka","Kd"]
         self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
 
-    def clean_pdb(self,pdb):
+        self.modelcode = modelcode
+        self.contact_epsilons = contact_epsilons
+        self.contact_deltas = contact_deltas
+        self.epsilon_bar = epsilon_bar
+        self.disulfies = disulfides
+        self.dryrun = dryrun
+
+        self.Tf_iteration = Tf_iteration
+        self.Mut_iteration = Mut_iteration
+
+        self.path = os.getcwd()
+
+        if not os.path.exists(pdb):
+            print "ERROR! The inputted pdb: ",pdb," does not exist"
+            print " Exiting."
+            raise SystemExit
+        else:
+
+            self.pdb = pdb
+            self.name = pdb.split(".pdb")[0]
+            self.subdir = self.name
+            if not os.path.exists(self.subdir+"/Qref_shadow"):
+                os.mkdir(self.subdir+"/Qref_shadow")
+
+            self.clean_pdb()
+            self.shadow_contacts()
+            self.dissect_native_pdb()
+            self.check_disulfides() 
+            self.generate_grofile()
+            self.generate_topology()
+            self.get_interaction_table()
+            
+    def __repr__(self):
+        ''' The string representation of all the model info.'''
+        repstring = "[ Path ]\n"
+        repstring += "%s\n" % self.path
+        repstring += "[ PDB ]\n"
+        repstring += "%s\n" % self.pdb
+        repstring += "[ Subdir ]\n"
+        repstring += "%s\n" % self.subdir
+        repstring += "[ Tf_Iteration ]\n"
+        repstring += "%s\n" % self.Tf_iteration
+        repstring += "[ Mut_Iteration ]\n"
+        repstring += "%s\n" % self.Mut_iteration
+        repstring += "[ Model_Code ]\n" 
+        repstring += "%s\n" % self.modelcode
+        repstring += "[ Bead_Model ]\n" 
+        repstring += "%s\n" % self.beadmodel
+        repstring += "[ Backbone_params ]\n" 
+        repstring += "  %5s       %5s       %5s\n" % ("Kb","Ka","Kd")
+        repstring += "[ Backbone_param_vals ]\n" 
+        repstring += "%10.2f%10.2f%10.2f\n" % (self.backbone_param_vals["Kb"],self.backbone_param_vals["Ka"],self.backbone_param_vals["Kd"])
+        repstring += "[ Disulfides ]\n"
+        if self.disulfides == None:
+            repstring += "%s\n" % None
+        else:
+            temp = ''
+            for x in self.disulfides:
+                temp += " %d " % x 
+            repstring += "%s\n" % temp
+        repstring += "[ Epsilon_Bar ]\n"
+        repstring += "%s\n" % str(self.epsilon_bar)
+        repstring += "[ Contact_Energies ]\n"
+        repstring += "%s\n" % str(self.contact_energies)
+        repstring += "[ Reference ]\n" 
+        repstring += "%s\n" % self.citation
+        return repstring
+
+    def append_log(self,string):
+        now = time.localtime()
+        now_string = "%s:%s:%s:%s:%s" % (now.tm_year,now.tm_mon,now.tm_mday,now.tm_hour,now.tm_min)
+        logfile = open(self.path+'/'+self.subdir+'/'+self.subdir+'.log','a').write(now_string+' '+string+'\n')
+
+    def citation_info(self,key):
+        ''' Dictionary of references'''
+        citations = {'HomGo':"Clementi, C.; Nymeyer, H.; Onuchic, J. N. \n"+  \
+                    "Topological and Energetic Factors: What Determines the \n"+ \
+                    "Structural Details of the Transition State Ensemble and \n"+ \
+                    "'En-Route' Intermediates for Protein Folding? An Investigation\n"+ \
+                    "for Small Globular Proteins. J. Mol. Biol. 2000, 298, 937-53.", 
+                     'HetGo':"Matysiak, S; Clementi, C. Optimal Combination of \n"+ \
+                    "Theory and Experiment for the Characterization of the Protein \n"+ \
+                    "Folding Landscape of S6: How Far Can a Minimalist Model Go? \n"+ \
+                    "J. Mol. Biol. 2004, 343, 235-48", 
+                     'DMC':"Matyiak, S; Clementi, C. Minimalist Protein Model as \n"+  \
+                    "a Diagnostic Tool for Misfolding and Aggregation. J. Mol. Biol. \n"+ \
+                    "2006, 363, 297-308.",}
+        return citations[key]
+
+    def check_disulfides(self):
+        ''' Check that specified disulfides are between cysteine and that 
+            the corresonding pairs are within 0.8 nm.'''
+        coords = self.coords
+        residues = self.residues
+        if self.disulfides != None:
+            print "  Checking disulfides are reasonable."
+            for i in range(len(self.disulfides[::2])):
+                cys1 = self.disulfides[2*i]
+                cys2 = self.disulfides[2*i + 1]
+                if (residues[cys1-1] != "CYS") or (residues[cys2-1] != "CYS"):
+                    print "ERROR! Specifying disulfide between two residues that aren't CYS cysteine! "
+                    print "Exiting"
+                    raise SystemExit
+                #print "##  Checking disulfide residue identities: ", residues[cys1-1], residues[cys2-1]    ## DEBUGGING
+                dist = coords[cys1-1] - coords[cys2-1]
+                separation = np.linalg.norm(dist)
+                #print "##  Separation: ", separation ## DEBUGGING
+                if separation > 0.8:
+                    print "ERROR!"
+                    print "Specifying disulfide of separation greater than 0.8 nm."
+                    print "Exiting"
+                    raise SystemExit
+                else:
+                    print "   ",residues[cys1-1]+str(cys1), residues[cys2-1]+str(cys2), \
+                          " are separated by: %.4f nm. Good." % separation
+                    ## Remove disulfide pair from self.contacts if it is there.
+                    new_conts = []
+                    for pair in self.contacts:
+                        if all(pair == [cys1,cys2]):
+                            pass
+                        else:
+                            new_conts.append(pair)
+                    self.contacts = np.array(new_conts)
+                if self.Qref[cys1-1][cys2-1] == 1:
+                    #print "    Subtracting 1 from n_contacts for ", cys1,cys2, " disulfide"
+                    self.n_contacts -= 1
+        else:
+            print "  No disulfides to check."
+
+    def clean_pdb(self):
         """ Grab only the lines of the pdb that we want. 
     
         Description:
@@ -40,7 +179,7 @@ class SmogCalphaBase(object):
         first_ca = 0
         atomid_ca = 1
         cleanpdb_ca = ''
-        for line in open(pdb,'r'):
+        for line in open(self.pdb,'r'):
             line = line.rstrip("\n")
             if line[:3] in ['TER','END']:
                 break
@@ -89,15 +228,19 @@ class SmogCalphaBase(object):
         self.cleanpdb = cleanpdb_ca
         self.cleanpdb_full = cleanpdb_full
         self.cleanpdb_full_noH = cleanpdb_full
+        open(self.subdir+"/Native.pdb","w").write(self.cleanpdb)
+        open(self.subdir+"/Qref_shadow/clean.pdb","w").write(self.cleanpdb_full)
+        open(self.subdir+"/clean.pdb","w").write(self.cleanpdb_full)
+        open(self.subdir+"/clean_noH.pdb","w").write(self.cleanpdb_full_noH)
 
-    def dissect_native_pdb(self,subdir):
+    def dissect_native_pdb(self):
         ''' Extract info from the Native.pdb for making index and top file'''
         indices = []
         atoms = []
         residues = []
         coords = []
 
-        for line in open(subdir+"/Native.pdb","r"):
+        for line in open(self.subdir+"/Native.pdb","r"):
             if line.startswith("END"):
                 break
             else:
@@ -129,6 +272,49 @@ class SmogCalphaBase(object):
             sign = 1.
         phi = 180. + sign*(180./np.pi)*np.arccos(np.dot(v21xv31,v32xv42))
         return phi
+
+    def get_interaction_table(self):
+        ''' Returns the table for interaction type 'i'. The values of the
+            potential is set to 0.0 when r is too close to zero to avoid
+            blowup. 
+        '''
+        r = np.arange(0.0,4.0,0.002)
+        self.table = np.zeros((len(r),7),float)
+        self.table[:,0] = r
+        self.table[20:,1:7] = self.get_LJ1210_table(r[20:])
+
+    def get_LJ1210_table(self,r):
+        ''' LJ12-10 interaction potential ''' 
+        table = np.zeros((len(r),6),float)
+        table[:,0] = 1./r
+        table[:,1] = 1./(r**2)
+        table[:,2] = -1./(r**10)
+        table[:,3] = -10./(r**11)
+        table[:,4] = 1./(r**12)
+        table[:,5] = 12./(r**13)
+        return table
+
+    def get_residue_mass(self):
+        '''Masses in atomic mass units.'''
+        residue_mass = {'ALA':   89.0935, 'ARG':  174.2017, 'ASN':  132.1184,
+                        'ASP':  133.1032, 'CYS':  121.1590, 'GLN':  146.1451,
+                        'GLU':  147.1299, 'GLY':   75.0669, 'HIS':  155.1552,
+                        'ILE':  131.1736, 'LEU':  131.1736, 'LYS':  146.1882,
+                        'MET':  149.2124, 'PHE':  165.1900, 'PRO':  115.1310,
+                        'SER':  105.0930, 'THR':  119.1197, 'TRP':  204.2262,
+                        'TYR':  181.1894, 'VAL':  117.1469, 'SOL':   18.0150}
+        return residue_mass
+
+    def get_residue_one_letter_code(self):
+        '''Converting from three letter code to one letter FASTA code.'''
+        residue_code = {'ALA': 'A', 'ARG': 'R', 'ASN': 'N',
+                        'ASP': 'D', 'CYS': 'C', 'GLN': 'Q',
+                        'GLU': 'E', 'GLY': 'G', 'HIS': 'H',
+                        'ILE': 'I', 'LEU': 'L', 'LYS': 'K',
+                        'MET': 'M', 'PHE': 'F', 'PRO': 'P',
+                        'SER': 'S', 'THR': 'T', 'TRP': 'W',
+                        'TYR': 'Y', 'VAL': 'V'}
+        return residue_code
 
     def get_index_ndx(self):
         ''' Generates index file for gromacs analysis utilities. '''
@@ -223,8 +409,16 @@ class SmogCalphaBase(object):
     def get_pairs_string(self):
         """ Get the [ pairs ] string"""
         if self.contact_params == None:
-            print "  No contact parameters set. Setting contacts to homogeneous model. 1"
-            self.contact_params = np.ones(len(self.contacts),float)
+            print "  No contact epsilons set. Setting contacts to homogeneous model. 1"
+            self.contact_epsilons = np.ones(len(self.contacts),float)
+        if self.contact_deltas == None:
+            print "  No contact deltas set. Setting contacts to attractive. 1"
+            self.contact_deltas = np.ones(len(self.contacts),float)
+        if self.epsilon_bar != None:
+            print "  Scaling attractive contacts such that epsilon_bar =", self.epsilon_bar
+            avg_eps = np.sum(self.contact_epsilons*self.contact_deltas)
+            attractive = (self.contact_deltas == 1.)
+            self.contact_epsilons[attractive] = self.contact_epsilons[attractive]*self.epsilon_bar/avg_eps
 
         pairs_string = ""
         for i in range(len(self.contacts)):
@@ -233,14 +427,32 @@ class SmogCalphaBase(object):
             x_a = self.coords[res_a-1]
             x_b = self.coords[res_b-1]
             sig_ab = np.linalg.norm(x_a - x_b)
-            eps_ab = self.contact_params[i] 
+            eps_ab = self.contact_epsilons[i] 
+            delta_ab = self.contact_deltas[i] 
 
             c12 = eps_ab*5.0*(sig_ab**12)
-            c10 = eps_ab*6.0*(sig_ab**10)
+            c10 = delta_ab*6.0*(sig_ab**10)
 
             pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
                             (res_a,res_b,1,c10,c12)
 
+        if self.disulfides != None:
+            for i in range(len(self.disulfides)/2):
+                cys_a = self.disulfides[2*i]
+                cys_b = self.disulfides[2*i + 1]
+                x_a = self.coords[cys_a-1]
+                x_b = self.coords[cys_b-1]
+                sig_ab = np.linalg.norm(x_a - x_b)
+                eps_ab = 100.
+                delta_ab = 1.
+
+                c12 = eps_ab*5.0*(sig_ab**12)
+                c10 = delta_ab*6.0*(sig_ab**10)
+
+                print " Linking disulfide: ",cys_a,cys_b, " with eps = ",eps_ab
+                pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
+                                (cys_a,cys_b,1,c10,c12)
+    
         return pairs_string
 
     def get_exclusions_string(self):
@@ -251,6 +463,11 @@ class SmogCalphaBase(object):
             res_a = self.contacts[i][0]
             res_b = self.contacts[i][1]
             exclusions_string += "%6d %6d\n" % (res_a,res_b)
+        if self.disulfides != None:
+            for i in range(len(self.disulfides)/2):
+                cys_a = self.disulfides[2*i]
+                cys_b = self.disulfides[2*i + 1]
+                exclusions_string += "%6d %6d\n" % (cys_a,cys_b)
 
         return exclusions_string
 
@@ -333,49 +550,13 @@ class SmogCalphaBase(object):
 
         self.topology = top_string
 
-    def citation_info(self,key):
-        ''' Dictionary of references'''
-        citations = {'HomGo':"Clementi, C.; Nymeyer, H.; Onuchic, J. N. \n"+  \
-                    "Topological and Energetic Factors: What Determines the \n"+ \
-                    "Structural Details of the Transition State Ensemble and \n"+ \
-                    "'En-Route' Intermediates for Protein Folding? An Investigation\n"+ \
-                    "for Small Globular Proteins. J. Mol. Biol. 2000, 298, 937-53.", 
-                     'HetGo':"Matysiak, S; Clementi, C. Optimal Combination of \n"+ \
-                    "Theory and Experiment for the Characterization of the Protein \n"+ \
-                    "Folding Landscape of S6: How Far Can a Minimalist Model Go? \n"+ \
-                    "J. Mol. Biol. 2004, 343, 235-48", 
-                     'DMC':"Matyiak, S; Clementi, C. Minimalist Protein Model as \n"+  \
-                    "a Diagnostic Tool for Misfolding and Aggregation. J. Mol. Biol. \n"+ \
-                    "2006, 363, 297-308.",}
-        return citations[key]
-
-    def residue_mass(self):
-        '''Masses in atomic mass units.'''
-        residue_mass = {'ALA':   89.0935, 'ARG':  174.2017, 'ASN':  132.1184,
-                        'ASP':  133.1032, 'CYS':  121.1590, 'GLN':  146.1451,
-                        'GLU':  147.1299, 'GLY':   75.0669, 'HIS':  155.1552,
-                        'ILE':  131.1736, 'LEU':  131.1736, 'LYS':  146.1882,
-                        'MET':  149.2124, 'PHE':  165.1900, 'PRO':  115.1310,
-                        'SER':  105.0930, 'THR':  119.1197, 'TRP':  204.2262,
-                        'TYR':  181.1894, 'VAL':  117.1469, 'SOL':   18.0150}
-        return residue_mass
-
-    def residue_one_letter_code(self):
-        '''Converting from three letter code to one letter FASTA code.'''
-        residue_code = {'ALA': 'A', 'ARG': 'R', 'ASN': 'N',
-                        'ASP': 'D', 'CYS': 'C', 'GLN': 'Q',
-                        'GLU': 'E', 'GLY': 'G', 'HIS': 'H',
-                        'ILE': 'I', 'LEU': 'L', 'LYS': 'K',
-                        'MET': 'M', 'PHE': 'F', 'PRO': 'P',
-                        'SER': 'S', 'THR': 'T', 'TRP': 'W',
-                        'TYR': 'Y', 'VAL': 'V'}
-        return residue_code
-
-    def shadow_contacts(self,subdir):
+    def shadow_contacts(self):
         ''' Call SMOG Shadow jar code to determine the shadow contacts. If 
             the reference matrix Qref_cryst.dat doesn't exist then create 
             and dive into a subdirectory to run shadow map. Then save 
             Qref_cryst.dat in the parent directory.'''
+
+        subdir = self.subdir
 
         cwd = os.getcwd()
         print "  Calculating native contacts for: ",subdir
@@ -383,7 +564,7 @@ class SmogCalphaBase(object):
             print "  Native contact map "+subdir+"/Qref_cryst.dat exists."
             print "  Skipping shadow map calculation. Loading native contact map..."
             Qref = np.loadtxt(cwd+"/"+subdir+"/Qref_cryst.dat")
-            self.contacts = np.loadtxt(cwd+"/"+subdir+"/contacts.dat")
+            self.contacts = np.loadtxt(cwd+"/"+subdir+"/contacts.dat",dtype=int)
         else:
             print "  Native contact map "+subdir+"/Qref_cryst.dat does not exist."
             print "  Doing shadow map calculation..."
@@ -398,7 +579,6 @@ class SmogCalphaBase(object):
             cmd2 = 'java -jar SCM.1.31.jar -g %s.gro -t %s.top -o %s.contacts -m shadow --coarse CA' % (subdir,subdir,subdir)
             sb.call(cmd2,shell=True,stdout=open("contacts.out","w"),stderr=open("contacts.err","w"))
 
-            self.contacts = np.loadtxt(subdir+".contacts",usecols=(1,3))
             N = max(self.contacts.ravel())
             Qref = np.zeros((N,N))
             for pair in self.contacts:
@@ -408,32 +588,13 @@ class SmogCalphaBase(object):
             np.savetxt("Qref_cryst.dat",Qref,delimiter=" ",fmt="%1d")
             np.savetxt(cwd+"/"+subdir+"/Qref_cryst.dat",Qref,delimiter=" ",fmt="%1d")
             np.savetxt(cwd+"/"+subdir+"/contacts.dat",self.contacts,delimiter=" ",fmt="%4d")
+            self.contacts = np.loadtxt(subdir+".contacts",dtype=int,usecols=(1,3))
+
         os.chdir(cwd)
         print "  Length = %d  Number of contacts = %d  Nc/L=%.4f" % (len(Qref),sum(sum(Qref)),float(sum(sum(Qref)))/float(len(Qref)))
         self.Qref = Qref
         self.n_contacts = sum(sum(Qref))
         self.n_residues = len(Qref)
-
-    def get_interaction_table(self):
-        ''' Returns the table for interaction type 'i'. The values of the
-            potential is set to 0.0 when r is too close to zero to avoid
-            blowup. 
-        '''
-        r = np.arange(0.0,4.0,0.002)
-        self.table = np.zeros((len(r),7),float)
-        self.table[:,0] = r
-        self.table[20:,1:7] = self.LJ1210_table(r[20:])
-
-    def LJ1210_table(self,r):
-        ''' LJ12-10 interaction potential ''' 
-        table = np.zeros((len(r),6),float)
-        table[:,0] = 1./r
-        table[:,1] = 1./(r**2)
-        table[:,2] = -1./(r**10)
-        table[:,3] = -10./(r**11)
-        table[:,4] = 1./(r**12)
-        table[:,5] = 12./(r**13)
-        return table
 
 if __name__ == "__main__":
 
@@ -443,7 +604,7 @@ if __name__ == "__main__":
     pdb = args.pdb
 
 
-    base = SmogCalphaBase()
+    base = SmogCalpha()
     base.clean_pdb(pdb)
     if not os.path.exists("Qref_shadow"):
         os.mkdir("Qref_shadow")

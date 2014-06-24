@@ -109,7 +109,7 @@ class HomogeneousGoModel(CalphaBase):
         self.energygroups = ["Protein"]
         self.energygrps = ""
         for grp in self.energygroups: self.energygrps += grp + " "
-        #self.energygrps = ["Protein"]
+        self.energygrps = ["Protein"]
         self.interaction_groups = ["Protein_Protein"]
         self.interaction_types = ["LJ12-10"]
         self.interaction_tables = [ self.get_table_Protein_Protein ]
@@ -119,8 +119,8 @@ class HomogeneousGoModel(CalphaBase):
         self.solvent = "None"
         self.backbone_params = ["Kb","Ka","Kd"]
         self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
-        self.nonbond_param = nonbond_param
-        self.R_CD = R_CD
+        self.nonbond_param = None
+        self.R_CD = None
         self.epsilon_bar = epsilon_bar
         self.citation = self.citation_info(self.modelnameshort)
 
@@ -175,37 +175,6 @@ class HomogeneousGoModel(CalphaBase):
             atoms_itp += "%5s%8s%5s%5s%8s%5s    %10.6f    %10.6f\n" % \
                     (index,resname+index,index,resname,resname+index,index,charge,mass)
         return atomtypes_itp, atoms_itp
-
-    def get_nonbond_sigma(self,resi,resj,delta,xi,xj):
-        ''' Extract the equilibrium non-bonded interaction distance from the 
-            histogram files. NOT USED'''
-
-        histpath = "/projects/cecilia/ajk8/model_builder/Histograms/contact_CA/hist"
-        names = sorted([resi,resj])
-        if delta == 4:
-            extpath = "4"
-        elif delta == 5 or delta == 6:
-            extpath = "56" 
-        elif delta >= 7:
-            extpath = "7up"
-        else:
-            print "You should never see this"
-        histpath += extpath+"/"+names[0]+"_"+names[1]+".xvg"
-
-        x, Px = np.loadtxt(histpath,unpack=True)
-        cumx = np.array([ sum(Px[:i]) for i in range(len(Px)) ])
-        cumx[-1] = 1
-        q = np.random.random()
-        index = list(cumx > q).index(True)
-        sig = 0.05*(x[index-1] + x[index])
-        natsig = np.linalg.norm(xi-xj)
-        newsig = min([natsig,sig])
-        #print natsig, newsig ## DEBUGGING
-        if natsig <= 1.25*newsig:
-            native = 1
-        else:
-            native = 0
-        return newsig, native
 
     def get_nonbonded_itp_strings(self,indices,atoms,residues,coords):
         ''' Get the nonbond_params.itp and BeadBead.dat strings. '''

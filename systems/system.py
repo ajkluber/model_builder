@@ -32,11 +32,11 @@ class System(object):
         reprstring += "%s\n" % self.subdir
         reprstring += "[ Tf_Iteration ]\n"
         reprstring += "%s\n" % self.Tf_iteration
-        reprstring += "[ Tf_Refinements ]\n"
-        temp = ""
-        for x in self.Tf_refinements:
-            temp += "%d\n" % int(x)
-        reprstring += "%s" % temp
+        #reprstring += "[ Tf_Refinements ]\n"
+        #temp = ""
+        #for x in self.Tf_refinements:
+        #    temp += "%d\n" % int(x)
+        #reprstring += "%s" % temp
         reprstring += "[ Tf_Active_Directory ]\n"
         reprstring += "%s\n" % self.Tf_active_directory
         reprstring += "[ Mut_Iteration ]\n"

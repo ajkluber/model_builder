@@ -225,3 +225,5 @@ class HeterogeneousGoModel(HomogeneousGoModel):
                         (resi+str(i_idx),resj+str(j_idx),1,c10,c12)
         return nonbond_params_string,beadbead_string
     
+    def get_pairs_string(self):
+        pass
