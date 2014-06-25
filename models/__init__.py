@@ -137,6 +137,9 @@ def check_options(inputoptions):
             if contactopts.has_key(modelcode):
                 if (inputoptions["Contact_Energies"] in contactopts[modelcode]):
                     contact_energies = inputoptions["Contact_Energies"]
+                    contacts = None
+                    contact_epsilons = None
+                    contacts_deltas = None
                 elif (inputoptions["Contact_Energies"].endswith(".dat")) or (inputoptions["Contact_Energies"].endswith(".params")):
                     if not os.path.exists(inputoptions["Contact_Energies"]):
                         print "ERROR!"
@@ -166,9 +169,18 @@ def check_options(inputoptions):
                 raise SystemExit
             else:
                 contact_energies = None
+                contacts = None
+                contact_epsilons = None
+                contacts_deltas = None
     else:
         contact_energies = None
+        contacts = None
+        contact_epsilons = None
+        contacts_deltas = None
     options["Contact_Energies"] = contact_energies
+    options["Contacts"] = contacts
+    options["Contact_Epsilons"] = contact_epsilons
+    options["Contact_Deltas"] = contact_deltas
 
     ## Check if average contact strength parameter, epsilon_bar, is set. This 
     ## keeps the average contact strength normalized to some number.
@@ -186,68 +198,34 @@ def check_options(inputoptions):
         epsilon_bar = None
     options["Epsilon_Bar"] = epsilon_bar
 
+    ## Check if procedural indicator Tf_Iteration is set
+    if inputoptions.has_key("Tf_Iteration"):
+        try:
+            Tf_iteration = int(inputoptions["Tf_Iteration"])
+        except:
+            print "TypeError! Tf_iteration value must be a int!"
+            print "Exiting."
+            raise SystemExit
+    else
+        Tf_iteration = 0
+    options["Tf_Iteration"] = Tf_iteration
 
-    ## Check for R_CD option. This option fixes the ratio of contact (C) to
-    ## dihedral (D) energy. Soon to be deprecated, replaced by epsilon_bar.
-    #if inputoptions.has_key("R_CD"):
-    #    if inputoptions["R_CD"] not in ["","None",None,False]:
-    #        try:
-    #            R_CD = float(inputoptions["R_CD"])
-    #        except:
-    #            print "TypeError! R_CD value must be a float!"
-    #            print "Exiting."
-    #            raise SystemExit
-    #    else:
-    #        R_CD = None
-    #else:
-    #    R_CD = None
+    ## Check if procedural indicator Mut_Iteration is set
+    if inputoptions.has_key("Mut_Iteration"):
+        try:
+            Mut_iteration = int(inputoptions["Mut_Iteration"])
+        except:
+            print "TypeError! Mut_iteration value must be a int!"
+            print "Exiting."
+            raise SystemExit
+    else
+        Mut_iteration = 0
+    options["Mut_Iteration"] = Mut_iteration
+
+    ## DEPRECATED OPTIONS
     options["R_CD"] = None
-
-    ## This multiplier for the nonbond_param is 1 by default, but may be
-    ## different if R_CD was used. This is calculated automatically and not a command
-    ## line option.
-    #if inputoptions.has_key("nonbond_param"):
-    #    if inputoptions["nonbond_param"] not in ["","None",None,False]:
-    #        try:
-    #            nonbond_param = float(inputoptions["nonbond_param"])
-    #        except:
-    #            print "TypeError! nonbond_param value must be a float!"
-    #            print "Exiting."
-    #            raise SystemExit
-    #    else:
-    #        nonbond_param = 1.
-    #else:
-    #    nonbond_param = 1.
     options["nonbond_param"] = None
-
-    ## Cutoff will switch method of determining native contacts from Shadow map to 
-    ## using heavy atom contacts within a cutoff of a given residue. Not currently
-    ## implemented.
-    #if inputoptions.has_key("Cutoff"):
-    #    if inputoptions["Cutoff"] not in ["","None",None,False]:
-    #        try:
-    #            cutoff = float(inputoptions["Cutoff"])
-    #        except:
-    #            print "TypeError! cutoff value must be a float!"
-    #            print "Exiting."
-    #            raise SystemExit
-    #    else: 
-    #        cutoff = None
-    #else:
-    #    cutoff = None
     options["Cutoff"] = None
-
-    ## This option is preemptive in case we want to solvent. Not implemented.
-    #if inputoptions.has_key("Solvent"):
-    #    if inputoptions["Solvent"] in ["","None",None,False]:
-    #        solvent = None
-    #    else: 
-    #        print "Error! Solvent option not implemented!"
-    #        print "Solvent variable: ", inputoptions["Solvent"], " not allowed. Only: ",["",None]
-    #        print "Exiting."
-    #        raise SystemExit
-    #else:
-    #    solvent = None
     options["Solvent"] = None
 
     ## Dry run flag will prevent any simulations from being submitted. Used to
@@ -265,35 +243,35 @@ def check_options(inputoptions):
             
     return options
 
-def get_model(options):
-    ''' Return a model with the inputted dictionary of options'''
-    type = options["Model_Code"]
-    if type == "HomGo":
-        #model = HomogeneousGoModel.HomogeneousGoModel(
-        #                    disulfides=options["Disulfides"],
-        #                    epsilon_bar=options["Epsilon_Bar"],
-        #                    dryrun=options["Dry_Run"])
-        Smog 
-    elif type == "HetGo":
-        if options["Contact_Energies"].startswith("SecTer"):
-            model = SecondaryTertiaryGoModel.SecondaryTertiaryGoModel(
-                            options["Contact_Energies"],
-                            disulfides=options["Disulfides"],
-                            nonbond_param=options["nonbond_param"],
-                            dryrun=options["Dry_Run"])
-        else:
-            model = HeterogeneousGoModel.HeterogeneousGoModel(
-                            options["Contact_Energies"],
-                            disulfides=options["Disulfides"],
-                            epsilon_bar=options["Epsilon_Bar"],
-                            dryrun=options["Dry_Run"])
-    elif type == "DMC":
-        model = DMCModel.DMCModel()
-    else:
-        ## Due to previous error checking this should never be seen.
-        print "ERROR! "
-        print "Model: ",type," doesn't exist!"
-    return model
+#def get_model(options):
+#    ''' Return a model with the inputted dictionary of options'''
+#
+#    if type == "HomGo":
+#        #model = HomogeneousGoModel.HomogeneousGoModel(
+#        #                    disulfides=options["Disulfides"],
+#        #                    epsilon_bar=options["Epsilon_Bar"],
+#        #                    dryrun=options["Dry_Run"])
+#        SmogCalpha.SmogCalpha()
+#    elif type == "HetGo":
+#        if options["Contact_Energies"].startswith("SecTer"):
+#            model = SecondaryTertiaryGoModel.SecondaryTertiaryGoModel(
+#                            options["Contact_Energies"],
+#                            disulfides=options["Disulfides"],
+#                            nonbond_param=options["nonbond_param"],
+#                            dryrun=options["Dry_Run"])
+#        else:
+#            model = HeterogeneousGoModel.HeterogeneousGoModel(
+#                            options["Contact_Energies"],
+#                            disulfides=options["Disulfides"],
+#                            epsilon_bar=options["Epsilon_Bar"],
+#                            dryrun=options["Dry_Run"])
+#    elif type == "DMC":
+#        model = DMCModel.DMCModel()
+#    else:
+#        ## Due to previous error checking this should never be seen.
+#        print "ERROR! "
+#        print "Model: ",type," doesn't exist!"
+#    return model
 
 
 def load_model(subdir,dryrun=False):
@@ -313,9 +291,23 @@ def load_model(subdir,dryrun=False):
         else:
             options[field] = value[:-1]
         line = info_file.readline()
+    options["PDB"] = subdir+".pdb"
     options = check_options(options)
-    Model = get_model(options)
-    return Model
+
+    model = SmogCalpha.SmogCalpha(
+            options["PDB"],
+            contacts=options["Contacts"],
+            contact_epsilons=options["Contact_Epsilons"],
+            contact_deltas=options["Contact_Deltas"],
+            epsilon_bar=options["Epsilon_Bar"],
+            disulfides=options["Disulfides"],
+            modelcode=options["Model_Code"],
+            contact_energies=options["Contact_Energies"],
+            Tf_iteration=options["Tf_Iteration"],
+            Mut_iteration=options["Mut_Iteraction"],
+            dryrun=options["Dryrun"])
+
+    return model
 
 def load_models(subdirs,dryrun=False):
     ''' Create models from saved options in model.info.'''
@@ -329,7 +321,20 @@ def load_models(subdirs,dryrun=False):
 def new_models(subdirs,options):
     ''' Create new models with inputted options.'''
     Models = []
+    options["PDB"] = subdir+".pdb"
     for subdir in subdirs:
-        Model = get_model(options)
-        Models.append(Model)
+        model = SmogCalpha.SmogCalpha(
+                options["PDB"],
+                contacts=options["Contacts"],
+                contact_epsilons=options["Contact_Epsilons"],
+                contact_deltas=options["Contact_Deltas"],
+                epsilon_bar=options["Epsilon_Bar"],
+                disulfides=options["Disulfides"],
+                modelcode=options["Model_Code"],
+                contact_energies=options["Contact_Energies"],
+                Tf_iteration=options["Tf_Iteration"],
+                Mut_iteration=options["Mut_Iteraction"],
+                dryrun=options["Dryrun"])
+
+        Models.append(model)
     return Models

@@ -23,7 +23,7 @@ class SmogCalpha(object):
     """ This class creates a smog-like topology and grofile """
 
     def __init__(self,pdb,contacts=None,contact_epsilons=None,contact_deltas=None,
-            epsilon_bar=None,disulfides=None,modelcode=None,
+            epsilon_bar=None,disulfides=None,modelcode=None,contact_energies=None,
             Tf_iteration=0,Mut_iteration=0,dryrun=False):
 
         self.beadmodel = "CA"
