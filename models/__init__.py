@@ -139,7 +139,7 @@ def check_options(inputoptions):
                     contact_energies = inputoptions["Contact_Energies"]
                     contacts = None
                     contact_epsilons = None
-                    contacts_deltas = None
+                    contact_deltas = None
                 elif (inputoptions["Contact_Energies"].endswith(".dat")) or (inputoptions["Contact_Energies"].endswith(".params")):
                     if not os.path.exists(inputoptions["Contact_Energies"]):
                         print "ERROR!"
@@ -171,12 +171,12 @@ def check_options(inputoptions):
                 contact_energies = None
                 contacts = None
                 contact_epsilons = None
-                contacts_deltas = None
+                contact_deltas = None
     else:
         contact_energies = None
         contacts = None
         contact_epsilons = None
-        contacts_deltas = None
+        contact_deltas = None
     options["Contact_Energies"] = contact_energies
     options["Contacts"] = contacts
     options["Contact_Epsilons"] = contact_epsilons
@@ -206,7 +206,7 @@ def check_options(inputoptions):
             print "TypeError! Tf_iteration value must be a int!"
             print "Exiting."
             raise SystemExit
-    else
+    else:
         Tf_iteration = 0
     options["Tf_Iteration"] = Tf_iteration
 
@@ -218,7 +218,7 @@ def check_options(inputoptions):
             print "TypeError! Mut_iteration value must be a int!"
             print "Exiting."
             raise SystemExit
-    else
+    else:
         Mut_iteration = 0
     options["Mut_Iteration"] = Mut_iteration
 
@@ -291,8 +291,8 @@ def load_model(subdir,dryrun=False):
         else:
             options[field] = value[:-1]
         line = info_file.readline()
-    options["PDB"] = subdir+".pdb"
     options = check_options(options)
+    options["PDB"] = subdir+".pdb"
 
     model = SmogCalpha.SmogCalpha(
             options["PDB"],
@@ -304,8 +304,8 @@ def load_model(subdir,dryrun=False):
             modelcode=options["Model_Code"],
             contact_energies=options["Contact_Energies"],
             Tf_iteration=options["Tf_Iteration"],
-            Mut_iteration=options["Mut_Iteraction"],
-            dryrun=options["Dryrun"])
+            Mut_iteration=options["Mut_Iteration"],
+            dryrun=options["Dry_Run"])
 
     return model
 
@@ -333,8 +333,8 @@ def new_models(subdirs,options):
                 modelcode=options["Model_Code"],
                 contact_energies=options["Contact_Energies"],
                 Tf_iteration=options["Tf_Iteration"],
-                Mut_iteration=options["Mut_Iteraction"],
-                dryrun=options["Dryrun"])
+                Mut_iteration=options["Mut_Iteration"],
+                dryrun=options["Dry_Run"])
 
         Models.append(model)
     return Models
