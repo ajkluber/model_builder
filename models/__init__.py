@@ -25,6 +25,7 @@ References:
 
 """
 
+import numpy as np
 import os
 
 import DMCModel
@@ -33,6 +34,35 @@ import HomogeneousGoModel
 import SecondaryTertiaryGoModel
 import CalphaBase
 import SmogCalpha
+
+def get_contact_params(paramfile):
+    """ Read contact info from inputted contact parameter file """
+    if paramfile.endswith(".dat"):
+        beadbead = np.loadtxt(paramfile,dtype=str) 
+        contacts = []
+        contact_epsilons = []
+        contact_deltas = []
+        for i in range(len(beadbead[:,4])):
+            if beadbead[i,4] not in ["0","ss"]:
+                contacts.append(beadbead[i,0:2].astype(int))
+                contact_epsilons.append(beadbead[i,6].astype(float))
+                contact_deltas.append(beadbead[i,7].astype(float))
+        contacts = np.array(contacts)
+        contact_epsilons = np.array(contact_epsilons)
+        contact_deltas = np.array(contact_deltas)
+    elif paramfile.endswith(".params"):
+        params = np.loadtxt(paramfile)
+        contacts = params[:,0:2].astype(int)
+        contact_epsilons = params[:,2].astype(float)
+        contact_deltas = params[:,3].astype(float)
+    else:
+        print "ERROR!"
+        print " Unsupported file type:", paramfile
+        print " Provide a .dat or .params file"
+        print " Exiting."
+        raise SystemExit
+
+    return contacts,contact_epsilons,contact_deltas
 
 def check_options(inputoptions):
     ''' Check that all options are compatible and in proper format. Any options
@@ -107,7 +137,7 @@ def check_options(inputoptions):
             if contactopts.has_key(modelcode):
                 if (inputoptions["Contact_Energies"] in contactopts[modelcode]):
                     contact_energies = inputoptions["Contact_Energies"]
-                elif inputoptions["Contact_Energies"].endswith(".dat"):
+                elif (inputoptions["Contact_Energies"].endswith(".dat")) or (inputoptions["Contact_Energies"].endswith(".params")):
                     if not os.path.exists(inputoptions["Contact_Energies"]):
                         print "ERROR!"
                         print "Contact energies option: ", inputoptions["Contact_Energies"], \
@@ -115,6 +145,7 @@ def check_options(inputoptions):
                         print "Exiting."
                         raise SystemExit
                     else:
+                        contacts,contact_epsilons,contacts_deltas = get_contact_params(inputoptions["Contact_Energies"])
                         contact_energies = inputoptions["Contact_Energies"]
                 else:
                     print "ERROR!"
@@ -158,69 +189,69 @@ def check_options(inputoptions):
 
     ## Check for R_CD option. This option fixes the ratio of contact (C) to
     ## dihedral (D) energy. Soon to be deprecated, replaced by epsilon_bar.
-    if inputoptions.has_key("R_CD"):
-        if inputoptions["R_CD"] not in ["","None",None,False]:
-            try:
-                R_CD = float(inputoptions["R_CD"])
-            except:
-                print "TypeError! R_CD value must be a float!"
-                print "Exiting."
-                raise SystemExit
-        else:
-            R_CD = None
-    else:
-        R_CD = None
-    options["R_CD"] = R_CD
+    #if inputoptions.has_key("R_CD"):
+    #    if inputoptions["R_CD"] not in ["","None",None,False]:
+    #        try:
+    #            R_CD = float(inputoptions["R_CD"])
+    #        except:
+    #            print "TypeError! R_CD value must be a float!"
+    #            print "Exiting."
+    #            raise SystemExit
+    #    else:
+    #        R_CD = None
+    #else:
+    #    R_CD = None
+    options["R_CD"] = None
 
     ## This multiplier for the nonbond_param is 1 by default, but may be
     ## different if R_CD was used. This is calculated automatically and not a command
     ## line option.
-    if inputoptions.has_key("nonbond_param"):
-        if inputoptions["nonbond_param"] not in ["","None",None,False]:
-            try:
-                nonbond_param = float(inputoptions["nonbond_param"])
-            except:
-                print "TypeError! nonbond_param value must be a float!"
-                print "Exiting."
-                raise SystemExit
-        else:
-            nonbond_param = 1.
-    else:
-        nonbond_param = 1.
-    options["nonbond_param"] = nonbond_param
+    #if inputoptions.has_key("nonbond_param"):
+    #    if inputoptions["nonbond_param"] not in ["","None",None,False]:
+    #        try:
+    #            nonbond_param = float(inputoptions["nonbond_param"])
+    #        except:
+    #            print "TypeError! nonbond_param value must be a float!"
+    #            print "Exiting."
+    #            raise SystemExit
+    #    else:
+    #        nonbond_param = 1.
+    #else:
+    #    nonbond_param = 1.
+    options["nonbond_param"] = None
 
     ## Cutoff will switch method of determining native contacts from Shadow map to 
     ## using heavy atom contacts within a cutoff of a given residue. Not currently
     ## implemented.
-    if inputoptions.has_key("Cutoff"):
-        if inputoptions["Cutoff"] not in ["","None",None,False]:
-            try:
-                cutoff = float(inputoptions["Cutoff"])
-            except:
-                print "TypeError! cutoff value must be a float!"
-                print "Exiting."
-                raise SystemExit
-        else: 
-            cutoff = None
-    else:
-        cutoff = None
-    options["Cutoff"] = cutoff
+    #if inputoptions.has_key("Cutoff"):
+    #    if inputoptions["Cutoff"] not in ["","None",None,False]:
+    #        try:
+    #            cutoff = float(inputoptions["Cutoff"])
+    #        except:
+    #            print "TypeError! cutoff value must be a float!"
+    #            print "Exiting."
+    #            raise SystemExit
+    #    else: 
+    #        cutoff = None
+    #else:
+    #    cutoff = None
+    options["Cutoff"] = None
 
     ## This option is preemptive in case we want to solvent. Not implemented.
-    if inputoptions.has_key("Solvent"):
-        if inputoptions["Solvent"] in ["","None",None,False]:
-            solvent = None
-        else: 
-            print "Error! Solvent option not implemented!"
-            print "Solvent variable: ", inputoptions["Solvent"], " not allowed. Only: ",["",None]
-            print "Exiting."
-            raise SystemExit
-    else:
-        solvent = None
-    options["Solvent"] = solvent
+    #if inputoptions.has_key("Solvent"):
+    #    if inputoptions["Solvent"] in ["","None",None,False]:
+    #        solvent = None
+    #    else: 
+    #        print "Error! Solvent option not implemented!"
+    #        print "Solvent variable: ", inputoptions["Solvent"], " not allowed. Only: ",["",None]
+    #        print "Exiting."
+    #        raise SystemExit
+    #else:
+    #    solvent = None
+    options["Solvent"] = None
 
-    ## Dry run flag will prevent any simulations from being submitted. Used to see if file 
-    ## preparation runs smoothly.
+    ## Dry run flag will prevent any simulations from being submitted. Used to
+    ## see if file preparation runs smoothly.
     if inputoptions["Dry_Run"] == True:
         dryflag = True
     else:
@@ -238,30 +269,23 @@ def get_model(options):
     ''' Return a model with the inputted dictionary of options'''
     type = options["Model_Code"]
     if type == "HomGo":
-        model = HomogeneousGoModel.HomogeneousGoModel(
-                            disulfides=options["Disulfides"],
-                            nonbond_param=options["nonbond_param"],
-                            R_CD=options["R_CD"],
-                            epsilon_bar=options["Epsilon_Bar"],
-                            cutoff=options["Cutoff"],
-                            dryrun=options["Dry_Run"])
+        #model = HomogeneousGoModel.HomogeneousGoModel(
+        #                    disulfides=options["Disulfides"],
+        #                    epsilon_bar=options["Epsilon_Bar"],
+        #                    dryrun=options["Dry_Run"])
+        Smog 
     elif type == "HetGo":
         if options["Contact_Energies"].startswith("SecTer"):
             model = SecondaryTertiaryGoModel.SecondaryTertiaryGoModel(
                             options["Contact_Energies"],
                             disulfides=options["Disulfides"],
                             nonbond_param=options["nonbond_param"],
-                            R_CD=options["R_CD"],
-                            cutoff=options["Cutoff"],
                             dryrun=options["Dry_Run"])
         else:
             model = HeterogeneousGoModel.HeterogeneousGoModel(
                             options["Contact_Energies"],
                             disulfides=options["Disulfides"],
-                            nonbond_param=options["nonbond_param"],
-                            R_CD=options["R_CD"],
                             epsilon_bar=options["Epsilon_Bar"],
-                            cutoff=options["Cutoff"],
                             dryrun=options["Dry_Run"])
     elif type == "DMC":
         model = DMCModel.DMCModel()

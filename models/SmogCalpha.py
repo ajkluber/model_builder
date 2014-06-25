@@ -1,7 +1,8 @@
-""" SmogCalphaBase
+""" SmogCalpha
 
 Description:
 
+    Generates topology and grofile needed to run Smog-style C-alpha Go-model.
 
 Classes
 
@@ -16,15 +17,14 @@ Example Usage:
 import numpy as np
 import subprocess as sb
 import os
-import argparse
 import time
 
 class SmogCalpha(object):
     """ This class creates a smog-like topology and grofile """
 
-    def __init__(self,pdb,contact_epsilons=None,contact_deltas=None,
-            epsilon_bar=None,modelcode=None,disulfides=None,dryrun=False,
-            Tf_iteration=0,Mut_iteration=0):
+    def __init__(self,pdb,contacts=None,contact_epsilons=None,contact_deltas=None,
+            epsilon_bar=None,disulfides=None,modelcode=None,
+            Tf_iteration=0,Mut_iteration=0,dryrun=False):
 
         self.beadmodel = "CA"
         self.backbone_params = ["Kb","Ka","Kd"]
@@ -34,7 +34,7 @@ class SmogCalpha(object):
         self.contact_epsilons = contact_epsilons
         self.contact_deltas = contact_deltas
         self.epsilon_bar = epsilon_bar
-        self.disulfies = disulfides
+        self.disulfides = disulfides
         self.dryrun = dryrun
 
         self.Tf_iteration = Tf_iteration
@@ -47,16 +47,18 @@ class SmogCalpha(object):
             print " Exiting."
             raise SystemExit
         else:
-
             self.pdb = pdb
             self.name = pdb.split(".pdb")[0]
             self.subdir = self.name
             if not os.path.exists(self.subdir+"/Qref_shadow"):
-                os.mkdir(self.subdir+"/Qref_shadow")
+                os.makedirs(self.subdir+"/Qref_shadow")
 
             self.clean_pdb()
-            self.shadow_contacts()
             self.dissect_native_pdb()
+            if contacts != None:
+                self.skip_shadow_contacts(contacts)
+            else:
+                self.shadow_contacts()
             self.check_disulfides() 
             self.generate_grofile()
             self.generate_topology()
@@ -255,6 +257,7 @@ class SmogCalpha(object):
         self.atoms = atoms
         self.residues = residues
         self.coords = coords
+        self.n_residues = len(residues)
 
     def dihedral(self,coords,i_idx,j_idx,k_idx,l_idx):
         ''' Compute the dihedral between planes. '''
@@ -408,7 +411,7 @@ class SmogCalpha(object):
 
     def get_pairs_string(self):
         """ Get the [ pairs ] string"""
-        if self.contact_params == None:
+        if self.contact_epsilons == None:
             print "  No contact epsilons set. Setting contacts to homogeneous model. 1"
             self.contact_epsilons = np.ones(len(self.contacts),float)
         if self.contact_deltas == None:
@@ -421,6 +424,7 @@ class SmogCalpha(object):
             self.contact_epsilons[attractive] = self.contact_epsilons[attractive]*self.epsilon_bar/avg_eps
 
         pairs_string = ""
+        beadbead_string = ""
         for i in range(len(self.contacts)):
             res_a = self.contacts[i][0]
             res_b = self.contacts[i][1]
@@ -435,6 +439,12 @@ class SmogCalpha(object):
 
             pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
                             (res_a,res_b,1,c10,c12)
+
+            resid_a = self.residues[res_a-1]
+            resid_b = self.residues[res_b-1]
+
+            beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18.9e\n" % \
+                            (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,delta_ab)
 
         if self.disulfides != None:
             for i in range(len(self.disulfides)/2):
@@ -452,7 +462,14 @@ class SmogCalpha(object):
                 print " Linking disulfide: ",cys_a,cys_b, " with eps = ",eps_ab
                 pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
                                 (cys_a,cys_b,1,c10,c12)
-    
+
+                resid_a = self.residues[cys_a-1]
+                resid_b = self.residues[cys_b-1]
+
+                beadbead_string += "%5d%5d%8s%8s%5s%18.9e%18.9e%18.9e\n" % \
+                                (cys_a,cys_b,resid_a,resid_b,"ss",sig_ab,eps_ab,delta_ab)
+
+        self.beadbead = beadbead_string 
         return pairs_string
 
     def get_exclusions_string(self):
@@ -550,6 +567,19 @@ class SmogCalpha(object):
 
         self.topology = top_string
 
+    def skip_shadow_contacts(self,contacts):
+        """ When contacts are an input. """
+        cwd = os.getcwd()
+        self.contacts = contacts
+        self.n_contacts = len(self.contacts)
+        self.Qref = np.zeros((self.n_residues,self.n_residues))
+        for pair in contacts:
+            self.Qref[pair[0]-1,pair[1]-1] = 1 
+
+        np.savetxt(cwd+"/"+self.subdir+"/Qref_shadow/Qref_cryst.dat",self.Qref,delimiter=" ",fmt="%1d")
+        np.savetxt(cwd+"/"+self.subdir+"/Qref_cryst.dat",self.Qref,delimiter=" ",fmt="%1d")
+        np.savetxt(cwd+"/"+self.subdir+"/contacts.dat",self.contacts,delimiter=" ",fmt="%4d")
+
     def shadow_contacts(self):
         ''' Call SMOG Shadow jar code to determine the shadow contacts. If 
             the reference matrix Qref_cryst.dat doesn't exist then create 
@@ -578,9 +608,9 @@ class SmogCalpha(object):
             sb.call(cmd1,shell=True,stdout=open("convert.out","w"),stderr=open("convert.err","w"))
             cmd2 = 'java -jar SCM.1.31.jar -g %s.gro -t %s.top -o %s.contacts -m shadow --coarse CA' % (subdir,subdir,subdir)
             sb.call(cmd2,shell=True,stdout=open("contacts.out","w"),stderr=open("contacts.err","w"))
+            self.contacts = np.loadtxt(subdir+".contacts",dtype=int,usecols=(1,3))
 
-            N = max(self.contacts.ravel())
-            Qref = np.zeros((N,N))
+            Qref = np.zeros((self.n_residues,self.n_residues))
             for pair in self.contacts:
                 Qref[pair[0]-1,pair[1]-1] = 1
 
@@ -588,40 +618,18 @@ class SmogCalpha(object):
             np.savetxt("Qref_cryst.dat",Qref,delimiter=" ",fmt="%1d")
             np.savetxt(cwd+"/"+subdir+"/Qref_cryst.dat",Qref,delimiter=" ",fmt="%1d")
             np.savetxt(cwd+"/"+subdir+"/contacts.dat",self.contacts,delimiter=" ",fmt="%4d")
-            self.contacts = np.loadtxt(subdir+".contacts",dtype=int,usecols=(1,3))
 
         os.chdir(cwd)
         print "  Length = %d  Number of contacts = %d  Nc/L=%.4f" % (len(Qref),sum(sum(Qref)),float(sum(sum(Qref)))/float(len(Qref)))
         self.Qref = Qref
-        self.n_contacts = sum(sum(Qref))
-        self.n_residues = len(Qref)
+        self.n_contacts = len(self.contacts)
 
 if __name__ == "__main__":
 
+    import argparse
     parser = argparse.ArgumentParser(description='Build a SMOG model.')
     parser.add_argument('--pdb', type=str, required=True, help='pdb')
     args = parser.parse_args() 
     pdb = args.pdb
 
-
-    base = SmogCalpha()
-    base.clean_pdb(pdb)
-    if not os.path.exists("Qref_shadow"):
-        os.mkdir("Qref_shadow")
-
-    open("Native.pdb","w").write(base.cleanpdb)
-    open("Qref_shadow/clean.pdb","w").write(base.cleanpdb_full)
-    open("clean.pdb","w").write(base.cleanpdb_full)
-    open("clean_noH.pdb","w").write(base.cleanpdb_full_noH)
-    base.shadow_contacts(".")
-
-    base.dissect_native_pdb(".")
-    base.generate_topology()
-    open("1SHG.top","w").write(base.topology)
-    base.generate_grofile()
-    open("1SHG.gro","w").write(base.grofile)
-
-    base.get_interaction_table()
-    np.savetxt("table.xvg",base.table,fmt="%18.15e",delimiter=" ")
-
-
+    model = SmogCalpha(pdb)
