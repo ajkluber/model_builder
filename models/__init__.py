@@ -236,37 +236,6 @@ def check_options(inputoptions):
             
     return options
 
-#def get_model(options):
-#    ''' Return a model with the inputted dictionary of options'''
-#
-#    if type == "HomGo":
-#        #model = HomogeneousGoModel.HomogeneousGoModel(
-#        #                    disulfides=options["Disulfides"],
-#        #                    epsilon_bar=options["Epsilon_Bar"],
-#        #                    dryrun=options["Dry_Run"])
-#        SmogCalpha.SmogCalpha()
-#    elif type == "HetGo":
-#        if options["Contact_Energies"].startswith("SecTer"):
-#            model = SecondaryTertiaryGoModel.SecondaryTertiaryGoModel(
-#                            options["Contact_Energies"],
-#                            disulfides=options["Disulfides"],
-#                            nonbond_param=options["nonbond_param"],
-#                            dryrun=options["Dry_Run"])
-#        else:
-#            model = HeterogeneousGoModel.HeterogeneousGoModel(
-#                            options["Contact_Energies"],
-#                            disulfides=options["Disulfides"],
-#                            epsilon_bar=options["Epsilon_Bar"],
-#                            dryrun=options["Dry_Run"])
-#    elif type == "DMC":
-#        model = DMCModel.DMCModel()
-#    else:
-#        ## Due to previous error checking this should never be seen.
-#        print "ERROR! "
-#        print "Model: ",type," doesn't exist!"
-#    return model
-
-
 def load_model(subdir,dryrun=False):
     ''' Read model.info files in subdirectories and create models.'''
     info_file = open(subdir+'/model.info','r')

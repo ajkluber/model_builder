@@ -39,6 +39,7 @@ class SmogCalpha(object):
         self.disulfides = disulfides
         self.dryrun = dryrun
         self.error = 0
+        self.initial_T_array = None
 
         self.Tf_iteration = Tf_iteration
         self.Mut_iteration = Mut_iteration
