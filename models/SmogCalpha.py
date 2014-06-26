@@ -235,11 +235,12 @@ class SmogCalpha(object):
         cleanpdb_ca += 'END\n'
         self.cleanpdb = cleanpdb_ca
         self.cleanpdb_full = cleanpdb_full
-        self.cleanpdb_full_noH = cleanpdb_full
+        self.cleanpdb_full_noH = cleanpdb_full_noH
         open(self.subdir+"/Native.pdb","w").write(self.cleanpdb)
         open(self.subdir+"/Qref_shadow/clean.pdb","w").write(self.cleanpdb_full)
         open(self.subdir+"/clean.pdb","w").write(self.cleanpdb_full)
         open(self.subdir+"/clean_noH.pdb","w").write(self.cleanpdb_full_noH)
+        open(self.subdir+"/"+self.subdir+".pdb","w").write(self.cleanpdb_full_noH)
 
     def dissect_native_pdb(self):
         ''' Extract info from the Native.pdb for making index and top file'''
