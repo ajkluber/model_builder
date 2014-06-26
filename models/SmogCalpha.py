@@ -2,16 +2,16 @@
 
 Description:
 
-    Generates topology and grofile needed to run Smog-style C-alpha Go-model.
-
-Classes
-
-SmogCalpha
-
+    Generates topology and grofile needed to run Smog-style C-alpha Go-model. The
+style of the input file formats emulates the SMOG server (see reference (1)).
 
 Example Usage:
     See project_tools/examples
 
+References:
+(1) Noel, J.K.; Whitford, P.C.; Sanbonmatsu, K.Y.; Onuchic, J.N. SMOG@ctbp:
+Simplified Deployment of Structure-Based Models in GROMACS. Nucleic Acids Res.
+2010, 38, W657-61.
 """
 
 import numpy as np
