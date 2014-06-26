@@ -31,11 +31,14 @@ class SmogCalpha(object):
         self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
 
         self.modelcode = modelcode
+        self.citation = self.citation_info(self.modelcode)
+        self.contact_energies = contact_energies
         self.contact_epsilons = contact_epsilons
         self.contact_deltas = contact_deltas
         self.epsilon_bar = epsilon_bar
         self.disulfides = disulfides
         self.dryrun = dryrun
+        self.error = 0
 
         self.Tf_iteration = Tf_iteration
         self.Mut_iteration = Mut_iteration
@@ -55,6 +58,7 @@ class SmogCalpha(object):
 
             self.clean_pdb()
             self.dissect_native_pdb()
+            self.get_index_ndx()
             if contacts != None:
                 self.skip_shadow_contacts(contacts)
             else:
@@ -83,7 +87,8 @@ class SmogCalpha(object):
         repstring += "[ Backbone_params ]\n" 
         repstring += "  %5s       %5s       %5s\n" % ("Kb","Ka","Kd")
         repstring += "[ Backbone_param_vals ]\n" 
-        repstring += "%10.2f%10.2f%10.2f\n" % (self.backbone_param_vals["Kb"],self.backbone_param_vals["Ka"],self.backbone_param_vals["Kd"])
+        repstring += "%10.2f%10.2f%10.2f\n" % \
+            (self.backbone_param_vals["Kb"],self.backbone_param_vals["Ka"],self.backbone_param_vals["Kd"])
         repstring += "[ Disulfides ]\n"
         if self.disulfides == None:
             repstring += "%s\n" % None
@@ -118,7 +123,7 @@ class SmogCalpha(object):
                     "J. Mol. Biol. 2004, 343, 235-48", 
                      'DMC':"Matyiak, S; Clementi, C. Minimalist Protein Model as \n"+  \
                     "a Diagnostic Tool for Misfolding and Aggregation. J. Mol. Biol. \n"+ \
-                    "2006, 363, 297-308.",}
+                    "2006, 363, 297-308.",None:"None"}
         return citations[key]
 
     def check_disulfides(self):
@@ -331,10 +336,11 @@ class SmogCalpha(object):
                 ca_string += '%4d ' % indx
             i += 1
         ca_string += '\n'
-        headings = ["System","Protein","Protein-H","C-alpha",\
+        headings = ["system","Protein","Protein-H","C-alpha",\
                     "Backbone","MainChain","MainChain+Cb","MainChain+H"]
+        indexstring = ""
         for heading in headings:
-            indexstring = "[ "+heading+" ]\n"
+            indexstring += "[ "+heading+" ]\n"
             indexstring += ca_string
         indexstring += '[ SideChain ]\n\n'
         indexstring += '[ SideChain-H ]\n\n'
@@ -384,6 +390,7 @@ class SmogCalpha(object):
         ''' Generate the [ dihedrals ] string.'''
         kd = self.backbone_param_vals["Kd"]
         dihedrals_string = ""
+        dihedrals_ndx = '[ dihedrals ]\n'
         for j in range(len(self.indices)-3):
             i_idx = self.indices[j]-1
             j_idx = self.indices[j+1]-1
@@ -394,20 +401,10 @@ class SmogCalpha(object):
                           (i_idx+1,j_idx+1,k_idx+1,l_idx+1,1,phi,kd,1)
             dihedrals_string += "%6d %6d %6d %6d%2d%18.9e%18.9e%2d\n" %  \
                           (i_idx+1,j_idx+1,k_idx+1,l_idx+1,1,3.*phi,kd/2.,3)
+            dihedrals_ndx += '%4d %4d %4d %4d\n' % \
+                                (i_idx+1,j_idx+1,k_idx+1,l_idx+1)
+        self.dihedrals_ndx = dihedrals_ndx
         return dihedrals_string
-
-    def get_dihedrals_ndx(self):
-        ''' Generate the dihedrals.ndx string.'''
-        kd = self.backbone_param_vals["Kd"]
-        dihedrals_ndx_string = '[ dihedrals ]\n'
-        for j in range(len(self.indices)-3):
-            i_idx = self.indices[j]
-            j_idx = self.indices[j+1]
-            k_idx = self.indices[j+2]
-            l_idx = self.indices[j+3]
-            dihedrals_ndx_string += '%4d %4d %4d %4d\n' % \
-                                (i_idx,j_idx,k_idx,l_idx)
-        self.dihedrals_ndx = dihedrals_ndx_string
 
     def get_pairs_string(self):
         """ Get the [ pairs ] string"""
@@ -579,6 +576,9 @@ class SmogCalpha(object):
         np.savetxt(cwd+"/"+self.subdir+"/Qref_shadow/Qref_cryst.dat",self.Qref,delimiter=" ",fmt="%1d")
         np.savetxt(cwd+"/"+self.subdir+"/Qref_cryst.dat",self.Qref,delimiter=" ",fmt="%1d")
         np.savetxt(cwd+"/"+self.subdir+"/contacts.dat",self.contacts,delimiter=" ",fmt="%4d")
+        self.contacts_ndx = "[ contacts ]\n"
+        for i in range(self.n_contacts):
+            self.contacts_ndx += "%4d %4d\n" % (self.contacts[i][0],self.contacts[i][1])
 
     def shadow_contacts(self):
         ''' Call SMOG Shadow jar code to determine the shadow contacts. If 
@@ -623,6 +623,9 @@ class SmogCalpha(object):
         print "  Length = %d  Number of contacts = %d  Nc/L=%.4f" % (len(Qref),sum(sum(Qref)),float(sum(sum(Qref)))/float(len(Qref)))
         self.Qref = Qref
         self.n_contacts = len(self.contacts)
+        self.contacts_ndx = "[ contacts ]\n"
+        for i in range(self.n_contacts):
+            self.contacts_ndx += "%4d %4d\n" % (self.contacts[i][0],self.contacts[i][1])
 
 if __name__ == "__main__":
 

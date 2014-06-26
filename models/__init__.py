@@ -78,9 +78,9 @@ def check_options(inputoptions):
     beadmodel = inputoptions["Bead_Model"]
     
     print "Checking that model options are consistent..."
-    print "Inputted model options:"
-    for key in inputoptions.keys():
-        print "  ", key , " = ", inputoptions[key]
+    #print "Inputted model options:"
+    #for key in inputoptions.keys():
+    #    print "  ", key , " = ", inputoptions[key]
 
     options = {"Model_Code":modelcode, "Bead_Model":beadmodel}
     ## Check if model code is legal.
@@ -222,12 +222,6 @@ def check_options(inputoptions):
         Mut_iteration = 0
     options["Mut_Iteration"] = Mut_iteration
 
-    ## DEPRECATED OPTIONS
-    options["R_CD"] = None
-    options["nonbond_param"] = None
-    options["Cutoff"] = None
-    options["Solvent"] = None
-
     ## Dry run flag will prevent any simulations from being submitted. Used to
     ## see if file preparation runs smoothly.
     if inputoptions["Dry_Run"] == True:
@@ -236,8 +230,7 @@ def check_options(inputoptions):
         dryflag = False
     options["Dry_Run"] = dryflag
 
-    print "Model options cleared!"
-    print "Using model options:"
+    print "Model options cleared! Using model options:"
     for key in options.keys():
         print "  ", key , " = ", options[key]
             
@@ -321,8 +314,8 @@ def load_models(subdirs,dryrun=False):
 def new_models(subdirs,options):
     ''' Create new models with inputted options.'''
     Models = []
-    options["PDB"] = subdir+".pdb"
     for subdir in subdirs:
+        options["PDB"] = subdir+".pdb"
         model = SmogCalpha.SmogCalpha(
                 options["PDB"],
                 contacts=options["Contacts"],
