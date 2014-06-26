@@ -64,7 +64,7 @@ def get_contact_params(paramfile):
 
     return contacts,contact_epsilons,contact_deltas
 
-def check_options(inputoptions):
+def check_options(inputoptions,firstpass=False):
     ''' Check that all options are compatible and in proper format. Any options
         that are omitted are given the value None (or 1 for nonbond_param) for
         completeness. Returns: options, a dictionary of completed options.'''
@@ -230,9 +230,10 @@ def check_options(inputoptions):
         dryflag = False
     options["Dry_Run"] = dryflag
 
-    print "Model options cleared! Using model options:"
-    for key in options.keys():
-        print "  ", key , " = ", options[key]
+    if firstpass == True:
+        print "Model options cleared! Using model options:"
+        for key in options.keys():
+            print "  ", key , " = ", options[key]
             
     return options
 
