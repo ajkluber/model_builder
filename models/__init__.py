@@ -230,7 +230,7 @@ def check_options(inputoptions,firstpass=False):
         dryflag = False
     options["Dry_Run"] = dryflag
 
-    if firstpass == True:
+    if firstpass == False:
         print "Model options cleared! Using model options:"
         for key in options.keys():
             print "  ", key , " = ", options[key]
