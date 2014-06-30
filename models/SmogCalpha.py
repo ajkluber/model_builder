@@ -422,6 +422,7 @@ class SmogCalpha(object):
             attractive = (self.contact_deltas == 1.)
             self.contact_epsilons[attractive] = self.contact_epsilons[attractive]*self.epsilon_bar/avg_eps
 
+        self.contact_sigmas = np.zeros(len(self.contacts),float)
         pairs_string = ""
         beadbead_string = ""
         for i in range(len(self.contacts)):
@@ -430,6 +431,7 @@ class SmogCalpha(object):
             x_a = self.coords[res_a-1]
             x_b = self.coords[res_b-1]
             sig_ab = np.linalg.norm(x_a - x_b)
+            self.contact_sigmas[i] = sig_ab
             eps_ab = self.contact_epsilons[i] 
             delta_ab = self.contact_deltas[i] 
 
