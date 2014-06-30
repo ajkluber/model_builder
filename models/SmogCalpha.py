@@ -605,7 +605,7 @@ class SmogCalpha(object):
             os.chdir(cwd+"/"+subdir+"/Qref_shadow")
             cmd0 = 'cp /projects/cecilia/SCM.1.31.jar .'
             sb.call(cmd0,shell=True,stdout=open("contacts.out","w"),stderr=open("contacts.err","w"))
-            cmd1 = 'echo -e "6\\n6\\n" | pdb2gmx_sbm -f clean.pdb -o %s.gro -p %s.top -ignh' % (subdir,subdir)
+            cmd1 = 'echo -e "6\\n6\\n" | pdb2gmx -f clean.pdb -o %s.gro -p %s.top -ignh' % (subdir,subdir)
             sb.call(cmd1,shell=True,stdout=open("convert.out","w"),stderr=open("convert.err","w"))
             cmd2 = 'java -jar SCM.1.31.jar -g %s.gro -t %s.top -o %s.contacts -m shadow --coarse CA' % (subdir,subdir,subdir)
             sb.call(cmd2,shell=True,stdout=open("contacts.out","w"),stderr=open("contacts.err","w"))
