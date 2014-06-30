@@ -148,7 +148,7 @@ def check_options(inputoptions,firstpass=False):
                         print "Exiting."
                         raise SystemExit
                     else:
-                        contacts,contact_epsilons,contacts_deltas = get_contact_params(inputoptions["Contact_Energies"])
+                        contacts,contact_epsilons,contact_deltas = get_contact_params(inputoptions["Contact_Energies"])
                         contact_energies = inputoptions["Contact_Energies"]
                 else:
                     print "ERROR!"
