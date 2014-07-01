@@ -161,11 +161,15 @@ class SmogCalpha(object):
                         else:
                             new_conts.append(pair)
                     self.contacts = np.array(new_conts)
+
                 if self.Qref[cys1-1][cys2-1] == 1:
                     #print "    Subtracting 1 from n_contacts for ", cys1,cys2, " disulfide"
                     self.n_contacts -= 1
         else:
             print "  No disulfides to check."
+        self.contacts_ndx = "[ contacts ]\n"
+        for i in range(self.n_contacts):
+            self.contacts_ndx += "%4d %4d\n" % (self.contacts[i][0],self.contacts[i][1])
 
     def clean_pdb(self):
         """ Grab only the lines of the pdb that we want. 
@@ -580,9 +584,6 @@ class SmogCalpha(object):
         np.savetxt(cwd+"/"+self.subdir+"/Qref_shadow/Qref_cryst.dat",self.Qref,delimiter=" ",fmt="%1d")
         np.savetxt(cwd+"/"+self.subdir+"/Qref_cryst.dat",self.Qref,delimiter=" ",fmt="%1d")
         np.savetxt(cwd+"/"+self.subdir+"/contacts.dat",self.contacts,delimiter=" ",fmt="%4d")
-        self.contacts_ndx = "[ contacts ]\n"
-        for i in range(self.n_contacts):
-            self.contacts_ndx += "%4d %4d\n" % (self.contacts[i][0],self.contacts[i][1])
 
     def shadow_contacts(self):
         ''' Call SMOG Shadow jar code to determine the shadow contacts. If 
@@ -626,9 +627,6 @@ class SmogCalpha(object):
         print "  Length = %d  Number of contacts = %d  Nc/L=%.4f" % (len(Qref),sum(sum(Qref)),float(sum(sum(Qref)))/float(len(Qref)))
         self.Qref = Qref
         self.n_contacts = len(self.contacts)
-        self.contacts_ndx = "[ contacts ]\n"
-        for i in range(self.n_contacts):
-            self.contacts_ndx += "%4d %4d\n" % (self.contacts[i][0],self.contacts[i][1])
 
 if __name__ == "__main__":
 
