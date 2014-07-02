@@ -156,8 +156,8 @@ class SmogCalpha(object):
                     ## Remove disulfide pair from self.contacts if it is there.
                     new_conts = []
                     for pair in self.contacts:
-                        if all(pair == [cys1,cys2]):
-                            pass
+                        if (pair[0] == cys1) and (pair[1] == cys2):
+                            continue
                         else:
                             new_conts.append(pair)
                     self.contacts = np.array(new_conts)
@@ -440,7 +440,7 @@ class SmogCalpha(object):
             delta_ab = self.contact_deltas[i] 
 
             c12 = eps_ab*5.0*(sig_ab**12)
-            c10 = delta_ab*6.0*(sig_ab**10)
+            c10 = eps_ab*delta_ab*6.0*(sig_ab**10)
 
             pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
                             (res_a,res_b,1,c10,c12)
@@ -462,7 +462,7 @@ class SmogCalpha(object):
                 delta_ab = 1.
 
                 c12 = eps_ab*5.0*(sig_ab**12)
-                c10 = delta_ab*6.0*(sig_ab**10)
+                c10 = eps_ab*delta_ab*6.0*(sig_ab**10)
 
                 print " Linking disulfide: ",cys_a,cys_b, " with eps = ",eps_ab
                 pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
