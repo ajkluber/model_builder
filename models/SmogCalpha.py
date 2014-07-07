@@ -458,7 +458,7 @@ class SmogCalpha(object):
                 x_a = self.coords[cys_a-1]
                 x_b = self.coords[cys_b-1]
                 sig_ab = np.linalg.norm(x_a - x_b)
-                eps_ab = 100.
+                eps_ab = 50.
                 delta_ab = 1.
 
                 c12 = eps_ab*5.0*(sig_ab**12)
