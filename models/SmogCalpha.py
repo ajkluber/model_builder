@@ -416,14 +416,14 @@ class SmogCalpha(object):
         """ Get the [ pairs ] string"""
         if self.contact_epsilons == None:
             print "  No contact epsilons set. Setting contacts to homogeneous model. 1"
-            self.contact_epsilons = np.ones(len(self.contacts),float)
+            self.contact_epsilons = np.ones(self.n_contacts,float)
         if self.contact_deltas == None:
             print "  No contact deltas set. Setting contacts to attractive. 1"
-            self.contact_deltas = np.ones(len(self.contacts),float)
+            self.contact_deltas = np.ones(self.n_contacts,float)
         if self.epsilon_bar != None:
             print "  Scaling attractive contacts such that epsilon_bar =", self.epsilon_bar
-            avg_eps = np.sum(self.contact_epsilons*self.contact_deltas)
             attractive = (self.contact_deltas == 1.)
+            avg_eps = np.mean(self.contact_epsilons[attractive])
             self.contact_epsilons[attractive] = self.contact_epsilons[attractive]*self.epsilon_bar/avg_eps
 
         self.contact_sigmas = np.zeros(len(self.contacts),float)
