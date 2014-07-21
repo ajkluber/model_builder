@@ -138,18 +138,18 @@ class SmogCalpha(object):
                 cys1 = self.disulfides[2*i]
                 cys2 = self.disulfides[2*i + 1]
                 if (residues[cys1-1] != "CYS") or (residues[cys2-1] != "CYS"):
-                    print "ERROR! Specifying disulfide between two residues that aren't CYS cysteine! "
-                    print "Exiting"
-                    raise SystemExit
+                    print "WARNING! Specifying disulfide between two residues that aren't CYS cysteine! "
+                    #print "Exiting"
+                    #raise SystemExit
                 #print "##  Checking disulfide residue identities: ", residues[cys1-1], residues[cys2-1]    ## DEBUGGING
                 dist = coords[cys1-1] - coords[cys2-1]
                 separation = np.linalg.norm(dist)
                 #print "##  Separation: ", separation ## DEBUGGING
                 if separation > 0.8:
-                    print "ERROR!"
-                    print "Specifying disulfide of separation greater than 0.8 nm."
-                    print "Exiting"
-                    raise SystemExit
+                    print "WARNING! Specifying disulfide of separation greater than 0.8 nm."
+                    #print "Specifying disulfide of separation greater than 0.8 nm."
+                    #print "Exiting"
+                    #raise SystemExit
                 else:
                     print "   ",residues[cys1-1]+str(cys1), residues[cys2-1]+str(cys2), \
                           " are separated by: %.4f nm. Good." % separation
