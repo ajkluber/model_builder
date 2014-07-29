@@ -595,10 +595,9 @@ class SmogCalpha(object):
 
         cwd = os.getcwd()
         print "  Calculating native contacts for: ",subdir
-        if os.path.exists(cwd+"/"+subdir+"/Qref_cryst.dat"):
+        if os.path.exists(cwd+"/"+subdir+"/contacts.dat"):
             print "  Native contact map "+subdir+"/Qref_cryst.dat exists."
             print "  Skipping shadow map calculation. Loading native contact map..."
-            Qref = np.loadtxt(cwd+"/"+subdir+"/Qref_cryst.dat")
             self.contacts = np.loadtxt(cwd+"/"+subdir+"/contacts.dat",dtype=int)
         else:
             print "  Native contact map "+subdir+"/Qref_cryst.dat does not exist."
@@ -613,16 +612,14 @@ class SmogCalpha(object):
             cmd2 = 'java -jar SCM.1.31.jar -g %s.gro -t %s.top -o %s.contacts -m shadow -c 4.5 --coarse CA' % (subdir,subdir,subdir)
             sb.call(cmd2,shell=True,stdout=open("contacts.out","w"),stderr=open("contacts.err","w"))
             self.contacts = np.loadtxt(subdir+".contacts",dtype=int,usecols=(1,3))
-
-            Qref = np.zeros((self.n_residues,self.n_residues))
-            for pair in self.contacts:
-                Qref[pair[0]-1,pair[1]-1] = 1
-
             print "  Native contact map calculated with shadow map. Saving Qref_cryst.dat..."
-            np.savetxt("Qref_cryst.dat",Qref,delimiter=" ",fmt="%1d")
-            np.savetxt(cwd+"/"+subdir+"/Qref_cryst.dat",Qref,delimiter=" ",fmt="%1d")
             np.savetxt(cwd+"/"+subdir+"/contacts.dat",self.contacts,delimiter=" ",fmt="%4d")
 
+        Qref = np.zeros((self.n_residues,self.n_residues))
+        for pair in self.contacts:
+            Qref[pair[0]-1,pair[1]-1] = 1
+
+        np.savetxt(cwd+"/"+subdir+"/Qref_cryst.dat",Qref,delimiter=" ",fmt="%1d")
         os.chdir(cwd)
         print "  Length = %d  Number of contacts = %d  Nc/L=%.4f" % (len(Qref),sum(sum(Qref)),float(sum(sum(Qref)))/float(len(Qref)))
         self.Qref = Qref
