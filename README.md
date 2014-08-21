@@ -4,12 +4,11 @@ model_builder
 Created: November 2013
 Author: Alexander Kluber
 
-Software for doing multiscale modeling in Dr. Cecilia Clementi's research group
-at Rice University. 
+Software for doing multiscale modeling in the Clementi Lab at Rice University. 
 
 Purpose:
 --------
-    The purpose of this software is to make multiscale, combining coarse-grain
+The purpose of this software is to make multiscale, combining coarse-grain
 and all-atom approaches, modeling easier. The intention is that model_builder
 will become a useful toolset for Clementi group members. It is intended to be
 used with a complementary module, project_tools, which runs simulations and
@@ -23,6 +22,8 @@ of proteins.
 Description:
 ------------
 
+- [ ] Testing
+- [x] Testing
 
 
 How To Use this Module:
