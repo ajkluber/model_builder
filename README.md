@@ -7,7 +7,7 @@ Author: Alexander Kluber
 Software for doing multiscale modeling in the Clementi Lab at Rice University. 
 
 Purpose:
---------
+........
     The purpose of this software is to make multiscale, combining coarse-grain
 and all-atom approaches, modeling easier. The intention is that model_builder
 will become a useful toolset for Clementi group members. It is intended to be
