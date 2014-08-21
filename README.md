@@ -8,16 +8,16 @@ Software for doing multiscale modeling in the Clementi Lab at Rice University.
 
 Purpose:
 --------
-The purpose of this software is to make multiscale, combining coarse-grain
+    The purpose of this software is to make multiscale, combining coarse-grain
 and all-atom approaches, modeling easier. The intention is that model_builder
 will become a useful toolset for Clementi group members. It is intended to be
 used with a complementary module, project_tools, which runs simulations and
 performs parameter fitting. 
-
     The model_builder package is responsible for constructing simulation input
 files (e.g. Gromacs .gro and .top files) for (currently) coarse-grain models
 of proteins.
 
+This text
 
 Description:
 ------------
