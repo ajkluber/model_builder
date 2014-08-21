@@ -586,10 +586,14 @@ class SmogCalpha(object):
         np.savetxt(cwd+"/"+self.subdir+"/contacts.dat",self.contacts,delimiter=" ",fmt="%4d")
 
     def shadow_contacts(self):
-        ''' Call SMOG Shadow jar code to determine the shadow contacts. If 
+        """ Call SMOG Shadow jar code to determine the shadow contacts. If 
             the reference matrix Qref_cryst.dat doesn't exist then create 
             and dive into a subdirectory to run shadow map. Then save 
-            Qref_cryst.dat in the parent directory.'''
+            Qref_cryst.dat in the parent directory.
+
+        Considering making a contacts file mandatory input to avoid calling 
+        outside programs (like shadow.jar)
+        """
 
         subdir = self.subdir
 

@@ -4,6 +4,7 @@ Description:
     Class to generate Gromacs topology files for the homogeneous Go-model. For
 a detailed description of C-alpha homogeneous Go-model see reference (1). 
 
+** DEPRECATED 3-1-2014
 
 Classes:
 

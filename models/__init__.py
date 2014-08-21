@@ -73,6 +73,7 @@ def check_options(inputoptions,firstpass=False):
     available_models = ["HomGo","HetGo","DMC"]
     beadmodels = {"HomGo":["CA"],"HetGo":["CA"]}
     contactopts = {"HetGo":["MJ","Bach","MC2004","FRETFit","RMSFit","SecTer"]}
+    contacttypes = ["LJ1210","Guassian"]
 
     modelcode = inputoptions["Model_Code"]
     beadmodel = inputoptions["Bead_Model"]
@@ -98,10 +99,84 @@ def check_options(inputoptions,firstpass=False):
         print "Exiting."
         raise SystemExit
 
-    ## Check for disulfides. If yes disulfids should be in format (e.g.):
-    ## [ 1, 6, 7, 20] where the first pair of numbers 1,6 correspond to 
-    ## a disulfide bond between those residue indices according to clean.pdb 
-    ## indices.
+    ## Check disulfide options.
+    disulfides = check_disulfide_options(inputoptions)
+    options["Disulfides"] = disulfides
+
+    ## Check options for contacts
+    contact_energies, contacts, contact_epsilons, contact_deltas = check_contact_params_options(inputoptions,modelcode,contactopts)
+    options["Contact_Energies"] = contact_energies
+    options["Contacts"] = contacts
+    options["Contact_Epsilons"] = contact_epsilons
+    options["Contact_Deltas"] = contact_deltas
+
+    contact_type, epsilon_bar = check_contact_type_and_epsilon_bar(inputoptions,contacttypes)
+    options["Contact_Type"] = contact_type
+    options["Epsilon_Bar"] = epsilon_bar
+
+    ## Check if procedural indicator Tf_Iteration is set
+    if inputoptions.has_key("Tf_Iteration"):
+        try:
+            Tf_iteration = int(inputoptions["Tf_Iteration"])
+        except:
+            print "TypeError! Tf_iteration value must be a int!"
+            print "Exiting."
+            raise SystemExit
+    else:
+        Tf_iteration = 0
+    options["Tf_Iteration"] = Tf_iteration
+
+    ## Check if procedural indicator Mut_Iteration is set
+    if inputoptions.has_key("Mut_Iteration"):
+        try:
+            Mut_iteration = int(inputoptions["Mut_Iteration"])
+        except:
+            print "TypeError! Mut_iteration value must be a int!"
+            print "Exiting."
+            raise SystemExit
+    else:
+        Mut_iteration = 0
+    options["Mut_Iteration"] = Mut_iteration
+
+    ## Check if procedural indicator Mut_Iteration is set
+    if inputoptions.has_key("Fitting_Data"):
+        if inputoptions["Fitting_Data"] in :
+Fitting_Data = int(inputoptions[""])
+    else:
+        Fitting_Data = 
+    options["Mut_Iteration"] = Fitting_Data
+
+    ## Dry run flag will prevent any simulations from being submitted. Used to
+    ## see if file preparation runs smoothly.
+    if inputoptions["Dry_Run"] == True:
+        dryflag = True
+    else:
+        dryflag = False
+    options["Dry_Run"] = dryflag
+
+    if firstpass == False:
+        print "Model options cleared! Using model options:"
+        for key in options.keys():
+            if key in ["Contacts","Contact_Epsilons","Contact_Deltas"]:
+                if options[key] == None:
+                    print "  ", key , " = ", options[key]
+                else:
+                    print "  ", key , " = ", options[key][:3], "...",options[key][-3:]
+            else:
+                print "  ", key , " = ", options[key]
+            
+    return options
+
+def check_disulfide_options(inputoptions):
+    """ Check that disulfides option is consistent 
+
+    Description:
+
+        Check for disulfides. If yes disulfids should be in format (e.g.): 
+    [ 1, 6, 7, 20] where the first pair of numbers 1,6 correspond to a 
+    disulfide bond between those residue indices according to clean.pdb indices.
+    """
+
     if inputoptions.has_key("Disulfides"):
         if inputoptions["Disulfides"] not in ["","None",None,False]:
             disulf = inputoptions["Disulfides"]
@@ -126,12 +201,19 @@ def check_options(inputoptions,firstpass=False):
             disulfides = None
     else:
         disulfides = None
-    options["Disulfides"] = disulfides
+    return disulfides
 
-    ## Check for contact energies input. Only valid for certain models. Format
-    ## for contact_energies should be an allowed option for the model (e.g. 'MJ'
-    ## for 'HetGo') or a path to a Beadbead.dat with previously saved contact
-    ## energies.
+def check_contact_params_options(inputoptions,modelcode,contactopts):
+    """ Check the contact params options for consistency 
+
+    Description:
+
+        Check for contact energies input. Only valid for certain models. Format
+    for contact_energies should be an allowed option for the model (e.g. 'MJ'
+    for 'HetGo') or a path to a Beadbead.dat with previously saved contact
+    energies.
+    """
+
     if inputoptions.has_key("Contact_Energies"):
         if inputoptions["Contact_Energies"] not in ["","None",None,False]:
             if contactopts.has_key(modelcode):
@@ -177,13 +259,27 @@ def check_options(inputoptions,firstpass=False):
         contacts = None
         contact_epsilons = None
         contact_deltas = None
-    options["Contact_Energies"] = contact_energies
-    options["Contacts"] = contacts
-    options["Contact_Epsilons"] = contact_epsilons
-    options["Contact_Deltas"] = contact_deltas
+    return contact_energies, contacts, contact_epsilons, contact_deltas
+
+def check_contact_type_and_epsilon_bar(inputoptions,contacttypes):
+    """ Check contact type option and epsilon bar option """
+
+    if inputoptions.has_key("Contact_Type"):
+        if inputoptions["Contact_Type"] not in ["","None",None,False]:
+            if inputoptions["Contact_Type"] not in contacttypes:
+                print "KeyError! contact_type be in ", contacttypes
+                print "Exiting."
+                raise SystemExit
+            else:
+                contact_type = inputoptions["Contact_Type"]
+        else:
+            contact_type = "LJ1210"
+    else:
+        contact_type = "LJ1210"
 
     ## Check if average contact strength parameter, epsilon_bar, is set. This 
-    ## keeps the average contact strength normalized to some number.
+    ## keeps the average contact strength normalized to some number to maintain
+    ## the same stability if the parameters are modified.
     if inputoptions.has_key("Epsilon_Bar"):
         if inputoptions["Epsilon_Bar"] not in ["","None",None,False]:
             try:
@@ -196,46 +292,8 @@ def check_options(inputoptions,firstpass=False):
             epsilon_bar = None
     else:
         epsilon_bar = None
-    options["Epsilon_Bar"] = epsilon_bar
+    return contact_type, epsilon_bar
 
-    ## Check if procedural indicator Tf_Iteration is set
-    if inputoptions.has_key("Tf_Iteration"):
-        try:
-            Tf_iteration = int(inputoptions["Tf_Iteration"])
-        except:
-            print "TypeError! Tf_iteration value must be a int!"
-            print "Exiting."
-            raise SystemExit
-    else:
-        Tf_iteration = 0
-    options["Tf_Iteration"] = Tf_iteration
-
-    ## Check if procedural indicator Mut_Iteration is set
-    if inputoptions.has_key("Mut_Iteration"):
-        try:
-            Mut_iteration = int(inputoptions["Mut_Iteration"])
-        except:
-            print "TypeError! Mut_iteration value must be a int!"
-            print "Exiting."
-            raise SystemExit
-    else:
-        Mut_iteration = 0
-    options["Mut_Iteration"] = Mut_iteration
-
-    ## Dry run flag will prevent any simulations from being submitted. Used to
-    ## see if file preparation runs smoothly.
-    if inputoptions["Dry_Run"] == True:
-        dryflag = True
-    else:
-        dryflag = False
-    options["Dry_Run"] = dryflag
-
-    if firstpass == False:
-        print "Model options cleared! Using model options:"
-        for key in options.keys():
-            print "  ", key , " = ", options[key]
-            
-    return options
 
 def load_model(subdir,dryrun=False):
     ''' Read model.info files in subdirectories and create models.'''

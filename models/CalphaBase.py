@@ -1,11 +1,12 @@
 """ CalphaBase
 
 Description:
+    This class was intended to make the sections of the 
+topology files for the bonded interactions.
 
 
-Classes
+** DEPRECATED 3-1-2014
 
-CalphaBase
 """
 
 import numpy as np
