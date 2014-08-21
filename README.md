@@ -1,5 +1,4 @@
-
-model_builder
+Model Builder
 =============
 Created: November 2013
 Author: Alexander Kluber
@@ -7,7 +6,7 @@ Author: Alexander Kluber
 Software for doing multiscale modeling in the Clementi Lab at Rice University. 
 
 Purpose:
-........
+--------
     The purpose of this software is to make multiscale, combining coarse-grain
 and all-atom approaches, modeling easier. The intention is that model_builder
 will become a useful toolset for Clementi group members. It is intended to be
@@ -17,17 +16,13 @@ performs parameter fitting.
 files (e.g. Gromacs .gro and .top files) for (currently) coarse-grain models
 of proteins.
 
-This text
-
 Description:
 ------------
-
-- [ ] Testing
-- [x] Testing
-
+    This package.
 
 How To Use this Module:
 -----------------------
+    Use
 
 References:
 -----------
