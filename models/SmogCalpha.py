@@ -23,8 +23,8 @@ class SmogCalpha(object):
     """ This class creates a smog-like topology and grofile """
 
     def __init__(self,pdb,contacts=None,contact_epsilons=None,contact_deltas=None,
-            epsilon_bar=None,disulfides=None,modelcode=None,contact_energies=None,
-            Tf_iteration=0,Mut_iteration=0,dryrun=False):
+            epsilon_bar=None,contact_type=None,disulfides=None,modelcode=None,contact_energies=None,
+            Tf_iteration=0,Mut_iteration=0,fitting_data=None,fitting_includes=[None],dryrun=False):
 
         self.beadmodel = "CA"
         self.backbone_params = ["Kb","Ka","Kd"]
@@ -36,6 +36,7 @@ class SmogCalpha(object):
         self.contact_epsilons = contact_epsilons
         self.contact_deltas = contact_deltas
         self.epsilon_bar = epsilon_bar
+        self.contact_type = contact_type
         self.disulfides = disulfides
         self.dryrun = dryrun
         self.error = 0
@@ -43,6 +44,8 @@ class SmogCalpha(object):
 
         self.Tf_iteration = Tf_iteration
         self.Mut_iteration = Mut_iteration
+        self.fitting_data = fitting_data
+        self.fitting_includes = fitting_includes
 
         self.path = os.getcwd()
 
@@ -102,6 +105,14 @@ class SmogCalpha(object):
         repstring += "%s\n" % str(self.epsilon_bar)
         repstring += "[ Contact_Energies ]\n"
         repstring += "%s\n" % str(self.contact_energies)
+        repstring += "[ Contact_Type ]\n"
+        repstring += "%s\n" % self.contact_type
+        repstring += "[ Fitting_Data ]\n"
+        repstring += "%s\n" % self.fitting_data
+        repstring += "[ Fitting_Includes ]\n"
+        for dir in self.fitting_includes:
+            repstring += "%s" % str(dir)
+        repstring += "\n"
         repstring += "[ Reference ]\n" 
         repstring += "%s\n" % self.citation
         return repstring
@@ -634,7 +645,15 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='Build a SMOG model.')
     parser.add_argument('--pdb', type=str, required=True, help='pdb')
+    parser.add_argument('--contacts', type=str, required=True, help='contacts')
     args = parser.parse_args() 
     pdb = args.pdb
+    contactsfile = args.contacts
 
-    model = SmogCalpha(pdb)
+    if not os.path.exists(contactsfile):
+        print "ERROR! file does not exists: ",contactsfile
+        raise SystemExit
+    else:
+        contacts = np.loadtxt(contactsfile,dtype=int)
+
+    model = SmogCalpha(pdb,contacts=contacts)

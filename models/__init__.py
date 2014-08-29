@@ -74,6 +74,7 @@ def check_options(inputoptions,firstpass=False):
     beadmodels = {"HomGo":["CA"],"HetGo":["CA"]}
     contactopts = {"HetGo":["MJ","Bach","MC2004","FRETFit","RMSFit","SecTer"]}
     contacttypes = ["LJ1210","Guassian"]
+    fittingopts = ["ddG_MC2004","RMSF","FRET"]
 
     modelcode = inputoptions["Model_Code"]
     beadmodel = inputoptions["Bead_Model"]
@@ -110,9 +111,30 @@ def check_options(inputoptions,firstpass=False):
     options["Contact_Epsilons"] = contact_epsilons
     options["Contact_Deltas"] = contact_deltas
 
+    ## Check contact type and epsilon_bar
     contact_type, epsilon_bar = check_contact_type_and_epsilon_bar(inputoptions,contacttypes)
     options["Contact_Type"] = contact_type
     options["Epsilon_Bar"] = epsilon_bar
+
+    ## Get contacts if not already specified
+    if (contacts == None):
+        if firstpass:
+            contacts = None
+        else:
+            if inputoptions.has_key("Contacts"):
+                if not os.path.exists(inputoptions["Contacts"]):
+                    print "ERROR!"
+                    print "Contact energies option: ", inputoptions["Contacts"], \
+                        " points to a nonexistant file!"
+                    print "Exiting."
+                    raise SystemExit
+                else:
+                    contacts = np.loadtxt(inputoptions["Contacts"],dtype=int)
+            else:
+                print "Error! Contacts option must be given if contact params not set with contact_energies!"
+                print "Exiting."
+                raise SystemExit
+        options["Contacts"] = contacts
 
     ## Check if procedural indicator Tf_Iteration is set
     if inputoptions.has_key("Tf_Iteration"):
@@ -138,13 +160,28 @@ def check_options(inputoptions,firstpass=False):
         Mut_iteration = 0
     options["Mut_Iteration"] = Mut_iteration
 
-    ## Check if procedural indicator Mut_Iteration is set
+    ## Fitting_Data indicates the type of data to fit
     if inputoptions.has_key("Fitting_Data"):
-        if inputoptions["Fitting_Data"] in :
-Fitting_Data = int(inputoptions[""])
+        if inputoptions["Fitting_Data"] in fittingopts:
+            Fitting_Data = inputoptions["Fitting_Data"]
+        else:
+            print "KeyError! Fitting_Data must be one of:", fittingopts
+            print "Exiting."
+            raise SystemExit
     else:
-        Fitting_Data = 
-    options["Mut_Iteration"] = Fitting_Data
+        Fitting_Data = None
+    options["Fitting_Data"] = Fitting_Data
+
+    ## Fitting_Includes allows fitting over multiple subdirectories. Defaults
+    ## to only the pdb given.
+    if inputoptions.has_key("Fitting_Includes"):
+        if len(inputoptions["Fitting_Includes"]) > 1:
+            Fitting_Includes = inputoptions["Fitting_Includes"]
+        else:
+            Fitting_Includes = [ inputoptions["PDB"].split(".pdb")[0] ]
+    else:
+        Fitting_Includes = [ inputoptions["PDB"].split(".pdb")[0] ]
+    options["Fitting_Includes"] = Fitting_Includes
 
     ## Dry run flag will prevent any simulations from being submitted. Used to
     ## see if file preparation runs smoothly.
@@ -154,7 +191,7 @@ Fitting_Data = int(inputoptions[""])
         dryflag = False
     options["Dry_Run"] = dryflag
 
-    if firstpass == False:
+    if not firstpass:
         print "Model options cleared! Using model options:"
         for key in options.keys():
             if key in ["Contacts","Contact_Epsilons","Contact_Deltas"]:
@@ -222,7 +259,9 @@ def check_contact_params_options(inputoptions,modelcode,contactopts):
                     contacts = None
                     contact_epsilons = None
                     contact_deltas = None
-                elif (inputoptions["Contact_Energies"].endswith(".dat")) or (inputoptions["Contact_Energies"].endswith(".params")):
+                elif (inputoptions["Contact_Energies"].endswith(".dat")) \
+                    or (inputoptions["Contact_Energies"].endswith(".params")) \
+                    or (inputoptions["Contact_Energies"].endswith(".contacts")):
                     if not os.path.exists(inputoptions["Contact_Energies"]):
                         print "ERROR!"
                         print "Contact energies option: ", inputoptions["Contact_Energies"], \
@@ -321,11 +360,14 @@ def load_model(subdir,dryrun=False):
             contact_epsilons=options["Contact_Epsilons"],
             contact_deltas=options["Contact_Deltas"],
             epsilon_bar=options["Epsilon_Bar"],
+            contact_type=options["Contact_Type"],
             disulfides=options["Disulfides"],
             modelcode=options["Model_Code"],
             contact_energies=options["Contact_Energies"],
             Tf_iteration=options["Tf_Iteration"],
             Mut_iteration=options["Mut_Iteration"],
+            fitting_data=options["Fitting_Data"],
+            fitting_includes=options["Fitting_Includes"],
             dryrun=options["Dry_Run"])
 
     return model
@@ -350,11 +392,14 @@ def new_models(subdirs,options):
                 contact_epsilons=options["Contact_Epsilons"],
                 contact_deltas=options["Contact_Deltas"],
                 epsilon_bar=options["Epsilon_Bar"],
+                contact_type=options["Contact_Type"],
                 disulfides=options["Disulfides"],
                 modelcode=options["Model_Code"],
                 contact_energies=options["Contact_Energies"],
                 Tf_iteration=options["Tf_Iteration"],
                 Mut_iteration=options["Mut_Iteration"],
+                fitting_data=options["Fitting_Data"],
+                fitting_includes=options["Fitting_Includes"],
                 dryrun=options["Dry_Run"])
 
         Models.append(model)
