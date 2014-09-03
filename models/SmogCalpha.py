@@ -22,7 +22,7 @@ import time
 class SmogCalpha(object):
     """ This class creates a smog-like topology and grofile """
 
-    def __init__(self,pdb,contacts=None,contact_epsilons=None,contact_deltas=None,
+    def __init__(self,pdb,contacts=None,contact_epsilons=None,contact_deltas=None,contact_widths=None,
             epsilon_bar=None,contact_type=None,disulfides=None,modelcode=None,contact_energies=None,
             Tf_iteration=0,Mut_iteration=0,fitting_data=None,fitting_includes=[None],dryrun=False):
 
@@ -32,11 +32,14 @@ class SmogCalpha(object):
 
         self.modelcode = modelcode
         self.citation = self.citation_info(self.modelcode)
+        self.contacts = contacts
         self.contact_energies = contact_energies
         self.contact_epsilons = contact_epsilons
         self.contact_deltas = contact_deltas
-        self.epsilon_bar = epsilon_bar
+        self.contact_widths = contact_widths
+        
         self.contact_type = contact_type
+        self.epsilon_bar = epsilon_bar
         self.disulfides = disulfides
         self.dryrun = dryrun
         self.error = 0
@@ -57,16 +60,11 @@ class SmogCalpha(object):
             self.pdb = pdb
             self.name = pdb.split(".pdb")[0]
             self.subdir = self.name
-            if not os.path.exists(self.subdir+"/Qref_shadow"):
-                os.makedirs(self.subdir+"/Qref_shadow")
 
             self.clean_pdb()
             self.dissect_native_pdb()
             self.get_index_ndx()
-            if contacts != None:
-                self.skip_shadow_contacts(contacts)
-            else:
-                self.shadow_contacts()
+            self.save_contacts()
             self.check_disulfides() 
             self.generate_grofile()
             self.generate_topology()
@@ -251,8 +249,9 @@ class SmogCalpha(object):
         self.cleanpdb = cleanpdb_ca
         self.cleanpdb_full = cleanpdb_full
         self.cleanpdb_full_noH = cleanpdb_full_noH
+
         open(self.subdir+"/Native.pdb","w").write(self.cleanpdb)
-        open(self.subdir+"/Qref_shadow/clean.pdb","w").write(self.cleanpdb_full)
+        #open(self.subdir+"/Qref_shadow/clean.pdb","w").write(self.cleanpdb_full)
         open(self.subdir+"/clean.pdb","w").write(self.cleanpdb_full)
         open(self.subdir+"/clean_noH.pdb","w").write(self.cleanpdb_full_noH)
         open(self.subdir+"/"+self.subdir+".pdb","w").write(self.cleanpdb_full_noH)
@@ -431,12 +430,16 @@ class SmogCalpha(object):
         if self.contact_deltas == None:
             print "  No contact deltas set. Setting contacts to attractive. 1"
             self.contact_deltas = np.ones(self.n_contacts,float)
+        if self.contact_widths == None:
+            print "  No contact widths set. Setting contact widths to attractive. 0.5 Angstrom"
+            self.contact_widths = 0.05*np.ones(self.n_contacts,float)
         if self.epsilon_bar != None:
             print "  Scaling attractive contacts such that epsilon_bar =", self.epsilon_bar
             attractive = (self.contact_deltas == 1.)
             avg_eps = np.mean(self.contact_epsilons[attractive])
             self.contact_epsilons[attractive] = self.contact_epsilons[attractive]*self.epsilon_bar/avg_eps
 
+        noncontact = 0.4**12
         self.contact_sigmas = np.zeros(len(self.contacts),float)
         pairs_string = ""
         beadbead_string = ""
@@ -449,29 +452,51 @@ class SmogCalpha(object):
             self.contact_sigmas[i] = sig_ab
             eps_ab = self.contact_epsilons[i] 
             delta_ab = self.contact_deltas[i] 
+            width_ab = self.contact_widths[i] 
 
-            c12 = eps_ab*5.0*(sig_ab**12)
-            c10 = eps_ab*delta_ab*6.0*(sig_ab**10)
+            if self.contact_type in [None, "LJ1210"]:
+                c12 = eps_ab*5.0*(sig_ab**12)
+                c10 = eps_ab*delta_ab*6.0*(sig_ab**10)
 
-            pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
-                            (res_a,res_b,1,c10,c12)
+                pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
+                                (res_a,res_b,1,c10,c12)
 
-            resid_a = self.residues[res_a-1]
-            resid_b = self.residues[res_b-1]
+                resid_a = self.residues[res_a-1]
+                resid_b = self.residues[res_b-1]
 
-            beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18.9e\n" % \
-                            (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,delta_ab)
+                beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18.9e\n" % \
+                                (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,delta_ab)
+            elif self.contact_type == "Gaussian":
+                pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
+                                (res_a,res_b,6,eps_ab,sig_ab,width_ab,noncontact)
+
+                resid_a = self.residues[res_a-1]
+                resid_b = self.residues[res_b-1]
+
+                beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18.9e%18.9e%18.9e\n" % \
+                    (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,delta_ab,width_ab,noncontact)
+            else:
+                print "ERROR! unrecognized contact option."
+                print "Exiting"
+                raise SystemExit
 
         if self.disulfides != None:
-            for i in range(len(self.disulfides)/2):
-                cys_a = self.disulfides[2*i]
-                cys_b = self.disulfides[2*i + 1]
-                x_a = self.coords[cys_a-1]
-                x_b = self.coords[cys_b-1]
-                sig_ab = np.linalg.norm(x_a - x_b)
-                eps_ab = 50.
-                delta_ab = 1.
+            pairs_string, beadbead_string = self.add_disulfides(self,pairs_string,beadbead_string,noncontact)
+        self.beadbead = beadbead_string 
+        return pairs_string
 
+    def add_disulfides(self,pairs_string,beadbead_string,noncontact):
+        for i in range(len(self.disulfides)/2):
+            cys_a = self.disulfides[2*i]
+            cys_b = self.disulfides[2*i + 1]
+            x_a = self.coords[cys_a-1]
+            x_b = self.coords[cys_b-1]
+            sig_ab = np.linalg.norm(x_a - x_b)
+            eps_ab = 50.
+            delta_ab = 1.
+            width_ab = 0.05
+
+            if self.contact_type in [None, "LJ1210"]:
                 c12 = eps_ab*5.0*(sig_ab**12)
                 c10 = eps_ab*delta_ab*6.0*(sig_ab**10)
 
@@ -484,9 +509,19 @@ class SmogCalpha(object):
 
                 beadbead_string += "%5d%5d%8s%8s%5s%18.9e%18.9e%18.9e\n" % \
                                 (cys_a,cys_b,resid_a,resid_b,"ss",sig_ab,eps_ab,delta_ab)
+            elif self.contact_type == "Gaussian":
+                print " Linking disulfide: ",cys_a,cys_b, " with eps = ",eps_ab
+                pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
+                                (res_a,res_b,6,eps_ab,sig_ab,width_ab,noncontact)
 
-        self.beadbead = beadbead_string 
-        return pairs_string
+                resid_a = self.residues[res_a-1]
+                resid_b = self.residues[res_b-1]
+
+                beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18.9e%18.9e%18.9e\n" % \
+                    (res_a,res_b,resid_a,resid_b,"ss",sig_ab,eps_ab,delta_ab,width_ab,noncontact)
+
+        return pairs_string, beadbead_string
+
 
     def get_exclusions_string(self):
         """ Get the [ exclusions ] string"""
@@ -583,71 +618,27 @@ class SmogCalpha(object):
 
         self.topology = top_string
 
-    def skip_shadow_contacts(self,contacts):
+    def save_contacts(self):
         """ When contacts are an input. """
         cwd = os.getcwd()
-        self.contacts = contacts
         self.n_contacts = len(self.contacts)
         self.Qref = np.zeros((self.n_residues,self.n_residues))
-        for pair in contacts:
+        for pair in self.contacts:
             self.Qref[pair[0]-1,pair[1]-1] = 1 
 
-        np.savetxt(cwd+"/"+self.subdir+"/Qref_shadow/Qref_cryst.dat",self.Qref,delimiter=" ",fmt="%1d")
-        np.savetxt(cwd+"/"+self.subdir+"/Qref_cryst.dat",self.Qref,delimiter=" ",fmt="%1d")
-        np.savetxt(cwd+"/"+self.subdir+"/contacts.dat",self.contacts,delimiter=" ",fmt="%4d")
-
-    def shadow_contacts(self):
-        """ Call SMOG Shadow jar code to determine the shadow contacts. If 
-            the reference matrix Qref_cryst.dat doesn't exist then create 
-            and dive into a subdirectory to run shadow map. Then save 
-            Qref_cryst.dat in the parent directory.
-
-        Considering making a contacts file mandatory input to avoid calling 
-        outside programs (like shadow.jar)
-        """
-
-        subdir = self.subdir
-
-        cwd = os.getcwd()
-        print "  Calculating native contacts for: ",subdir
-        if os.path.exists(cwd+"/"+subdir+"/contacts.dat"):
-            print "  Native contact map "+subdir+"/Qref_cryst.dat exists."
-            print "  Skipping shadow map calculation. Loading native contact map..."
-            self.contacts = np.loadtxt(cwd+"/"+subdir+"/contacts.dat",dtype=int)
-        else:
-            print "  Native contact map "+subdir+"/Qref_cryst.dat does not exist."
-            print "  Doing shadow map calculation..."
-            print "  *** NOTE: module load jdk/1.7.0.21 required for shadow map ***"
-            #if not os.path.exists("Qref_shadow"):
-            os.chdir(cwd+"/"+subdir+"/Qref_shadow")
-            cmd0 = 'cp /projects/cecilia/SCM.1.31.jar .'
-            sb.call(cmd0,shell=True,stdout=open("contacts.out","w"),stderr=open("contacts.err","w"))
-            cmd1 = 'echo -e "6\\n6\\n" | pdb2gmx -f clean.pdb -o %s.gro -p %s.top -ignh' % (subdir,subdir)
-            sb.call(cmd1,shell=True,stdout=open("convert.out","w"),stderr=open("convert.err","w"))
-            cmd2 = 'java -jar SCM.1.31.jar -g %s.gro -t %s.top -o %s.contacts -m shadow -c 4.5 --coarse CA' % (subdir,subdir,subdir)
-            sb.call(cmd2,shell=True,stdout=open("contacts.out","w"),stderr=open("contacts.err","w"))
-            self.contacts = np.loadtxt(subdir+".contacts",dtype=int,usecols=(1,3))
-            print "  Native contact map calculated with shadow map. Saving Qref_cryst.dat..."
-            np.savetxt(cwd+"/"+subdir+"/contacts.dat",self.contacts,delimiter=" ",fmt="%4d")
-
-        Qref = np.zeros((self.n_residues,self.n_residues))
-        for pair in self.contacts:
-            Qref[pair[0]-1,pair[1]-1] = 1
-
-        np.savetxt(cwd+"/"+subdir+"/Qref_cryst.dat",Qref,delimiter=" ",fmt="%1d")
-        os.chdir(cwd)
-        print "  Length = %d  Number of contacts = %d  Nc/L=%.4f" % (len(Qref),sum(sum(Qref)),float(sum(sum(Qref)))/float(len(Qref)))
-        self.Qref = Qref
-        self.n_contacts = len(self.contacts)
+        np.savetxt("%s/%s/contact_map.dat" % (cwd,self.subdir),self.Qref,delimiter=" ",fmt="%1d")
+        np.savetxt("%s/%s/contacts.dat" % (cwd,self.subdir),self.contacts,delimiter=" ",fmt="%4d")
 
 if __name__ == "__main__":
 
     import argparse
     parser = argparse.ArgumentParser(description='Build a SMOG model.')
-    parser.add_argument('--pdb', type=str, required=True, help='pdb')
+    parser.add_argument('--name', type=str, required=True, help='pdb')
     parser.add_argument('--contacts', type=str, required=True, help='contacts')
     args = parser.parse_args() 
-    pdb = args.pdb
+
+    name = args.name
+    pdb = "%s.pdb" % name
     contactsfile = args.contacts
 
     if not os.path.exists(contactsfile):
@@ -656,4 +647,11 @@ if __name__ == "__main__":
     else:
         contacts = np.loadtxt(contactsfile,dtype=int)
 
-    model = SmogCalpha(pdb,contacts=contacts)
+    if not os.path.exists(name):
+        os.mkdir(name)
+
+    model = SmogCalpha(pdb,contacts=contacts,contact_type="Gaussian")
+
+    open("%s.top" % name, "w").write(model.topology)
+    open("%s.gro" % name, "w").write(model.grofile)
+
