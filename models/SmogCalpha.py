@@ -52,6 +52,11 @@ class SmogCalpha(object):
 
         self.path = os.getcwd()
 
+        self.n_contacts = len(self.contacts)
+        self.Qref = np.zeros((self.n_residues,self.n_residues))
+        for pair in self.contacts:
+            self.Qref[pair[0]-1,pair[1]-1] = 1 
+
         if not os.path.exists(pdb):
             print "ERROR! The inputted pdb: ",pdb," does not exist"
             print " Exiting."
@@ -64,7 +69,6 @@ class SmogCalpha(object):
             self.clean_pdb()
             self.dissect_native_pdb()
             self.get_index_ndx()
-            self.save_contacts()
             self.check_disulfides() 
             self.generate_grofile()
             self.generate_topology()
@@ -118,7 +122,7 @@ class SmogCalpha(object):
     def append_log(self,string):
         now = time.localtime()
         now_string = "%s:%s:%s:%s:%s" % (now.tm_year,now.tm_mon,now.tm_mday,now.tm_hour,now.tm_min)
-        logfile = open(self.path+'/'+self.subdir+'/'+self.subdir+'.log','a').write(now_string+' '+string+'\n')
+        logfile = open('%s/%s/%s.log' % (path,self.subdir,self.subdir),'a').write("%s %s\n" % (now_string,string))
 
     def citation_info(self,key):
         ''' Dictionary of references'''
@@ -250,12 +254,6 @@ class SmogCalpha(object):
         self.cleanpdb_full = cleanpdb_full
         self.cleanpdb_full_noH = cleanpdb_full_noH
 
-        open(self.subdir+"/Native.pdb","w").write(self.cleanpdb)
-        #open(self.subdir+"/Qref_shadow/clean.pdb","w").write(self.cleanpdb_full)
-        open(self.subdir+"/clean.pdb","w").write(self.cleanpdb_full)
-        open(self.subdir+"/clean_noH.pdb","w").write(self.cleanpdb_full_noH)
-        open(self.subdir+"/"+self.subdir+".pdb","w").write(self.cleanpdb_full_noH)
-
     def dissect_native_pdb(self):
         ''' Extract info from the Native.pdb for making index and top file'''
         indices = []
@@ -263,7 +261,7 @@ class SmogCalpha(object):
         residues = []
         coords = []
 
-        for line in open(self.subdir+"/Native.pdb","r"):
+        for line in open("%s/Native.pdb" % self.subdir,"r"):
             if line.startswith("END"):
                 break
             else:
@@ -620,14 +618,7 @@ class SmogCalpha(object):
 
     def save_contacts(self):
         """ When contacts are an input. """
-        cwd = os.getcwd()
-        self.n_contacts = len(self.contacts)
-        self.Qref = np.zeros((self.n_residues,self.n_residues))
-        for pair in self.contacts:
-            self.Qref[pair[0]-1,pair[1]-1] = 1 
 
-        np.savetxt("%s/%s/contact_map.dat" % (cwd,self.subdir),self.Qref,delimiter=" ",fmt="%1d")
-        np.savetxt("%s/%s/contacts.dat" % (cwd,self.subdir),self.contacts,delimiter=" ",fmt="%4d")
 
 if __name__ == "__main__":
 
