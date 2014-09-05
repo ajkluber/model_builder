@@ -52,10 +52,6 @@ class SmogCalpha(object):
 
         self.path = os.getcwd()
 
-        self.n_contacts = len(self.contacts)
-        self.Qref = np.zeros((self.n_residues,self.n_residues))
-        for pair in self.contacts:
-            self.Qref[pair[0]-1,pair[1]-1] = 1 
 
         if not os.path.exists(pdb):
             print "ERROR! The inputted pdb: ",pdb," does not exist"
@@ -68,6 +64,10 @@ class SmogCalpha(object):
 
             self.clean_pdb()
             self.dissect_native_pdb()
+            self.n_contacts = len(self.contacts)
+            self.Qref = np.zeros((self.n_residues,self.n_residues))
+            for pair in self.contacts:
+                self.Qref[pair[0]-1,pair[1]-1] = 1 
             self.get_index_ndx()
             self.check_disulfides() 
             self.generate_grofile()
