@@ -117,12 +117,13 @@ def check_options(inputoptions,firstpass=False):
     options["Epsilon_Bar"] = epsilon_bar
 
     ## Get contacts if not already specified
+    print inputoptions
     if (contacts == None):
         if firstpass:
             contacts = None
         else:
             if inputoptions.has_key("Contacts"):
-                if inputoptions["Contacts"] == None:
+                if inputoptions["Contacts"] in ["None",None]:
                     contacts = None
                 else:
                     if not os.path.exists(inputoptions["Contacts"]):
