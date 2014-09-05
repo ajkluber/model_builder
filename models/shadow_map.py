@@ -49,3 +49,34 @@ def shadow_contacts(self):
     print "  Length = %d  Number of contacts = %d  Nc/L=%.4f" % (len(Qref),sum(sum(Qref)),float(sum(sum(Qref)))/float(len(Qref)))
     self.Qref = Qref
     self.n_contacts = len(self.contacts)
+
+def extract_backbone_Hbonds(self,System):
+    """ Use Gromacs and MDTraj to get backbone hydrogen bonds """
+
+    name = System.subdir
+
+    cwd = os.getcwd()
+    
+    if not os.path.exists(System.path+"/"+name+"/hbonds"):
+        os.makedirs(System.path+"/"+name+"/hbonds")
+    if not os.path.exists(System.path+"/"+name+"/hbonds/hbonds.dat"):
+        ## Determine backbone H-bonds with Gromacs and MDTraj
+        shutil.copy(name+".pdb",System.path+"/"+name+"/hbonds/")
+        os.chdir(System.path+"/"+name+"/hbonds")
+        prep_script = "#!/bin/bash\n"
+        prep_script += "echo -e '1\\n6\\n' | pdb2gmx -f %s.pdb -o %s.gro\n" % (name,name)
+        prep_script += "trjconv -f %s.gro -o %s.xtc\n" % (name,name)
+        prep_script += "editconf -f %s.gro -o %s_withH.pdb\n" % (name,name)
+        open("prep_pdb.sh","w").write(prep_script)
+        sb.call("bash prep_pdb.sh", shell=True,stdout=open("hbonds.out","w"),stderr=open("hbonds.err","w"))
+
+        traj = md.load("%s.xtc" % name, top="%s_withH.pdb" % name)
+        M = (md.kabsch_sander(traj))[0]
+        Hbonds = np.array(M.todense())
+        np.savetxt("hbonds.dat",Hbonds)
+        os.chdir("..")
+    else:
+        Hbonds = np.loadtxt(System.path+"/"+name+"/hbonds/hbonds.dat")
+    os.chdir(cwd)
+
+    self.Hbonds = Hbonds

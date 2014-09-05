@@ -260,8 +260,9 @@ class SmogCalpha(object):
         atoms = []
         residues = []
         coords = []
+        cleanpdblines = self.cleanpdb.split("\n")
 
-        for line in open("%s/Native.pdb" % self.subdir,"r"):
+        for line in cleanpdblines:
             if line.startswith("END"):
                 break
             else:
@@ -616,10 +617,6 @@ class SmogCalpha(object):
 
         self.topology = top_string
 
-    def save_contacts(self):
-        """ When contacts are an input. """
-
-
 if __name__ == "__main__":
 
     import argparse
@@ -637,9 +634,6 @@ if __name__ == "__main__":
         raise SystemExit
     else:
         contacts = np.loadtxt(contactsfile,dtype=int)
-
-    if not os.path.exists(name):
-        os.mkdir(name)
 
     model = SmogCalpha(pdb,contacts=contacts,contact_type="Gaussian")
 

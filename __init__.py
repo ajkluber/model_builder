@@ -20,3 +20,4 @@ Example:
 '''
 
 import models
+import check_inputs
