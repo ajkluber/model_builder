@@ -122,14 +122,17 @@ def check_options(inputoptions,firstpass=False):
             contacts = None
         else:
             if inputoptions.has_key("Contacts"):
-                if not os.path.exists(inputoptions["Contacts"]):
-                    print "ERROR!"
-                    print "Contact energies option: ", inputoptions["Contacts"], \
-                        " points to a nonexistant file!"
-                    print "Exiting."
-                    raise SystemExit
+                if inputoptions["Contacts"] == None:
+                    contacts = None
                 else:
-                    contacts = np.loadtxt(inputoptions["Contacts"],dtype=int)
+                    if not os.path.exists(inputoptions["Contacts"]):
+                        print "ERROR!"
+                        print "Contact energies option: ", inputoptions["Contacts"], \
+                            " points to a nonexistant file!"
+                        print "Exiting."
+                        raise SystemExit
+                    else:
+                        contacts = np.loadtxt(inputoptions["Contacts"],dtype=int)
             else:
                 print "Error! Contacts option must be given if contact params not set with contact_energies!"
                 print "Exiting."

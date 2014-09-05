@@ -13,7 +13,7 @@ The purpose of this software is to make multiscale, combining coarse-grain and a
 Description:
 ------------
 
-The model_builder package is responsible for constructing simulation input files (e.g. Gromacs .gro and .top files) for (currently) coarse-grain models of proteins.
+The model_builder package is responsible for constructing simulation input files (e.g. Gromacs .gro and .top files) for (currently) coarse-grain models of proteins. It can be used in scripts by itself or as part of the project_tools package.
 
 How To Use this Module:
 -----------------------
