@@ -9,18 +9,12 @@ in Gromacs. Each model is a seperate class.
 
 Classes:
 
+    SmogCalpha
 
-
-HomogeneousGoModel
-    Model with only native contacts and homogeneous contact energies
-
-HeterogeneousGoModel 
-    Model with only native contacts and heterogeneous contact energies
-
-DMCModel (coming soon)
 
 References:
 
 
-
 """
+
+import SmogCalpha

@@ -6,9 +6,9 @@
 import numpy as np
 import os
 
-import SmogCalpha
+import models.SmogCalpha as SmogCalpha
 
-def get_contact_params(paramfile):
+def get_contact_params(paramfile,contact_type):
     """ Read contact info from inputted contact parameter file """
     if paramfile.endswith(".dat"):
         beadbead = np.loadtxt(paramfile,dtype=str) 
@@ -36,6 +36,61 @@ def get_contact_params(paramfile):
         raise SystemExit
 
     return contacts,contact_epsilons,contact_deltas
+
+def new_args(args):
+    """ Check new input arguments """
+
+    contacttypes = ["LJ1210","Guassian"]
+    inputs = {}
+    ## To Do:
+    ## Check for
+    ##  - existence of pdbs file 
+    ##  - check existence of contacts file, load contacts
+    ##  - 
+    ## 
+    ## 
+
+    for pdb in args.pdbs:
+        if not os.path.exists(pdb):
+            print "ERROR! pdb %s doesn't exist! " % pdb
+            print "Exiting"
+            raise SystemExit
+
+    inputs["PDB"] = args.pdbs[0]
+
+    if args.contact_type == "None":
+        contact_type = "LJ1210"
+    else:
+        if args.contact_type not in contacttypes:
+            print "ERROR! %s not recognized. --contact_type must be from: " % args.contacts, contacttypes
+            print "Exiting"
+            raise SystemExit
+        else:
+            contact_type = args.contact_type
+
+    if (args.contacts == "None") and (args.contact_params == "None"):
+        print "ERROR! specify either --contacts <filename>  or --contact_params <filename>!"
+        print "Exiting"
+        raise SystemExit
+    elif (args.contacts == "None") and (args.contact_params != "None"):
+        get_contact_params(paramfile,contact_type)
+    elif (args.contacts != "None") and (args.contact_params == "None"):
+        if not os.path.exists(args.contacts):
+            print "ERROR! %s doesn't exist! " % args.contacts
+            print "Exiting"
+            raise SystemExit
+        else:
+            contacts = np.loadtxt("%s" % args.contacts,dtype=int)
+
+
+    pass
+
+def check_new_contact_inputs(args):
+    pass
+    #if args.contacts == "None":
+
+def load_model_info():
+    pass
 
 def check_options(inputoptions,firstpass=False):
     ''' Check that all options are compatible and in proper format. Any options
@@ -77,17 +132,18 @@ def check_options(inputoptions,firstpass=False):
     disulfides = check_disulfide_options(inputoptions)
     options["Disulfides"] = disulfides
 
+    ## Check contact type and epsilon_bar
+    contact_type, epsilon_bar = check_contact_type_and_epsilon_bar(inputoptions,contacttypes)
+    options["Contact_Type"] = contact_type
+    options["Epsilon_Bar"] = epsilon_bar
+
     ## Check options for contacts
-    contact_energies, contacts, contact_epsilons, contact_deltas = check_contact_params_options(inputoptions,modelcode,contactopts)
+    contact_energies, contacts, contact_epsilons, contact_deltas = check_contact_params_options(inputoptions,modelcode,contactopts,contact_type)
     options["Contact_Energies"] = contact_energies
     options["Contacts"] = contacts
     options["Contact_Epsilons"] = contact_epsilons
     options["Contact_Deltas"] = contact_deltas
 
-    ## Check contact type and epsilon_bar
-    contact_type, epsilon_bar = check_contact_type_and_epsilon_bar(inputoptions,contacttypes)
-    options["Contact_Type"] = contact_type
-    options["Epsilon_Bar"] = epsilon_bar
 
     ## Get contacts if not already specified
     print inputoptions
@@ -217,7 +273,7 @@ def check_disulfide_options(inputoptions):
         disulfides = None
     return disulfides
 
-def check_contact_params_options(inputoptions,modelcode,contactopts):
+def check_contact_params_options(inputoptions,modelcode,contactopts,contact_type):
     """ Check the contact params options for consistency 
 
     Description:
@@ -228,6 +284,7 @@ def check_contact_params_options(inputoptions,modelcode,contactopts):
     energies.
     """
 
+    
     if inputoptions.has_key("Contact_Energies"):
         if inputoptions["Contact_Energies"] not in ["","None",None,False]:
             if contactopts.has_key(modelcode):
@@ -246,7 +303,7 @@ def check_contact_params_options(inputoptions,modelcode,contactopts):
                         print "Exiting."
                         raise SystemExit
                     else:
-                        contacts,contact_epsilons,contact_deltas = get_contact_params(inputoptions["Contact_Energies"])
+                        contacts,contact_epsilons,contact_deltas = get_contact_params(inputoptions["Contact_Energies"],contact_type)
                         contact_energies = inputoptions["Contact_Energies"]
                 else:
                     print "ERROR!"

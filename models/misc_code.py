@@ -3,8 +3,14 @@
 A snippet excised from SmogCalpha to call shadow.jar externally.
 
 Decided to make the contacts file mandatory input instead.
+
+Also a snippet that gets the Hydrogen bonds
+
 """
 
+import os
+import numpy as np
+import mdtraj as md
 
 def shadow_contacts(self):
     """
