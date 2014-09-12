@@ -143,6 +143,10 @@ def check_options(inputoptions,firstpass=False):
     options["Contacts"] = contacts
     options["Contact_Epsilons"] = contact_epsilons
     options["Contact_Deltas"] = contact_deltas
+    #options["Contact_Energies"] = None
+    #options["Contacts"] = None
+    #options["Contact_Epsilons"] = None
+    #options["Contact_Deltas"] = None
 
 
     ## Get contacts if not already specified
