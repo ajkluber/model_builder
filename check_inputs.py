@@ -151,26 +151,26 @@ def check_options(inputoptions,firstpass=False):
 
     ## Get contacts if not already specified
     print inputoptions
-    if (contacts == None):
-        if firstpass:
-            contacts = None
-        else:
-            if inputoptions.has_key("Contacts"):
-                if inputoptions["Contacts"] in ["None",None]:
-                    contacts = None
-                else:
-                    if not os.path.exists(inputoptions["Contacts"]):
-                        print "ERROR!"
-                        print "Contact energies option: ", inputoptions["Contacts"], \
-                            " points to a nonexistant file!"
-                        print "Exiting."
-                        raise SystemExit
-                    else:
-                        contacts = np.loadtxt(inputoptions["Contacts"],dtype=int)
+    if contacts in ["None",None]:
+        #if firstpass:
+        #    contacts = None
+        #else:
+        if inputoptions.has_key("Contacts"):
+            if inputoptions["Contacts"] in ["None",None]:
+                contacts = None
             else:
-                print "Error! Contacts option must be given if contact params not set with contact_energies!"
-                print "Exiting."
-                raise SystemExit
+                if not os.path.exists(inputoptions["Contacts"]):
+                    print "ERROR!"
+                    print "Contact energies option: ", inputoptions["Contacts"], \
+                        " points to a nonexistant file!"
+                    print "Exiting."
+                    raise SystemExit
+                else:
+                    contacts = np.loadtxt(inputoptions["Contacts"],dtype=int)
+        else:
+            print "Error! Contacts option must be given if contact params not set with contact_energies!"
+            print "Exiting."
+            raise SystemExit
         options["Contacts"] = contacts
 
     ## Check if procedural indicator Tf_Iteration is set
