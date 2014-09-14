@@ -23,17 +23,24 @@ class SmogCalpha(object):
     """ This class creates a smog-like topology and grofile """
 
     def __init__(self,pdb,contacts=None,contact_epsilons=None,contact_deltas=None,contact_widths=None,
-            epsilon_bar=None,contact_type=None,disulfides=None,modelcode=None,contact_energies=None,
-            Tf_iteration=0,Mut_iteration=0,fitting_data=None,fitting_includes=[None],dryrun=False):
+            epsilon_bar=None,contact_type=None,disulfides=None,model_code=None,contact_params=None,
+            Tf_iteration=0,Mut_iteration=0,fitting_data=None,fitting_includes=[None],dry_run=False):
+
+        self.path = os.getcwd()
+
+        if not os.path.exists(pdb):
+            print "ERROR! The inputted pdb: %s does not exist" % pdb
+            print " Exiting."
+            raise SystemExit
 
         self.beadmodel = "CA"
         self.backbone_params = ["Kb","Ka","Kd"]
         self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
 
-        self.modelcode = modelcode
-        self.citation = self.citation_info(self.modelcode)
+        self.model_code = model_code
+        self.citation = self.citation_info(self.model_code)
         self.contacts = contacts
-        self.contact_energies = contact_energies
+        self.contact_params = contact_params
         self.contact_epsilons = contact_epsilons
         self.contact_deltas = contact_deltas
         self.contact_widths = contact_widths
@@ -41,7 +48,7 @@ class SmogCalpha(object):
         self.contact_type = contact_type
         self.epsilon_bar = epsilon_bar
         self.disulfides = disulfides
-        self.dryrun = dryrun
+        self.dry_run = dry_run
         self.error = 0
         self.initial_T_array = None
 
@@ -50,29 +57,22 @@ class SmogCalpha(object):
         self.fitting_data = fitting_data
         self.fitting_includes = fitting_includes
 
-        self.path = os.getcwd()
 
+        self.pdb = pdb
+        self.name = pdb.split(".pdb")[0]
+        self.subdir = self.name
 
-        if not os.path.exists(pdb):
-            print "ERROR! The inputted pdb: ",pdb," does not exist"
-            print " Exiting."
-            raise SystemExit
-        else:
-            self.pdb = pdb
-            self.name = pdb.split(".pdb")[0]
-            self.subdir = self.name
-
-            self.clean_pdb()
-            self.dissect_native_pdb()
-            self.n_contacts = len(self.contacts)
-            self.Qref = np.zeros((self.n_residues,self.n_residues))
-            for pair in self.contacts:
-                self.Qref[pair[0]-1,pair[1]-1] = 1 
-            self.get_index_ndx()
-            self.check_disulfides() 
-            self.generate_grofile()
-            self.generate_topology()
-            self.get_interaction_table()
+        self.clean_pdb()
+        self.dissect_native_pdb()
+        self.n_contacts = len(self.contacts)
+        self.Qref = np.zeros((self.n_residues,self.n_residues))
+        for pair in self.contacts:
+            self.Qref[pair[0]-1,pair[1]-1] = 1 
+        self.get_index_ndx()
+        self.check_disulfides() 
+        self.generate_grofile()
+        self.generate_topology()
+        self.get_interaction_table()
             
     def __repr__(self):
         ''' The string representation of all the model info.'''
@@ -87,7 +87,7 @@ class SmogCalpha(object):
         repstring += "[ Mut_Iteration ]\n"
         repstring += "%s\n" % self.Mut_iteration
         repstring += "[ Model_Code ]\n" 
-        repstring += "%s\n" % self.modelcode
+        repstring += "%s\n" % self.model_code
         repstring += "[ Bead_Model ]\n" 
         repstring += "%s\n" % self.beadmodel
         repstring += "[ Backbone_params ]\n" 
@@ -105,8 +105,8 @@ class SmogCalpha(object):
             repstring += "%s\n" % temp
         repstring += "[ Epsilon_Bar ]\n"
         repstring += "%s\n" % str(self.epsilon_bar)
-        repstring += "[ Contact_Energies ]\n"
-        repstring += "%s\n" % str(self.contact_energies)
+        repstring += "[ Contact_Params ]\n"
+        repstring += "%s\n" % str(self.contact_params)
         repstring += "[ Contact_Type ]\n"
         repstring += "%s\n" % self.contact_type
         repstring += "[ Fitting_Data ]\n"
