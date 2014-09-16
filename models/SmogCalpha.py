@@ -513,7 +513,7 @@ class SmogCalpha(object):
                 raise SystemExit
 
         if self.disulfides != None:
-            pairs_string, beadbead_string = self.add_disulfides(self,pairs_string,beadbead_string,noncontact)
+            pairs_string, beadbead_string = self.add_disulfides(pairs_string,beadbead_string,noncontact)
         self.beadbead = beadbead_string 
         return pairs_string
 

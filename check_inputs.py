@@ -257,10 +257,10 @@ def load_args(subdir,dry_run):
                         "Interaction_Types"]:
             pass
         elif field == "Contact_Energies":
-            #setattr(inputs,"contact_params",value.rstrip("\n"))
             inputs["Contact_Params"] = value.rstrip("\n")
+        elif field.endswith("Iteration"):
+            inputs[field] = int(value)
         else:
-            #setattr(inputs,field.lower(),value.rstrip("\n"))
             inputs[field] = value.rstrip("\n")
         line = info_file.readline()
 
