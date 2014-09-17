@@ -300,7 +300,7 @@ class SmogCalpha(object):
     def calculate_contact_potential(self,rij,conts):
         
         if conts == "all":
-            conts = np.arange(len(self.epsilons))
+            conts = np.arange(len(self.contact_epsilons))
 
         ## Epsilons, deltas, and sigmas for relevant contacts
         epsilons = self.contact_epsilons[conts]
