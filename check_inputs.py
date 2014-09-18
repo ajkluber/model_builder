@@ -125,7 +125,7 @@ def check_fitting_args(inputs,negvals,fittingdata,fittingincludes):
     ## If parameter fitting is being used check that the fitting inputs make sense.
     ##      fitting_data indicates the type of data to fit
     ##      fitting_includes allows fitting over multiple subdirectories.
-    fittingopts = ["ddG_MC2004","RMSF","FRET"]
+    fittingopts = ["ddG_MC2004","RMSF","FRET","contact_Qi"]
     if fittingdata in negvals:
         fitting_data = None
         fitting_includes = [ None ]
@@ -176,7 +176,7 @@ def new_args(args):
     available_models = ["HomGo","HetGo","DMC"]
     beadmodels = {"HomGo":["CA"],"HetGo":["CA"]}
     contacttypes = ["LJ1210","Gaussian"]
-    fittingopts = ["ddG_MC2004","RMSF","FRET"]
+    fittingopts = ["ddG_MC2004","RMSF","FRET","contact_Qi"]
     negvals = ["None",None,"",False]
     inputs = {}
 
