@@ -475,8 +475,8 @@ class SmogCalpha(object):
         pairs_string = ""
         beadbead_string = ""
         for i in range(len(self.contacts)):
-            res_a = self.contacts[i][1]
-            res_b = self.contacts[i][3]
+            res_a = self.contacts[i][0]
+            res_b = self.contacts[i][1]
             x_a = self.coords[res_a-1]
             x_b = self.coords[res_b-1]
             sig_ab = np.linalg.norm(x_a - x_b)
