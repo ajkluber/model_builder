@@ -46,6 +46,12 @@ def get_contact_params(paramfile,contact_type):
             contact_epsilons = params[:,2].astype(float)
             contact_deltas = params[:,3].astype(float)
             contact_widths = None
+        elif contact_type == "LJ1210_with_neg":
+            params = np.loadtxt(paramfile)
+            contacts = params[:,0:2].astype(int)
+            contact_epsilons = params[:,2].astype(float)
+            contact_deltas = params[:,3].astype(float)
+            contact_widths = None
         elif contact_type == "Gaussian":
             params = np.loadtxt(paramfile)
             contacts = params[:,0:2].astype(int)
