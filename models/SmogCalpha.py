@@ -368,6 +368,35 @@ class SmogCalpha(object):
         table[:,5] = 12./(r**13)
         return table
 
+    def get_LJ1210_table_with_neg(self,r):
+        '''Usual LJ12-10 interaction potential for attrative contacts, modified LJ12-10 potential for negative contacts'''
+        eps = self.contact_epsilons
+        deltas = self.contact_deltas
+        sigmas = self.contact_sigmas
+
+        table = np.zeros((len(r),6),float)
+        table[:,0] = 1./r   # needs to be multiplied by constant
+        table[:,1] = 1./(r**2)
+        table[:,4] = 0.
+        table[:,5] = 0.
+        
+        for i in range(len(eps)):
+            x = sigmas[i]/r
+            if deltas[i]>0:
+                table[i,2] = eps[i]*(5*(x^12) - 6*(x^10))
+                table[i,3] = eps[i]*60*(1/sigmas[i])*(-(x^13)+(x^11))
+            else:
+                if r >= sigmas[i]:
+                    table[i,2] = -eps[i]*(5*(x^12) - 6*(x^10))
+                    table[i,3] = -eps[i]*60*(1/sigmas[i])*(-(x^13)+(x^11))
+                else:
+                    table[i,2] = eps[i]*(5*(x^12) - 6*(x^10)+2)
+                    table[i,3] = eps[i]*60*(1/sigmas[i])*(-(x^13)+(x^11))
+        
+        return table
+        
+        
+
     def get_index_ndx(self):
         ''' Generates index file for gromacs analysis utilities. '''
         ca_string = ''
