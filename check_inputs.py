@@ -27,6 +27,16 @@ def get_contact_params(paramfile,contact_type):
             contact_epsilons = np.array(contact_epsilons)
             contact_deltas = np.array(contact_deltas)
             contact_widths = None
+        elif contact_type == "LJ1210_with_neg":
+            for i in range(len(beadbead[:,4])):
+                if beadbead[i,4] not in ["0","ss"]:
+                    contacts.append(beadbead[i,0:2].astype(int))
+                    contact_epsilons.append(beadbead[i,6].astype(float))
+                    contact_deltas.append(beadbead[i,7].astype(float))
+            contacts = np.array(contacts)
+            contact_epsilons = np.array(contact_epsilons)
+            contact_deltas = np.array(contact_deltas)
+            contact_widths = None
         elif contact_type == "Gaussian":
             for i in range(len(beadbead[:,4])):
                 if beadbead[i,4] not in ["0","ss"]:
@@ -69,7 +79,7 @@ def get_contact_params(paramfile,contact_type):
 
 def check_contact_args(inputs,negvals,contactsfile,contactparams,contacttype,epsilonbar):
     """ Check input arguments for contacts """
-    contacttypes = ["LJ1210","Gaussian"]
+    contacttypes = ["LJ1210","LJ1210_with_neg","Gaussian"]
     contacts = None
     contact_epsilons = None
     contact_deltas = None
@@ -181,7 +191,7 @@ def new_args(args):
     """ Check new input arguments """
     available_models = ["HomGo","HetGo","DMC"]
     beadmodels = {"HomGo":["CA"],"HetGo":["CA"]}
-    contacttypes = ["LJ1210","Gaussian"]
+    contacttypes = ["LJ1210","LJ1210_with_neg","Gaussian"]
     fittingopts = ["ddG_MC2004","RMSF","FRET","contact_Qi"]
     negvals = ["None",None,"",False]
     inputs = {}
