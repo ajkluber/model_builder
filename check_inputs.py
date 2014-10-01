@@ -15,38 +15,28 @@ def get_contact_params(paramfile,contact_type):
         beadbead = np.loadtxt(paramfile,dtype=str) 
         contacts = []
         contact_epsilons = []
-        contact_deltas = []
+        LJtype = []
         contact_widths = []
         if contact_type == "LJ1210":
             for i in range(len(beadbead[:,4])):
                 if beadbead[i,4] not in ["0","ss"]:
                     contacts.append(beadbead[i,0:2].astype(int))
                     contact_epsilons.append(beadbead[i,6].astype(float))
-                    contact_deltas.append(beadbead[i,7].astype(float))
+                    LJtype.append(int(round(float(beadbead[i,7]))))
             contacts = np.array(contacts)
             contact_epsilons = np.array(contact_epsilons)
-            contact_deltas = np.array(contact_deltas)
-            contact_widths = None
-        elif contact_type == "LJ1210_with_neg":
-            for i in range(len(beadbead[:,4])):
-                if beadbead[i,4] not in ["0","ss"]:
-                    contacts.append(beadbead[i,0:2].astype(int))
-                    contact_epsilons.append(beadbead[i,6].astype(float))
-                    contact_deltas.append(beadbead[i,7].astype(float))
-            contacts = np.array(contacts)
-            contact_epsilons = np.array(contact_epsilons)
-            contact_deltas = np.array(contact_deltas)
+            LJtype = np.array(LJtype)
             contact_widths = None
         elif contact_type == "Gaussian":
             for i in range(len(beadbead[:,4])):
                 if beadbead[i,4] not in ["0","ss"]:
                     contacts.append(beadbead[i,0:2].astype(int))
                     contact_epsilons.append(beadbead[i,6].astype(float))
-                    contact_deltas.append(beadbead[i,7].astype(float))
+                    LJtype.append(int(round(float(beadbead[i,7]))))
                     contact_widths.append(beadbead[i,8].astype(float))
             contacts = np.array(contacts)
             contact_epsilons = np.array(contact_epsilons)
-            contact_deltas = np.array(contact_deltas)
+            LJtype = np.array(LJtype)
             contact_widths = np.array(contact_widths)
     elif paramfile.endswith(".params"):
         ## Simpler parameter file. 
@@ -54,19 +44,13 @@ def get_contact_params(paramfile,contact_type):
             params = np.loadtxt(paramfile)
             contacts = params[:,0:2].astype(int)
             contact_epsilons = params[:,2].astype(float)
-            contact_deltas = params[:,3].astype(float)
-            contact_widths = None
-        elif contact_type == "LJ1210_with_neg":
-            params = np.loadtxt(paramfile)
-            contacts = params[:,0:2].astype(int)
-            contact_epsilons = params[:,2].astype(float)
-            contact_deltas = params[:,3].astype(float)
+            LJtype = params[:,3].astype(float)
             contact_widths = None
         elif contact_type == "Gaussian":
             params = np.loadtxt(paramfile)
             contacts = params[:,0:2].astype(int)
             contact_epsilons = params[:,2].astype(float)
-            contact_deltas = params[:,3].astype(float)
+            LJtype = params[:,3].astype(float)
             contact_widths = params[:,4].astype(float)
     else:
         print "ERROR!"
@@ -75,14 +59,14 @@ def get_contact_params(paramfile,contact_type):
         print " Exiting."
         raise SystemExit
 
-    return contacts,contact_epsilons,contact_deltas,contact_widths
+    return contacts,contact_epsilons,LJtype,contact_widths
 
 def check_contact_args(inputs,negvals,contactsfile,contactparams,contacttype,epsilonbar):
     """ Check input arguments for contacts """
-    contacttypes = ["LJ1210","LJ1210_with_neg","Gaussian"]
+    contacttypes = ["LJ1210","Gaussian"]
     contacts = None
     contact_epsilons = None
-    contact_deltas = None
+    LJtype = None
     contact_widths = None
     contact_params = None
     epsilon_bar = None
@@ -112,7 +96,7 @@ def check_contact_args(inputs,negvals,contactsfile,contactparams,contacttype,eps
             else:
                 contacts = np.loadtxt("%s" % contactsfile,dtype=int)
     else:
-        contacts, contact_epsilons, contact_deltas, contact_widths = get_contact_params(contactparams,contact_type)
+        contacts, contact_epsilons, LJtype, contact_widths = get_contact_params(contactparams,contact_type)
         contact_params = contactparams
 
     ## Check if average contact strength parameter, epsilon_bar, is set. This 
@@ -130,7 +114,7 @@ def check_contact_args(inputs,negvals,contactsfile,contactparams,contacttype,eps
     inputs["Contact_Params"] = contact_params
     inputs["Contacts"] = contacts
     inputs["Contact_Epsilons"] = contact_epsilons
-    inputs["Contact_Deltas"] = contact_deltas
+    inputs["LJtype"] = LJtype
     inputs["Contact_Widths"] = contact_widths
     inputs["Epsilon_Bar"] = epsilon_bar
 
@@ -191,7 +175,7 @@ def new_args(args):
     """ Check new input arguments """
     available_models = ["HomGo","HetGo","DMC"]
     beadmodels = {"HomGo":["CA"],"HetGo":["CA"]}
-    contacttypes = ["LJ1210","LJ1210_with_neg","Gaussian"]
+    contacttypes = ["LJ1210","Gaussian"]
     fittingopts = ["ddG_MC2004","RMSF","FRET","contact_Qi"]
     negvals = ["None",None,"",False]
     inputs = {}
@@ -247,7 +231,7 @@ def new_args(args):
     keys = inputs.keys()
     keys.sort()
     for key in keys:
-        if key in ["Contacts","Contact_Epsilons","Contact_Deltas","Contact_Widths"]:
+        if key in ["Contacts","Contact_Epsilons","LJtype","Contact_Widths"]:
             if inputs[key] == None:
                 print "  ", key , " = ", inputs[key]
             else:
@@ -301,7 +285,7 @@ def load_args(subdir,dry_run):
     keys = inputs.keys()
     keys.sort()
     for key in keys:
-        if key in ["Contacts","Contact_Epsilons","Contact_Deltas","Contact_Widths"]:
+        if key in ["Contacts","Contact_Epsilons","LJtype","Contact_Widths"]:
             if inputs[key] == None:
                 print "  ", key , " = ", inputs[key]
             else:
@@ -320,7 +304,7 @@ def load_model(subdir,dry_run=False):
             contacts=options["Contacts"],
             contact_params=options["Contact_Params"],
             contact_epsilons=options["Contact_Epsilons"],
-            contact_deltas=options["Contact_Deltas"],
+            LJtype=options["LJtype"],
             contact_widths=options["Contact_Widths"],
             contact_type=options["Contact_Type"],
             disulfides=options["Disulfides"],
@@ -353,7 +337,7 @@ def new_models(subdirs,options):
                 contacts=options["Contacts"],
                 contact_params=options["Contact_Params"],
                 contact_epsilons=options["Contact_Epsilons"],
-                contact_deltas=options["Contact_Deltas"],
+                LJtype=options["LJtype"],
                 contact_widths=options["Contact_Widths"],
                 contact_type=options["Contact_Type"],
                 disulfides=options["Disulfides"],

@@ -22,7 +22,7 @@ import time
 class SmogCalpha(object):
     """ This class creates a smog-like topology and grofile """
 
-    def __init__(self,pdb,contacts=None,contact_epsilons=None,contact_deltas=None,contact_widths=None,noncontact_wall=None,
+    def __init__(self,pdb,contacts=None,contact_epsilons=None,LJtype=None,contact_widths=None,noncontact_wall=None,
             epsilon_bar=None,contact_type=None,disulfides=None,model_code=None,contact_params=None,
             Tf_iteration=0,Mut_iteration=0,fitting_data=None,fitting_includes=[None],dry_run=False):
 
@@ -42,7 +42,7 @@ class SmogCalpha(object):
         self.contacts = contacts
         self.contact_params = contact_params
         self.contact_epsilons = contact_epsilons
-        self.contact_deltas = contact_deltas
+        self.LJtype = LJtype
         self.contact_widths = contact_widths
         self.noncontact_wall = noncontact_wall
         
@@ -66,14 +66,19 @@ class SmogCalpha(object):
         self.clean_pdb()
         self.dissect_native_pdb()
         self.n_contacts = len(self.contacts)
+        if self.LJtype == None:
+            self.n_repcontacts = 0
+        else:
+            self.n_repcontacts = sum((self.LJtype == -1).astype(int))
         self.Qref = np.zeros((self.n_residues,self.n_residues))
         for pair in self.contacts:
             self.Qref[pair[0]-1,pair[1]-1] = 1 
         self.get_index_ndx()
         self.check_disulfides() 
+
         self.generate_grofile()
         self.generate_topology()
-        self.get_interaction_table()
+        self.get_interaction_tables()
             
     def __repr__(self):
         ''' The string representation of all the model info.'''
@@ -140,6 +145,24 @@ class SmogCalpha(object):
                     "a Diagnostic Tool for Misfolding and Aggregation. J. Mol. Biol. \n"+ \
                     "2006, 363, 297-308.",None:"None"}
         return citations[key]
+
+    def check_contact_opts(self):
+        if self.contact_epsilons == None:
+            print "  No contact epsilons set. Setting contacts to homogeneous model. 1"
+            self.contact_epsilons = np.ones(self.n_contacts,float)
+        if self.contact_type == "LJ1210":
+            if self.LJtype == None:
+                print "  No LJtype given. Setting contacts to attractive. 1"
+                self.LJtype = np.ones(self.n_contacts,float)
+        elif self.contact_type == "Gaussian":
+            if self.contact_widths == None:
+                print "  No contact widths set. Setting contact widths to attractive. 0.5 Angstrom"
+                self.contact_widths = 0.05*np.ones(self.n_contacts,float)
+            if self.noncontact_wall == None:
+                print "  No noncontact wall set. Setting noncontact wall to 0.4 nm"
+                noncontact = 0.4
+                self.noncontact_wall = noncontact*np.ones(self.n_contacts,float)
+
 
     def check_disulfides(self):
         ''' Check that specified disulfides are between cysteine and that 
@@ -306,12 +329,12 @@ class SmogCalpha(object):
         epsilons = self.contact_epsilons[conts]
         sigmas = self.contact_sigmas[conts]
         if self.contact_type == "LJ1210":
-            deltas = self.contact_deltas[conts]
+            deltas = self.LJtype[conts]
             ## Only count values of potential energy function where interaction is
             ## attractive.
             x = sigmas/rij
             x[(x > 1.09)] = 1.09  # <-- 1.09 is where LJ12-10 crosses zero. 
-            Vij = epsilons*(5.*(x**12) - 6.*deltas*(x**10))     
+            Vij = epsilons*(5.*(x**12) - 6.*(x**10))     
         elif self.contact_type == "Gaussian":
             ## NEEDS TO BE TESTED
             noncontact_sigmas = self.noncontact_wall[conts]
@@ -321,7 +344,6 @@ class SmogCalpha(object):
             
             x = noncontact_sigmas/rij
             Vij = epsilons*((1. + (x**12))*(1. - np.exp(-(rij - contact_sigmas)/(2.*(contact_widths**2)))) - 1.)
-
 
         return Vij
 
@@ -347,55 +369,60 @@ class SmogCalpha(object):
                         'TYR': 'Y', 'VAL': 'V'}
         return residue_code
 
-    def get_interaction_table(self):
+    def get_interaction_tables(self):
         ''' Returns the table for interaction type 'i'. The values of the
             potential is set to 0.0 when r is too close to zero to avoid
             blowup. 
         '''
-        r = np.arange(0.0,4.0,0.002)
-        self.table = np.zeros((len(r),7),float)
-        self.table[:,0] = r
-        self.table[20:,1:7] = self.get_LJ1210_table(r[20:])
 
-    def get_LJ1210_table(self,r):
+        if self.contact_type == "LJ1210":
+    
+            self.table = self.get_LJ1210_table()
+
+            self.rep_tables = []
+            self.rep_tablenames = []
+            if self.n_repcontacts != 0:
+                for i in range(self.n_repcontacts):
+                    pair = self.contacts[self.LJtype == -1][i]
+                    epsilon = self.contact_epsilons[self.LJtype == -1][i]
+                    sigma = self.contact_sigmas[self.LJtype == -1][i]
+                    table = self.get_repLJ1210_table(epsilon,sigma)
+                    table_name = "table_b%d.xvg" % (i+1)
+
+                    self.rep_tables.append(table)
+                    self.rep_tablenames.append(table_name)
+
+    def get_LJ1210_table(self):
         ''' LJ12-10 interaction potential ''' 
-        table = np.zeros((len(r),6),float)
-        table[:,0] = 1./r
-        table[:,1] = 1./(r**2)
-        table[:,2] = -1./(r**10)
-        table[:,3] = -10./(r**11)
-        table[:,4] = 1./(r**12)
-        table[:,5] = 12./(r**13)
+        r = np.arange(0.0,100.0,0.002)
+        r[0] = 1
+        table = np.zeros((len(r),7),float)
+        table[:,0] = r
+        table[:,1] = 1./r
+        table[:,2] = 1./(r**2)
+        table[:,3] = -1./(r**10)
+        table[:,4] = -10./(r**11)
+        table[:,5] = 1./(r**12)
+        table[:,6] = 12./(r**13)
+        table[:5,1:] = 0
+        table[0,0] = 0
         return table
 
-    def get_LJ1210_table_with_neg(self,r):
-        '''Usual LJ12-10 interaction potential for attrative contacts, modified LJ12-10 potential for negative contacts'''
-        eps = self.contact_epsilons
-        deltas = self.contact_deltas
-        sigmas = self.contact_sigmas
+    def get_repLJ1210_table(self,eps,sigma):
+        ''' A repulsive LJ12-10 interaction potential '''
+        r = np.arange(0.0,100.0,0.002)
+        r[0] = 1
+        x = sigma/r
+        table = np.zeros((len(r),3),float)
+        table[:,0] = r
+        table[x > 1,1] = eps*(5*(x[x > 1]**12) - 6*(x[x > 1]**10) + 2)
+        table[x <= 1,1] = -eps*(5*(x[x <= 1]**12) - 6*(x[x <= 1]**10))
+        table[x > 1, 2] = 60*(eps/sigma)*(x[x > 1]**13 - x[x > 1]**11)
+        table[x <= 1,2] = -60*(eps/sigma)*(x[x <= 1]**13 - x[x <= 1]**11)
+        table[:5, 1:] = 0.
+        table[0,0] = 0
 
-        table = np.zeros((len(r),6),float)
-        table[:,0] = 1./r   # needs to be multiplied by constant
-        table[:,1] = 1./(r**2)
-        table[:,4] = 0.
-        table[:,5] = 0.
-        
-        for i in range(len(eps)):
-            x = sigmas[i]/r
-            if deltas[i]>0:
-                table[i,2] = eps[i]*(5*(x^12) - 6*(x^10))
-                table[i,3] = eps[i]*60*(1/sigmas[i])*(-(x^13)+(x^11))
-            else:
-                if r >= sigmas[i]:
-                    table[i,2] = -eps[i]*(5*(x^12) - 6*(x^10))
-                    table[i,3] = -eps[i]*60*(1/sigmas[i])*(-(x^13)+(x^11))
-                else:
-                    table[i,2] = eps[i]*(5*(x^12) - 6*(x^10)+2)
-                    table[i,3] = eps[i]*60*(1/sigmas[i])*(-(x^13)+(x^11))
-        
         return table
-        
-        
 
     def get_index_ndx(self):
         ''' Generates index file for gromacs analysis utilities. '''
@@ -440,6 +467,16 @@ class SmogCalpha(object):
             dist = np.linalg.norm(self.coords[i_idx] - self.coords[j_idx])
             bonds_string += "%6d %6d%2d%18.9e%18.9e\n" %  \
                           (i_idx+1,j_idx+1,1,dist,kb)
+
+        if (self.contact_type == "LJ1210"):
+            if self.n_repcontacts != 0:
+                bonds_string += "; repulsive LJ1210 contacts below\n"
+                for i in range(self.n_repcontacts):
+                    ## add extra bonds string
+                    pair = self.contacts[self.LJtype == -1][i]
+                    bonds_string += "%6d %6d%2d%18d%18.9e\n" %  \
+                              (pair[0],pair[1],9,i+1,1.0)
+
         return bonds_string
 
     def get_angles_string(self):
@@ -481,22 +518,10 @@ class SmogCalpha(object):
 
     def get_pairs_string(self):
         """ Get the [ pairs ] string"""
-        if self.contact_epsilons == None:
-            print "  No contact epsilons set. Setting contacts to homogeneous model. 1"
-            self.contact_epsilons = np.ones(self.n_contacts,float)
-        if self.contact_deltas == None:
-            print "  No contact deltas set. Setting contacts to attractive. 1"
-            self.contact_deltas = np.ones(self.n_contacts,float)
-        if self.contact_widths == None:
-            print "  No contact widths set. Setting contact widths to attractive. 0.5 Angstrom"
-            self.contact_widths = 0.05*np.ones(self.n_contacts,float)
-        if self.noncontact_wall == None:
-            print "  No noncontact wall set. Setting noncontact wall to 0.4 nm"
-            noncontact = 0.4
-            self.noncontact_wall = noncontact*np.ones(self.n_contacts,float)
+
         if self.epsilon_bar != None:
             print "  Scaling attractive contacts such that epsilon_bar =", self.epsilon_bar
-            attractive = (self.contact_deltas == 1.)
+            attractive = (self.LJtype == 1.)
             avg_eps = np.mean(self.contact_epsilons[attractive])
             self.contact_epsilons[attractive] = self.contact_epsilons[attractive]*self.epsilon_bar/avg_eps
 
@@ -504,6 +529,7 @@ class SmogCalpha(object):
         pairs_string = ""
         beadbead_string = ""
         for i in range(len(self.contacts)):
+            
             res_a = self.contacts[i][0]
             res_b = self.contacts[i][1]
             x_a = self.coords[res_a-1]
@@ -511,31 +537,31 @@ class SmogCalpha(object):
             sig_ab = np.linalg.norm(x_a - x_b)
             self.contact_sigmas[i] = sig_ab
             eps_ab = self.contact_epsilons[i] 
-            delta_ab = self.contact_deltas[i] 
-            width_ab = self.contact_widths[i] 
-            ncwall_ab = self.noncontact_wall[i]**12
 
             if self.contact_type in [None, "LJ1210"]:
-                c12 = eps_ab*5.0*(sig_ab**12)
-                c10 = eps_ab*delta_ab*6.0*(sig_ab**10)
+                if self.LJtype[i] == 1:
+                    c12 = eps_ab*5.0*(sig_ab**12)
+                    c10 = eps_ab*6.0*(sig_ab**10)
 
-                pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
-                                (res_a,res_b,1,c10,c12)
+                    pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
+                                    (res_a,res_b,1,c10,c12)
 
                 resid_a = self.residues[res_a-1]
                 resid_b = self.residues[res_b-1]
 
-                beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18.9e\n" % \
-                                (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,delta_ab)
+                beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d\n" % \
+                                (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,self.LJtype[i])
             elif self.contact_type == "Gaussian":
+                width_ab = self.contact_widths[i] 
+                ncwall_ab = self.noncontact_wall[i]**12
                 pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
                                 (res_a,res_b,6,eps_ab,sig_ab,width_ab,ncwall_ab)
 
                 resid_a = self.residues[res_a-1]
                 resid_b = self.residues[res_b-1]
 
-                beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18.9e%18.9e%18.9e\n" % \
-                    (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,delta_ab,width_ab,ncwall_ab)
+                beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d%18.9e%18.9e\n" % \
+                    (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,1,width_ab,ncwall_ab)
             else:
                 print "ERROR! unrecognized contact option."
                 print "Exiting"
@@ -554,13 +580,12 @@ class SmogCalpha(object):
             x_b = self.coords[cys_b-1]
             sig_ab = np.linalg.norm(x_a - x_b)
             eps_ab = 50.
-            delta_ab = 1.
             width_ab = 0.05
             noncontact = 0.4**12
 
             if self.contact_type in [None, "LJ1210"]:
                 c12 = eps_ab*5.0*(sig_ab**12)
-                c10 = eps_ab*delta_ab*6.0*(sig_ab**10)
+                c10 = eps_ab*6.0*(sig_ab**10)
 
                 print " Linking disulfide: ",cys_a,cys_b, " with eps = ",eps_ab
                 pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
@@ -569,8 +594,8 @@ class SmogCalpha(object):
                 resid_a = self.residues[cys_a-1]
                 resid_b = self.residues[cys_b-1]
 
-                beadbead_string += "%5d%5d%8s%8s%5s%18.9e%18.9e%18.9e\n" % \
-                                (cys_a,cys_b,resid_a,resid_b,"ss",sig_ab,eps_ab,delta_ab)
+                beadbead_string += "%5d%5d%8s%8s%5s%18.9e%18.9e%18d\n" % \
+                                (cys_a,cys_b,resid_a,resid_b,"ss",sig_ab,eps_ab,1)
             elif self.contact_type == "Gaussian":
                 print " Linking disulfide: ",cys_a,cys_b, " with eps = ",eps_ab
                 pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
@@ -579,8 +604,8 @@ class SmogCalpha(object):
                 resid_a = self.residues[res_a-1]
                 resid_b = self.residues[res_b-1]
 
-                beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18.9e%18.9e%18.9e\n" % \
-                    (res_a,res_b,resid_a,resid_b,"ss",sig_ab,eps_ab,delta_ab,width_ab,noncontact)
+                beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d%18.9e%18.9e\n" % \
+                    (res_a,res_b,resid_a,resid_b,"ss",sig_ab,eps_ab,1,width_ab,noncontact)
 
         return pairs_string, beadbead_string
 
