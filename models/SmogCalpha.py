@@ -23,8 +23,11 @@ class SmogCalpha(object):
     """ This class creates a smog-like topology and grofile """
 
     def __init__(self,pdb,contacts=None,contact_epsilons=None,LJtype=None,contact_widths=None,noncontact_wall=None,
-            epsilon_bar=None,contact_type=None,disulfides=None,model_code=None,contact_params=None,
-            Tf_iteration=0,Mut_iteration=0,fitting_data=None,fitting_includes=[None],dry_run=False):
+            epsilon_bar=None,contact_type=None,
+            disulfides=None,model_code=None,contact_params=None,
+            Tf_iteration=0,Mut_iteration=0,
+            fitting_data=None,fitting_includes=[None],fitting_solver="Levenberg",
+            dry_run=False):
 
         self.path = os.getcwd()
 
@@ -57,7 +60,7 @@ class SmogCalpha(object):
         self.Mut_iteration = Mut_iteration
         self.fitting_data = fitting_data
         self.fitting_includes = fitting_includes
-
+        self.fitting_solver = fitting_solver
 
         self.pdb = pdb
         self.name = pdb.split(".pdb")[0]
@@ -70,12 +73,14 @@ class SmogCalpha(object):
             self.n_repcontacts = 0
         else:
             self.n_repcontacts = sum((self.LJtype == -1).astype(int))
+
         self.Qref = np.zeros((self.n_residues,self.n_residues))
         for pair in self.contacts:
             self.Qref[pair[0]-1,pair[1]-1] = 1 
         self.get_index_ndx()
         self.check_disulfides() 
 
+        ## Generate grofile, topology file, and necessary table files.
         self.check_contact_opts()
         self.generate_grofile()
         self.generate_topology()
@@ -122,6 +127,8 @@ class SmogCalpha(object):
         for dir in self.fitting_includes:
             repstring += "%s" % str(dir)
         repstring += "\n"
+        repstring += "[ Fitting_Solver ]\n"
+        repstring += "%s\n" % self.fitting_solver
         repstring += "[ Reference ]\n" 
         repstring += "%s\n" % self.citation
         return repstring
