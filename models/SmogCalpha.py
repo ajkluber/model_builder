@@ -76,6 +76,7 @@ class SmogCalpha(object):
         self.get_index_ndx()
         self.check_disulfides() 
 
+        self.check_contact_opts()
         self.generate_grofile()
         self.generate_topology()
         self.get_interaction_tables()
@@ -521,9 +522,10 @@ class SmogCalpha(object):
 
         if self.epsilon_bar != None:
             print "  Scaling attractive contacts such that epsilon_bar =", self.epsilon_bar
-            attractive = (self.LJtype == 1.)
-            avg_eps = np.mean(self.contact_epsilons[attractive])
-            self.contact_epsilons[attractive] = self.contact_epsilons[attractive]*self.epsilon_bar/avg_eps
+            ## TO DO:
+            #stability = sum(self.contact_epsilons[self.LJtype == 1]) - sum(
+            #avg_eps = np.mean(self.contact_epsilons[attractive])
+            #self.contact_epsilons[attractive] = /avg_eps
 
         self.contact_sigmas = np.zeros(len(self.contacts),float)
         pairs_string = ""
@@ -567,6 +569,7 @@ class SmogCalpha(object):
                 print "Exiting"
                 raise SystemExit
 
+        noncontact = 0.4        ## Noncontact radius 4 Angstroms
         if self.disulfides != None:
             pairs_string, beadbead_string = self.add_disulfides(pairs_string,beadbead_string,noncontact)
         self.beadbead = beadbead_string 
