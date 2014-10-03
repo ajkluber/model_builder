@@ -329,7 +329,10 @@ class SmogCalpha(object):
         return phi
 
     def calculate_contact_potential(self,rij,conts):
-        
+        ## To Do:
+        ## 1. Include calculation of repulsive contact energy -> read potential
+        ##      from table file.
+
         if conts == "all":
             conts = np.arange(len(self.contact_epsilons))
 
