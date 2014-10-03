@@ -26,7 +26,7 @@ class SmogCalpha(object):
             epsilon_bar=None,contact_type=None,
             disulfides=None,model_code=None,contact_params=None,
             Tf_iteration=0,Mut_iteration=0,
-            fitting_data=None,fitting_includes=[None],fitting_solver="Levenberg",
+            fitting_data=None,fitting_includes=[None],fitting_solver="Levenberg",fitting_allowswitch=False,
             dry_run=False):
 
         self.path = os.getcwd()
@@ -42,6 +42,9 @@ class SmogCalpha(object):
 
         self.model_code = model_code
         self.citation = self.citation_info(self.model_code)
+
+        ## Contacts, their absolute strengths, attractive/repulsive character
+        self.contact_type = contact_type
         self.contacts = contacts
         self.contact_params = contact_params
         self.contact_epsilons = contact_epsilons
@@ -49,8 +52,9 @@ class SmogCalpha(object):
         self.contact_widths = contact_widths
         self.noncontact_wall = noncontact_wall
         
-        self.contact_type = contact_type
-        self.epsilon_bar = epsilon_bar
+        ## Average contact strength
+        self.epsilon_bar = epsilon_bar  
+
         self.disulfides = disulfides
         self.dry_run = dry_run
         self.error = 0
@@ -58,14 +62,18 @@ class SmogCalpha(object):
 
         self.Tf_iteration = Tf_iteration
         self.Mut_iteration = Mut_iteration
+        
+        ## Options for parameter fitting
         self.fitting_data = fitting_data
         self.fitting_includes = fitting_includes
         self.fitting_solver = fitting_solver
+        self.fitting_allowswitch = fitting_allowswitch
 
         self.pdb = pdb
         self.name = pdb.split(".pdb")[0]
         self.subdir = self.name
 
+        ## Prepare the coordinates from the pdb file.
         self.clean_pdb()
         self.dissect_native_pdb()
         self.n_contacts = len(self.contacts)
@@ -78,6 +86,8 @@ class SmogCalpha(object):
         for pair in self.contacts:
             self.Qref[pair[0]-1,pair[1]-1] = 1 
         self.get_index_ndx()
+
+        ## Check disulfide separation and remove from contacts list.
         self.check_disulfides() 
 
         ## Generate grofile, topology file, and necessary table files.
@@ -129,6 +139,8 @@ class SmogCalpha(object):
         repstring += "\n"
         repstring += "[ Fitting_Solver ]\n"
         repstring += "%s\n" % self.fitting_solver
+        repstring += "[ Fitting_AllowSwitch ]\n"
+        repstring += "%s\n" % self.fitting_allowswitch
         repstring += "[ Reference ]\n" 
         repstring += "%s\n" % self.citation
         return repstring

@@ -120,28 +120,48 @@ def check_contact_args(inputs,negvals,contactsfile,contactparams,contacttype,eps
 
     return inputs
 
-def check_fitting_args(inputs,negvals,fittingdata,fittingincludes):
+def check_fitting_args(inputs,negvals,fittingdata,fittingincludes,fittingsolver,fittingallowswitch):
     """ Check parameter fitting options """
     ## If parameter fitting is being used check that the fitting inputs make sense.
     ##      fitting_data indicates the type of data to fit
     ##      fitting_includes allows fitting over multiple subdirectories.
-    fittingopts = ["ddG_MC2004","RMSF","FRET","contact_Qi"]
+    ##      fitting_solver choses the algorithm to select a solution.
+    ##      fitting_allowswitch allows the fitting to change the attractive/repulsive nature of itnerations.
+    fittingdatas = ["ddG_MC2004","RMSF","FRET","contact_Qi"]
+    fittingallowswitches = ["True","False"]
+    fittingsolvers = ["Levenberg","TSVD","cplex"]
+
     if fittingdata in negvals:
         fitting_data = None
         fitting_includes = [ None ]
     else:
-        if fittingdata in fittingopts:
+        if fittingdata in fittingdatas:
             fitting_data = fittingdata
         else:
-            print "KeyError! Fitting_Data must be one of:", fittingopts
+            print "KeyError! Fitting_Data must be one of:", fittingdatas
             print "Exiting."
             raise SystemExit
         if fittingincludes in negvals:
             fitting_includes = [ inputs["PDB"].split(".pdb")[0] ]
         else:
             fitting_includes = [ fittingincludes[i].split(".pdb")[0] for i in range(len(fittingincludes)) ]
+
+    if fittingallowswitch in [True,False]:
+        fitting_allowswitch = fittingallowswitch 
+    else:
+        fitting_allowswitch = "False"
+
+    if fittingsolver not in fittingsolvers:
+        print "ERROR! Fitting_Solver must be one of:", fittingsolvers
+        print "Exiting."
+        raise SystemExit
+    else:
+        fitting_solver = fittingsolver
+
     inputs["Fitting_Data"] = fitting_data
     inputs["Fitting_Includes"] = fitting_includes
+    inputs["Fitting_Solver"] = fitting_solver
+    inputs["Fitting_AllowSwitch"] = fitting_allowswitch
 
     return inputs
 
@@ -176,7 +196,7 @@ def new_args(args):
     available_models = ["HomGo","HetGo","DMC"]
     beadmodels = {"HomGo":["CA"],"HetGo":["CA"]}
     contacttypes = ["LJ1210","Gaussian"]
-    fittingopts = ["ddG_MC2004","RMSF","FRET","contact_Qi"]
+    fittingdatas = ["ddG_MC2004","RMSF","FRET","contact_Qi"]
     negvals = ["None",None,"",False]
     inputs = {}
 
@@ -214,7 +234,7 @@ def new_args(args):
     inputs = check_contact_args(inputs,negvals,args.contacts,args.contact_params,args.contact_type,args.epsilon_bar)
 
     ## Check parameter fitting inputs
-    inputs = check_fitting_args(inputs,negvals,args.fitting_data,args.fitting_includes)
+    inputs = check_fitting_args(inputs,negvals,args.fitting_data,args.fitting_includes,args.fitting_solver,args.fitting_allowswitch)
 
     ## Check disulfide list
     inputs = check_disulfide_args(inputs,negvals,args.disulfides)
@@ -270,13 +290,15 @@ def load_args(subdir,dry_run):
     epsilonbar = inputs["Epsilon_Bar"] 
     fittingdata = inputs["Fitting_Data"]
     fittingincludes = inputs["Fitting_Includes"].split()
+    fittingallowswitch = inputs["Fitting_AllowSwitch"]
+    fittingsolver = inputs["Fitting_Solver"]
     disulfides = inputs["Disulfides"]
         
     ## Check all contact-related inputs
     inputs = check_contact_args(inputs,negvals,contactsfile,contactparams,contacttype,epsilonbar)
 
     ## Check parameter fitting inputs
-    inputs = check_fitting_args(inputs,negvals,fittingdata,fittingincludes)
+    inputs = check_fitting_args(inputs,negvals,fittingdata,fittingincludes,fittingsolver,fittingallowswitch)
 
     ## Check disulfide list
     inputs = check_disulfide_args(inputs,negvals,disulfides)
