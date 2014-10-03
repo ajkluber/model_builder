@@ -328,24 +328,38 @@ class SmogCalpha(object):
         phi = 180. + sign*(180./np.pi)*np.arccos(np.dot(v21xv31,v32xv42))
         return phi
 
-    def calculate_contact_potential(self,rij,conts):
+    def calculate_contact_potential(self,rij):
+        """ Contact potential for all contacts in the trajectory """
+
         ## To Do:
         ## 1. Include calculation of repulsive contact energy -> read potential
         ##      from table file.
 
-        if conts == "all":
-            conts = np.arange(len(self.contact_epsilons))
-
-        ## Epsilons, deltas, and sigmas for relevant contacts
+        ## Epsilons, deltas, and sigmas for all contacts
+        conts = np.arange(self.n_contacts)
         epsilons = self.contact_epsilons[conts]
         sigmas = self.contact_sigmas[conts]
         if self.contact_type == "LJ1210":
-            deltas = self.LJtype[conts]
+            allindx = np.arange(self.n_contacts)
+            repindx = allindx[self.LJtype == -1]
+            attindx = allindx[self.LJtype == 1]
+
             ## Only count values of potential energy function where interaction is
-            ## attractive.
+            ## attractive. Assign attractive interaction en masse then loop over
+            ## repulsive interactions because each one requires different function
+            ## evaluation.
+            Vij = np.zeros(rij.shape,float)
             x = sigmas/rij
-            x[(x > 1.09)] = 1.09  # <-- 1.09 is where LJ12-10 crosses zero. 
-            Vij = epsilons*(5.*(x**12) - 6.*(x**10))     
+            x[x > 1.09] = 1.09  # <-- 1.09 is where LJ12-10 crosses zero for attractive
+            Vij[:,attindx] = epsilons[attindx]*(5.*(x[:,attindx]**12) - 6.*(x[:,attindx]**10))     
+            for i in range(self.n_repcontacts):
+                indx = repindx[i]
+                eps = self.contact_epsilons[indx]
+                simga = self.contact_sigmas[indx]
+                x_indx = x[:,indx]
+                V_indx = get_repLJ1210_potential(x,eps,sigma)
+                Vij[:,indx] = V_indx
+
         elif self.contact_type == "Gaussian":
             ## NEEDS TO BE TESTED
             noncontact_sigmas = self.noncontact_wall[conts]
@@ -434,6 +448,12 @@ class SmogCalpha(object):
         table[0,0] = 0
 
         return table
+
+    def get_repLJ1210_potential(self,x,eps,sigma):
+        V = np.zeros(x.shape,float)
+        V[x > 1] = eps*(5*(x[x > 1]**12) - 6*(x[x > 1]**10) + 2)
+        V[x <= 1] = -eps*(5*(x[x <= 1]**12) - 6*(x[x <= 1]**10))
+        return V
 
     def get_index_ndx(self):
         ''' Generates index file for gromacs analysis utilities. '''
