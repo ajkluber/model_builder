@@ -367,9 +367,9 @@ class SmogCalpha(object):
             for i in range(self.n_repcontacts):
                 indx = repindx[i]
                 eps = self.contact_epsilons[indx]
-                simga = self.contact_sigmas[indx]
+                sigma = self.contact_sigmas[indx]
                 x_indx = x[:,indx]
-                V_indx = get_repLJ1210_potential(x,eps,sigma)
+                V_indx = self.get_repLJ1210_potential(x_indx,eps,sigma)
                 Vij[:,indx] = V_indx
 
         elif self.contact_type == "Gaussian":
