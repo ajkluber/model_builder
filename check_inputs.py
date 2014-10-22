@@ -95,6 +95,10 @@ def check_contact_args(inputs,negvals,contactsfile,contactparams,contacttype,eps
                 raise SystemExit
             else:
                 contacts = np.loadtxt("%s" % contactsfile,dtype=int)
+                ##For removing the unnecessary columns from the smog contact map output
+		if len(contacts[0,:]) == 4:
+                    contacts = contacts[:,np.array([1,3])]
+		    
     else:
         contacts, contact_epsilons, LJtype, contact_widths = get_contact_params(contactparams,contact_type)
         contact_params = contactparams
