@@ -95,6 +95,10 @@ def check_contact_args(inputs,negvals,contactsfile,contactparams,contacttype,eps
                 raise SystemExit
             else:
                 contacts = np.loadtxt("%s" % contactsfile,dtype=int)
+                ##For removing the unnecessary columns from the smog contact map output
+		if len(contacts[0,:]) == 4:
+                    contacts = contacts[:,np.array([1,3])]
+		    
     else:
         contacts, contact_epsilons, LJtype, contact_widths = get_contact_params(contactparams,contact_type)
         contact_params = contactparams
@@ -146,8 +150,9 @@ def check_fitting_args(inputs,negvals,fittingdata,fittingincludes,fittingsolver,
         else:
             fitting_includes = [ fittingincludes[i].split(".pdb")[0] for i in range(len(fittingincludes)) ]
 
-    if fittingallowswitch in [True,False]:
-        fitting_allowswitch = fittingallowswitch 
+#    if fittingallowswitch in [True,False]:
+    if fittingallowswitch in fittingallowswitches:
+       fitting_allowswitch = fittingallowswitch 
     else:
         fitting_allowswitch = "False"
 
@@ -336,6 +341,7 @@ def load_model(subdir,dry_run=False):
             Mut_iteration=options["Mut_Iteration"],
             fitting_data=options["Fitting_Data"],
             fitting_includes=options["Fitting_Includes"],
+            fitting_allowswitch=options["Fitting_AllowSwitch"],
             dry_run=options["Dry_Run"])
 
     return model
@@ -369,6 +375,7 @@ def new_models(subdirs,options):
                 Mut_iteration=options["Mut_Iteration"],
                 fitting_data=options["Fitting_Data"],
                 fitting_includes=options["Fitting_Includes"],
+                fitting_allowswitch=options["Fitting_AllowSwitch"],
                 dry_run=options["Dry_Run"])
 
         Models.append(model)
