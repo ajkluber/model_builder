@@ -66,5 +66,9 @@ Models
        basis functions.
 
     3. Determine a quick way to evaluate the energies of contacts.
-
-2. Decide on design that allows for multiple chains in the topology.
+2. Define the potential energy as the sum of "interaction strengths"
+   multiplied by corresponding "interaction potentials". Then the list
+   of non-redundant interaction strengths are the "model parameters".
+   Want to generalize parameter fitting to act on model parameters. 
+   
+3. Decide on design that allows for multiple chains in the topology.
