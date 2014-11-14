@@ -14,6 +14,7 @@ Our overall coding goals (in roughly decreasing importance):
   - Program design and development is nontrivial, ideally we would follow the 
     new school philosophy of `"agile development" <http://en.wikipedia.org/wiki/Agile_software_development>`_
     where development process involves many small iterations. 
+  - We should aim to add more features over time while simultaneously reducing our number of source code lines.
 
 2. Write code that works: unit testing.
   - Code is broken until tested.
