@@ -43,6 +43,13 @@ class SmogCalpha(object):
         self.model_code = model_code
         self.citation = self.citation_info(self.model_code)
 
+        ## To Do:
+        ##  1. Delineate between 'model parameters' and 'interaction strengths':
+        ##     where model parameters are non-redundant list.
+        ##  2. Generator function that returns function to evaluate interaction 
+        ##     potentials.
+
+
         ## Contacts, their absolute strengths, attractive/repulsive character
         self.contact_type = contact_type
         self.contacts = contacts
@@ -362,7 +369,7 @@ class SmogCalpha(object):
             ## evaluation.
             Vij = np.zeros(rij.shape,float)
             x = sigmas/rij
-            x[x > 1.09] = 1.09  # <-- 1.09 is where LJ12-10 crosses zero for attractive
+            #x[x > 1.09] = 1.09  # <-- 1.09 is where LJ12-10 crosses zero for attractive
             Vij[:,attindx] = epsilons[attindx]*(5.*(x[:,attindx]**12) - 6.*(x[:,attindx]**10))     
             for i in range(self.n_repcontacts):
                 indx = repindx[i]
@@ -380,7 +387,7 @@ class SmogCalpha(object):
             contact_widths = np.ones(rij.shape)*widths
             
             x = noncontact_sigmas/rij
-            Vij = epsilons*((1. + (x**12))*(1. - np.exp(-(rij - contact_sigmas)/(2.*(contact_widths**2)))) - 1.)
+            Vij = epsilons*((1. + (1./epsilons)*(x**12))*(1. - np.exp(-((rij - contact_sigmas)**2)/(2.*(contact_widths**2)))) - 1.)
 
         return Vij
 
