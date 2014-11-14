@@ -43,7 +43,8 @@ Models
 1. Submodules for bonded_potentials & pairwise_potentials to store
    contact interaction functions:
     1. Bonded potential utility library.
-    2. Pairwise potentials library. With pairwise potential types:
+    2. Pairwise potentials library. With dimensionless
+       pairwise potential types:
         - LJ1210
         - LJ1210rep
         - Bare Gaussian
@@ -59,4 +60,6 @@ Models
    of non-redundant interaction strengths are the "model parameters".
    Want to generalize parameter fitting to act on model parameters. 
    
-3. Decide on design that allows for multiple chains in the topology.
+3. Code disulfides as a bonded interaction with harmonic bond, angle, etc.
+   
+4. Decide on design that allows for multiple chains in the topology.
