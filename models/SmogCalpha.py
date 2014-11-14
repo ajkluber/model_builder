@@ -30,19 +30,10 @@ class SmogCalpha(object):
     ##  1. Delineate between 'model parameters' and 'interaction strengths':
     ##     where model parameters are non-redundant list.
     ##  2. Create list of interaction potentials.
-
-    ## To Do:  Refactor argument passing to use *args or **kwargs:
-    ##  def __init__(self,pdb,**kwargs):
-
-    #def __init__(self,pdb,contacts=None,contact_epsilons=None,LJtype=None,contact_widths=None,noncontact_wall=None,
-    #        epsilon_bar=None,contact_type=None,
-    #        disulfides=None,model_code=None,contact_params=None,
-    #        Tf_iteration=0,Mut_iteration=0,
-    #        fitting_data=None,fitting_includes=[None],fitting_solver="Levenberg",fitting_allowswitch=False,
-    #        dry_run=False):
     def __init__(self,**kwargs):
 
         self.path = os.getcwd()
+        ## Set any keyword argument given as an attribute. Assumes it has what it needs.
         for key in kwargs.iterkeys():
             #print key.lower(),kwargs[key]
             if key in ["LJtype","Tf_iteration","Mut_iteration"]:
@@ -64,45 +55,7 @@ class SmogCalpha(object):
         self.name = self.pdb.split(".pdb")[0]
         self.subdir = self.name
 
-        """
-        self.model_code = model_code
-        self.citation = self.citation_info(self.model_code)
-
-
-        ## Contacts, their absolute strengths, attractive/repulsive character
-        self.contact_type = contact_type
-        self.contacts = contacts
-        self.contact_params = contact_params
-        self.contact_epsilons = contact_epsilons
-        self.LJtype = LJtype
-        self.contact_widths = contact_widths
-        self.noncontact_wall = noncontact_wall
-        
-        ## Average contact strength
-        self.epsilon_bar = epsilon_bar  
-
-        self.disulfides = disulfides
-        self.dry_run = dry_run
-        self.error = 0
-        self.initial_T_array = None
-
-
-        self.Tf_iteration = Tf_iteration
-        self.Mut_iteration = Mut_iteration
-        
-        ## Options for parameter fitting
-        self.fitting_data = fitting_data
-        self.fitting_includes = fitting_includes
-        self.fitting_solver = fitting_solver
-        self.fitting_allowswitch = fitting_allowswitch
-
-        self.pdb = pdb
-        self.name = pdb.split(".pdb")[0]
-        self.subdir = self.name
-
-        """
         ## Prepare the coordinates from the pdb file.
-
         self.cleanpdb_full, self.cleanpdb_full_noH, self.cleanpdb = pdb_parser.clean(self.pdb)
         self.dissect_native_pdb(self.cleanpdb)
         self.n_contacts = len(self.contacts)
@@ -225,44 +178,56 @@ class SmogCalpha(object):
         coords = self.atom_coords
         residues = self.atom_residues
         if self.disulfides != None:
-            print "  Checking disulfides are reasonable."
+            print "  Checking if disulfides are reasonable."
             for i in range(len(self.disulfides[::2])):
-                cys1 = self.disulfides[2*i]
-                cys2 = self.disulfides[2*i + 1]
-                if (residues[cys1-1] != "CYS") or (residues[cys2-1] != "CYS"):
-                    print "WARNING! Specifying disulfide between two residues that aren't CYS cysteine! "
-                    #print "Exiting"
-                    #raise SystemExit
-                #print "##  Checking disulfide residue identities: ", residues[cys1-1], residues[cys2-1]    ## DEBUGGING
-                dist = coords[cys1-1] - coords[cys2-1]
-                separation = np.linalg.norm(dist)
-                #print "##  Separation: ", separation ## DEBUGGING
-                if separation > 0.8:
-                    print "WARNING! Specifying disulfide of separation greater than 0.8 nm."
-                    #print "Specifying disulfide of separation greater than 0.8 nm."
-                    #print "Exiting"
-                    #raise SystemExit
+                i_idx = self.disulfides[2*i]
+                j_idx = self.disulfides[2*i + 1]
+                dist = bond.distance(coords,i_idx-1,j_idx-1)
+                theta1 = bond.angle(coords,i_idx-2,i_idx-1,j_idx-1)
+                theta2 = bond.angle(coords,i_idx-1,j_idx-1,j_idx-2)
+                phi = bond.dihedral(coords,i_idx-2,i_idx-1,j_idx-1,j_idx-2)
+                if (residues[i_idx-1] != "CYS") or (residues[j_idx-1] != "CYS"):
+                    print "WARNING! Specifying disulfide without cysteines: %s  %s" % \
+                            (residues[i_idx-1]+str(i_idx), residues[j_idx-1]+str(j_idx))
+                if dist > 0.8:
+                    print "WARNING! Specifying disulfide with separation greater than 0.8 nm."
                 else:
-                    print "   ",residues[cys1-1]+str(cys1), residues[cys2-1]+str(cys2), \
-                          " are separated by: %.4f nm. Good." % separation
+                    print "   %s %s separated by %.4f nm, Good." % \
+                    (residues[i_idx-1]+str(i_idx), residues[j_idx-1]+str(j_idx),dist)
                     ## Remove disulfide pair from self.contacts if it is there.
                     new_conts = []
                     for pair in self.contacts:
-                        if (pair[0] == cys1) and (pair[1] == cys2):
+                        if (pair[0] == i_idx) and (pair[1] == j_idx):
                             continue
                         else:
                             new_conts.append(pair)
                     self.contacts = np.array(new_conts)
 
-                if self.Qref[cys1-1][cys2-1] == 1:
-                    #print "    Subtracting 1 from n_contacts for ", cys1,cys2, " disulfide"
+                    ## Set cysteine bond distance, angles, and dihedral.
+                    self.bond_indices.append([i_idx,j_idx])
+                    self.bond_min.append(dist)
+                    self.bond_strengths.append(self.backbone_param_vals["Kb"])
+
+                    self.angle_indices.append([i_idx-1,i_idx,j_idx])
+                    self.angle_indices.append([i_idx,j_idx,j_idx-1])
+                    self.angle_min.append(theta1)
+                    self.angle_min.append(theta2)
+                    self.angle_strengths.append(self.backbone_param_vals["Ka"])
+                    self.angle_strengths.append(self.backbone_param_vals["Ka"])
+
+                    self.dihedral_indices.append([i_idx-1,i_idx,j_idx,j_idx-1])
+                    self.dihedral_min.append(phi)
+                    self.dihedral_strengths.append(self.backbone_param_vals["Kd"])
+
+                if self.Qref[i_idx-1][j_idx-1] == 1:
+                    #print "    Subtracting 1 from n_contacts for ", i_idx,j_idx, " disulfide"
                     self.n_contacts -= 1
         else:
             print "  No disulfides to check."
+
         self.contacts_ndx = "[ contacts ]\n"
         for i in range(self.n_contacts):
             self.contacts_ndx += "%4d %4d\n" % (self.contacts[i][0],self.contacts[i][1])
-
 
     def dissect_native_pdb(self,pdb):
         ''' Extract info from the Native.pdb for making index and top file'''
@@ -293,12 +258,12 @@ class SmogCalpha(object):
         self.atom_coords = coords
 
         ## Set bonded force field terms quantities.
-        self.bonded_indices = [[indices[i],indices[i+1]] for i in range(self.n_atoms-1)]
-        self.angled_indices = [[indices[i],indices[i+1],indices[i+2]] for i in range(self.n_atoms-2)]
+        self.bond_indices = [[indices[i],indices[i+1]] for i in range(self.n_atoms-1)]
+        self.angle_indices = [[indices[i],indices[i+1],indices[i+2]] for i in range(self.n_atoms-2)]
         self.dihedral_indices = [[indices[i],indices[i+1],indices[i+2],indices[i+3]] for i in range(self.n_atoms-3)]
 
-        self.bond_min = [ bond.distance(coords,i_idx-1,j_idx-1) for i_idx,j_idx in self.bonded_indices ]
-        self.angle_min = [ bond.angle(coords,i_idx-1,j_idx-1,k_idx-1) for i_idx,j_idx,k_idx in self.angled_indices ]
+        self.bond_min = [ bond.distance(coords,i_idx-1,j_idx-1) for i_idx,j_idx in self.bond_indices ]
+        self.angle_min = [ bond.angle(coords,i_idx-1,j_idx-1,k_idx-1) for i_idx,j_idx,k_idx in self.angle_indices ]
         self.dihedral_min = [ bond.dihedral(coords,i_idx-1,j_idx-1,k_idx-1,l_idx-1) for i_idx,j_idx,k_idx,l_idx in self.dihedral_indices ]
 
         if not hasattr(self,"bond_strengths"):
@@ -453,8 +418,8 @@ class SmogCalpha(object):
         bonds_string = " [ bonds ]\n"
         bonds_string += " ; ai aj func r0(nm) Kb\n"
         for j in range(len(self.bond_min)):
-            i_idx = self.bonded_indices[j][0]
-            j_idx = self.bonded_indices[j][1]
+            i_idx = self.bond_indices[j][0]
+            j_idx = self.bond_indices[j][1]
             dist = self.bond_min[j]
             kb = self.bond_strengths[j]
             bonds_string += "%6d %6d%2d%18.9e%18.9e\n" %  \
@@ -480,9 +445,9 @@ class SmogCalpha(object):
         angles_string = " [ angles ]\n"
         angles_string += " ; ai  aj  ak  func  th0(deg)   Ka\n"
         for j in range(len(self.angle_min)):
-            i_idx = self.angled_indices[j][0]
-            j_idx = self.angled_indices[j][1]
-            k_idx = self.angled_indices[j][2]
+            i_idx = self.angle_indices[j][0]
+            j_idx = self.angle_indices[j][1]
+            k_idx = self.angle_indices[j][2]
             theta = self.angle_min[j]
             ka = self.angle_strengths[j]
             angles_string += "%6d %6d %6d%2d%18.9e%18.9e\n" %  \
@@ -564,49 +529,49 @@ class SmogCalpha(object):
                 print "Exiting"
                 raise SystemExit
 
-        noncontact = 0.4        ## Noncontact radius 4 Angstroms
-        if self.disulfides != None:
-            pairs_string, beadbead_string = self._add_disulfides(pairs_string,beadbead_string,noncontact)
-        self.beadbead = beadbead_string 
+        #noncontact = 0.4        ## Noncontact radius 4 Angstroms
+        #if self.disulfides != None:
+        #    pairs_string, beadbead_string = self._add_disulfides(pairs_string,beadbead_string,noncontact)
+        #self.beadbead = beadbead_string 
         return pairs_string
 
-    def _add_disulfides(self,pairs_string,beadbead_string,noncontact):
-        ## To Do: Add disulfides to list of bonded interactions.
-        for i in range(len(self.disulfides)/2):
-            cys_a = self.disulfides[2*i]
-            cys_b = self.disulfides[2*i + 1]
-            x_a = self.atom_coords[cys_a-1]
-            x_b = self.atom_coords[cys_b-1]
-            sig_ab = np.linalg.norm(x_a - x_b)
-            eps_ab = 50.
-            width_ab = 0.05
-            noncontact = 0.4**12
+    #def _add_disulfides(self,pairs_string,beadbead_string,noncontact):
+    #   ## To Do: Add disulfides to list of bonded interactions.
+    #   for i in range(len(self.disulfides)/2):
+    #       cys_a = self.disulfides[2*i]
+    #       cys_b = self.disulfides[2*i + 1]
+    #       x_a = self.atom_coords[cys_a-1]
+    #       x_b = self.atom_coords[cys_b-1]
+    #       sig_ab = np.linalg.norm(x_a - x_b)
+    #       eps_ab = 50.
+    #       width_ab = 0.05
+    #       noncontact = 0.4**12
 
-            if self.contact_type in [None, "LJ1210"]:
-                c12 = eps_ab*5.0*(sig_ab**12)
-                c10 = eps_ab*6.0*(sig_ab**10)
+    #       if self.contact_type in [None, "LJ1210"]:
+    #           c12 = eps_ab*5.0*(sig_ab**12)
+    #           c10 = eps_ab*6.0*(sig_ab**10)
 
-                print " Linking disulfide: ",cys_a,cys_b, " with eps = ",eps_ab
-                pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
-                                (cys_a,cys_b,1,c10,c12)
+    #           print " Linking disulfide: ",cys_a,cys_b, " with eps = ",eps_ab
+    #           pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
+    #                           (cys_a,cys_b,1,c10,c12)
 
-                resid_a = self.atom_residues[cys_a-1]
-                resid_b = self.atom_residues[cys_b-1]
+    #           resid_a = self.atom_residues[cys_a-1]
+    #           resid_b = self.atom_residues[cys_b-1]
 
-                beadbead_string += "%5d%5d%8s%8s%5s%18.9e%18.9e%18d\n" % \
-                                (cys_a,cys_b,resid_a,resid_b,"ss",sig_ab,eps_ab,1)
-            elif self.contact_type == "Gaussian":
-                print " Linking disulfide: ",cys_a,cys_b, " with eps = ",eps_ab
-                pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
-                                (res_a,res_b,6,eps_ab,sig_ab,width_ab,noncontact)
+    #           beadbead_string += "%5d%5d%8s%8s%5s%18.9e%18.9e%18d\n" % \
+    #                           (cys_a,cys_b,resid_a,resid_b,"ss",sig_ab,eps_ab,1)
+    #       elif self.contact_type == "Gaussian":
+    #           print " Linking disulfide: ",cys_a,cys_b, " with eps = ",eps_ab
+    #           pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
+    #                           (res_a,res_b,6,eps_ab,sig_ab,width_ab,noncontact)
 
-                resid_a = self.atom_residues[res_a-1]
-                resid_b = self.atom_residues[res_b-1]
-
-                beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d%18.9e%18.9e\n" % \
-                    (res_a,res_b,resid_a,resid_b,"ss",sig_ab,eps_ab,1,width_ab,noncontact)
-
-        return pairs_string, beadbead_string
+    #           resid_a = self.atom_residues[res_a-1]
+    #           resid_b = self.atom_residues[res_b-1]
+    # 
+    #           beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d%18.9e%18.9e\n" % \
+    #               (res_a,res_b,resid_a,resid_b,"ss",sig_ab,eps_ab,1,width_ab,noncontact)
+    #
+    #    return pairs_string, beadbead_string
 
 
     def _get_exclusions_string(self):

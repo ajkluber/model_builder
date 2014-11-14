@@ -1,6 +1,7 @@
 """ Holding properties of residues
 
 
+Currently not being used for anything
 """
 
 
