@@ -6,7 +6,12 @@
 import numpy as np
 
 ## To Do:
-## - Dictionary of pairwise potential types
+## - Dictionary of pairwise potential types. extensible
+
+def get_pair_potential(code):
+    """ Returns pairwise potential function"""
+    potential = {1:LJ12,2:LJ1210,3:LJ1210rep,4:Gaussian}[code]
+    return potential
 
 def wrap_pairwise(old_pairwise,*args):
     """ Wraps pairwise function so only r needs to be passed

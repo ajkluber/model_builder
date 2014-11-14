@@ -215,8 +215,8 @@ def new_args(args):
     model_code = args.model_code
     beadmodel = args.bead_model 
 
-    inputs["Tf_Iteration"] = 0
-    inputs["Mut_Iteration"] = 0
+    inputs["Tf_iteration"] = 0
+    inputs["Mut_iteration"] = 0
     inputs["PDB"] = args.pdbs[0]
     inputs["Model_Code"] = args.model_code
     inputs["Bead_Model"] = args.bead_model
@@ -284,6 +284,7 @@ def load_args(subdir,dry_run):
         elif field == "Contact_Energies":
             inputs["Contact_Params"] = value.rstrip("\n")
         elif field.endswith("Iteration"):
+            field = field.rstrip("Iteration") + "iteration"
             inputs[field] = int(value)
         else:
             inputs[field] = value.rstrip("\n")
@@ -325,24 +326,24 @@ def load_model(subdir,dry_run=False):
     ''' Read model.info files in subdirectories and create models.'''
 
     options = load_args(subdir,dry_run)
-
-    model = SmogCalpha.SmogCalpha(
-            options["PDB"],
-            contacts=options["Contacts"],
-            contact_params=options["Contact_Params"],
-            contact_epsilons=options["Contact_Epsilons"],
-            LJtype=options["LJtype"],
-            contact_widths=options["Contact_Widths"],
-            contact_type=options["Contact_Type"],
-            disulfides=options["Disulfides"],
-            epsilon_bar=options["Epsilon_Bar"],
-            model_code=options["Model_Code"],
-            Tf_iteration=options["Tf_Iteration"],
-            Mut_iteration=options["Mut_Iteration"],
-            fitting_data=options["Fitting_Data"],
-            fitting_includes=options["Fitting_Includes"],
-            fitting_allowswitch=options["Fitting_AllowSwitch"],
-            dry_run=options["Dry_Run"])
+    model = SmogCalpha.SmogCalpha(**options)
+    #model = SmogCalpha.SmogCalpha(
+    #        options["PDB"],
+    #        contacts=options["Contacts"],
+    #        contact_params=options["Contact_Params"],
+    #        contact_epsilons=options["Contact_Epsilons"],
+    #        LJtype=options["LJtype"],
+    #        contact_widths=options["Contact_Widths"],
+    #        contact_type=options["Contact_Type"],
+    #        disulfides=options["Disulfides"],
+    #        epsilon_bar=options["Epsilon_Bar"],
+    #        model_code=options["Model_Code"],
+    #        Tf_iteration=options["Tf_Iteration"],
+    #        Mut_iteration=options["Mut_Iteration"],
+    #        fitting_data=options["Fitting_Data"],
+    #        fitting_includes=options["Fitting_Includes"],
+    #        fitting_allowswitch=options["Fitting_AllowSwitch"],
+    #        dry_run=options["Dry_Run"])
 
     return model
 
@@ -351,7 +352,9 @@ def load_models(subdirs,dry_run=False):
     Models = []
     for subdir in subdirs:
         print "Loading model from subdirectory: ", subdir
-        Model = load_model(subdir,dry_run=dry_run)
+        #Model = load_model(subdir,dry_run=dry_run)
+        options = load_args(subdir,dry_run)
+        Model = SmogCalpha.SmogCalpha(**options)
         Models.append(Model)
     return Models
 
@@ -360,23 +363,24 @@ def new_models(subdirs,options):
     Models = []
     for subdir in subdirs:
         options["PDB"] = subdir+".pdb"
-        model = SmogCalpha.SmogCalpha(
-                options["PDB"],
-                contacts=options["Contacts"],
-                contact_params=options["Contact_Params"],
-                contact_epsilons=options["Contact_Epsilons"],
-                LJtype=options["LJtype"],
-                contact_widths=options["Contact_Widths"],
-                contact_type=options["Contact_Type"],
-                disulfides=options["Disulfides"],
-                epsilon_bar=options["Epsilon_Bar"],
-                model_code=options["Model_Code"],
-                Tf_iteration=options["Tf_Iteration"],
-                Mut_iteration=options["Mut_Iteration"],
-                fitting_data=options["Fitting_Data"],
-                fitting_includes=options["Fitting_Includes"],
-                fitting_allowswitch=options["Fitting_AllowSwitch"],
-                dry_run=options["Dry_Run"])
+        model = SmogCalpha.SmogCalpha(**options)
+        #model = SmogCalpha.SmogCalpha(
+        #        options["PDB"],
+        #        contacts=options["Contacts"],
+        #        contact_params=options["Contact_Params"],
+        #        contact_epsilons=options["Contact_Epsilons"],
+        #        LJtype=options["LJtype"],
+        #        contact_widths=options["Contact_Widths"],
+        #        contact_type=options["Contact_Type"],
+        #        disulfides=options["Disulfides"],
+        #        epsilon_bar=options["Epsilon_Bar"],
+        #        model_code=options["Model_Code"],
+        #        Tf_iteration=options["Tf_Iteration"],
+        #        Mut_iteration=options["Mut_Iteration"],
+        #        fitting_data=options["Fitting_Data"],
+        #        fitting_includes=options["Fitting_Includes"],
+        #        fitting_allowswitch=options["Fitting_AllowSwitch"],
+        #        dry_run=options["Dry_Run"])
 
         Models.append(model)
     return Models
