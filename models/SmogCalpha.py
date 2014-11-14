@@ -19,6 +19,10 @@ import subprocess as sb
 import os
 import time
 
+import bonded_potentials as bond
+import pairwise_potentials as pairwise
+
+
 class SmogCalpha(object):
     """ This class creates a smog-like topology and grofile """
 
