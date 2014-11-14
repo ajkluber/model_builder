@@ -26,6 +26,7 @@ import pairwise_potentials as pairwise
 class SmogCalpha(object):
     """ This class creates a smog-like topology and grofile """
 
+    ## To Do:  Refactor argument passing to use *args or **kwargs.
     def __init__(self,pdb,contacts=None,contact_epsilons=None,LJtype=None,contact_widths=None,noncontact_wall=None,
             epsilon_bar=None,contact_type=None,
             disulfides=None,model_code=None,contact_params=None,
@@ -34,6 +35,11 @@ class SmogCalpha(object):
             dry_run=False):
 
         self.path = os.getcwd()
+
+        ## To Do:
+        ##  1. Delineate between 'model parameters' and 'interaction strengths':
+        ##     where model parameters are non-redundant list.
+        ##  2. Create list of interaction potentials.
 
         if not os.path.exists(pdb):
             print "ERROR! The inputted pdb: %s does not exist" % pdb
@@ -46,12 +52,6 @@ class SmogCalpha(object):
 
         self.model_code = model_code
         self.citation = self.citation_info(self.model_code)
-
-        ## To Do:
-        ##  1. Delineate between 'model parameters' and 'interaction strengths':
-        ##     where model parameters are non-redundant list.
-        ##  2. Generator function that returns function to evaluate interaction 
-        ##     potentials.
 
 
         ## Contacts, their absolute strengths, attractive/repulsive character
@@ -86,7 +86,7 @@ class SmogCalpha(object):
 
         ## Prepare the coordinates from the pdb file.
         self.clean_pdb()
-        self.dissect_native_pdb()
+        self.dissect_native_pdb(self.cleanpdb)
         self.n_contacts = len(self.contacts)
         if self.LJtype == None:
             self.n_repcontacts = 0
@@ -178,6 +178,7 @@ class SmogCalpha(object):
         return citations[key]
 
     def check_contact_opts(self):
+        """ """
         if self.contact_epsilons == None:
             print "  No contact epsilons set. Setting contacts to homogeneous model. 1"
             self.contact_epsilons = np.ones(self.n_contacts,float)
@@ -194,12 +195,17 @@ class SmogCalpha(object):
                 noncontact = 0.4
                 self.noncontact_wall = noncontact*np.ones(self.n_contacts,float)
 
+        self.interaction_potentials = []
 
     def check_disulfides(self):
         ''' Check that specified disulfides are between cysteine and that 
-            the corresonding pairs are within 0.8 nm.'''
-        coords = self.coords
-        residues = self.residues
+            the corresonding pairs are within 0.8 nm.
+
+        To Do: 
+            - Add disulfides to the list of atoms to be bonded.
+        '''
+        coords = self.atom_coords
+        residues = self.atom_residues
         if self.disulfides != None:
             print "  Checking disulfides are reasonable."
             for i in range(len(self.disulfides[::2])):
@@ -309,54 +315,50 @@ class SmogCalpha(object):
         self.cleanpdb_full = cleanpdb_full
         self.cleanpdb_full_noH = cleanpdb_full_noH
 
-    def dissect_native_pdb(self):
+    def dissect_native_pdb(self,pdb):
         ''' Extract info from the Native.pdb for making index and top file'''
         indices = []
         atoms = []
         residues = []
         coords = []
-        cleanpdblines = self.cleanpdb.split("\n")
-
-        for line in cleanpdblines:
+        pdblines = pdb.split("\n")
+        res_indx = 1
+        for line in pdblines:
             if line.startswith("END"):
                 break
             else:
                 indices.append(int(line[6:13]))
                 atoms.append(line[11:16].strip())
-                residues.append(line[17:20])
                 coords.append([float(line[31:39]),float(line[39:47]),float(line[47:55])]) 
+                if (int(line[23:26]) == (res_indx + 1)) or (res_indx == 1):
+                    res_indx += 1 
+                    residues.append(line[17:20])
 
         ## Coordinates in pdb files are Angstroms. Convert to nanometers.
         coords = np.array(coords)/10.
-        self.indices = indices
-        self.atoms = atoms
-        self.residues = residues
-        self.coords = coords
-        self.n_residues = len(residues)
 
-    def dihedral(self,coords,i_idx,j_idx,k_idx,l_idx):
-        ''' Compute the dihedral between planes. '''
-        v21 = coords[j_idx] - coords[i_idx]
-        v31 = coords[k_idx] - coords[i_idx]
-        v32 = coords[k_idx] - coords[j_idx]
-        v42 = coords[l_idx] - coords[j_idx]
-        v21xv31 = np.cross(v21,v31)
-        v21xv31 /= np.linalg.norm(v21xv31)
-        v32xv42 = np.cross(v32,v42)
-        v32xv42 /= np.linalg.norm(v32xv42)
-        if np.dot(v21,v32xv42) < 0.:
-            sign = -1.
-        else:
-            sign = 1.
-        phi = 180. + sign*(180./np.pi)*np.arccos(np.dot(v21xv31,v32xv42))
-        return phi
+        ## 
+        self.bonded_indices = [[indices[i],indices[i+1]] for i in range(self.n_atoms-1)]
+        self.angled_indices = [[indices[i],indices[i+1],indices[i+2]] for i in range(self.n_atoms-2)]
+        self.dihedral_indices = [[indices[i],indices[i+1],indices[i+2],indices[i+3]] for i in range(self.n_atoms-3)]
+
+        self.bond_min = [ bond.distance(coords,i_idx,j_idx) for i_idx,j_idx in self.bonded_indices ]
+        self.angle_min = [ bond.angle(coords,i_idx,j_idx,k_idx) for i_idx,j_idx,k_idx in self.angled_indices ]
+        self.dihedral_min = [ bond.dihedral(coords,i_idx,j_idx,k_idx,l_idx) for i_idx,j_idx,k_idx,l_idx in self.dihedral_indices ]
+
+        self.atom_indices = indices
+        self.atom_types = atoms
+        self.atom_residues = residues
+        self.atom_coords = coords
+        self.n_residues = len(residues)
+        self.n_atoms = len(atoms)
+
 
     def calculate_contact_potential(self,rij):
         """ Contact potential for all contacts in the trajectory """
 
         ## To Do:
-        ## 1. Include calculation of repulsive contact energy -> read potential
-        ##      from table file.
+        ## 1. Loop over 
 
         ## Epsilons, deltas, and sigmas for all contacts
         conts = np.arange(self.n_contacts)
@@ -395,27 +397,6 @@ class SmogCalpha(object):
 
         return Vij
 
-    def get_residue_mass(self):
-        '''Masses in atomic mass units.'''
-        residue_mass = {'ALA':   89.0935, 'ARG':  174.2017, 'ASN':  132.1184,
-                        'ASP':  133.1032, 'CYS':  121.1590, 'GLN':  146.1451,
-                        'GLU':  147.1299, 'GLY':   75.0669, 'HIS':  155.1552,
-                        'ILE':  131.1736, 'LEU':  131.1736, 'LYS':  146.1882,
-                        'MET':  149.2124, 'PHE':  165.1900, 'PRO':  115.1310,
-                        'SER':  105.0930, 'THR':  119.1197, 'TRP':  204.2262,
-                        'TYR':  181.1894, 'VAL':  117.1469, 'SOL':   18.0150}
-        return residue_mass
-
-    def get_residue_one_letter_code(self):
-        '''Converting from three letter code to one letter FASTA code.'''
-        residue_code = {'ALA': 'A', 'ARG': 'R', 'ASN': 'N',
-                        'ASP': 'D', 'CYS': 'C', 'GLN': 'Q',
-                        'GLU': 'E', 'GLY': 'G', 'HIS': 'H',
-                        'ILE': 'I', 'LEU': 'L', 'LYS': 'K',
-                        'MET': 'M', 'PHE': 'F', 'PRO': 'P',
-                        'SER': 'S', 'THR': 'T', 'TRP': 'W',
-                        'TYR': 'Y', 'VAL': 'V'}
-        return residue_code
 
     def get_interaction_tables(self):
         ''' Returns the table for interaction type 'i'. The values of the
@@ -483,7 +464,7 @@ class SmogCalpha(object):
         ca_string = ''
         i = 1
         
-        for indx in self.indices: 
+        for indx in self.atom_indices: 
             if (i % 15) == 0:
                 ca_string += '%4d \n' % indx
             else:
@@ -503,10 +484,10 @@ class SmogCalpha(object):
     def get_atoms_string(self):
         ''' Generate the [ atoms ] string.'''
         atoms_string = ""
-        for j in range(len(self.indices)):
-            atomnum = self.indices[j]
-            resnum = self.indices[j]
-            resid = self.residues[j]
+        for j in range(len(self.atom_indices)):
+            atomnum = self.atom_indices[j]
+            resnum = self.atom_indices[j]
+            resid = self.atom_residues[j]
             atoms_string += " %5d%4s%8d%5s%4s%8d%8.3f%8.3f\n" % \
                         (atomnum,"CA",resnum,resid,"CA",atomnum,0.0,1.0)
         return atoms_string
@@ -515,10 +496,11 @@ class SmogCalpha(object):
         ''' Generate the [ bonds ] string.'''
         kb = self.backbone_param_vals["Kb"]
         bonds_string = ""
-        for j in range(len(self.indices)-1):
-            i_idx = self.indices[j]-1
-            j_idx = self.indices[j+1]-1
-            dist = np.linalg.norm(self.coords[i_idx] - self.coords[j_idx])
+        for j in range(len(self.atom_indices)-1):
+            i_idx = self.atom_indices[j]-1
+            j_idx = self.atom_indices[j+1]-1
+            dist = np.linalg.norm(self.atom_coords[i_idx] - self.atom_coords[j_idx])
+            dist = bond.bond_dist(self.atom_coords,i_idx,j_idx)
             bonds_string += "%6d %6d%2d%18.9e%18.9e\n" %  \
                           (i_idx+1,j_idx+1,1,dist,kb)
 
@@ -537,13 +519,13 @@ class SmogCalpha(object):
         ''' Generate the [ angles ] string.'''
         ka = self.backbone_param_vals["Ka"]
         angles_string = ""
-        for j in range(len(self.indices)-2):
-            i_idx = self.indices[j]-1
-            j_idx = self.indices[j+1]-1
-            k_idx = self.indices[j+2]-1
-            xkj = self.coords[k_idx] - self.coords[j_idx]
+        for j in range(len(self.atom_indices)-2):
+            i_idx = self.atom_indices[j]-1
+            j_idx = self.atom_indices[j+1]-1
+            k_idx = self.atom_indices[j+2]-1
+            xkj = self.atom_coords[k_idx] - self.atom_coords[j_idx]
             xkj /= np.linalg.norm(xkj)
-            xij = self.coords[i_idx] - self.coords[j_idx]
+            xij = self.atom_coords[i_idx] - self.atom_coords[j_idx]
             xij /= np.linalg.norm(xij)
             theta = (180./np.pi)*np.arccos(np.dot(xkj, xij))
             angles_string += "%6d %6d %6d%2d%18.9e%18.9e\n" %  \
@@ -555,12 +537,12 @@ class SmogCalpha(object):
         kd = self.backbone_param_vals["Kd"]
         dihedrals_string = ""
         dihedrals_ndx = '[ dihedrals ]\n'
-        for j in range(len(self.indices)-3):
-            i_idx = self.indices[j]-1
-            j_idx = self.indices[j+1]-1
-            k_idx = self.indices[j+2]-1
-            l_idx = self.indices[j+3]-1
-            phi = self.dihedral(self.coords,i_idx,j_idx,k_idx,l_idx)
+        for j in range(len(self.atom_indices)-3):
+            i_idx = self.atom_indices[j]-1
+            j_idx = self.atom_indices[j+1]-1
+            k_idx = self.atom_indices[j+2]-1
+            l_idx = self.atom_indices[j+3]-1
+            phi = bond.dihedral(self.atom_coords,i_idx,j_idx,k_idx,l_idx)
             dihedrals_string += "%6d %6d %6d %6d%2d%18.9e%18.9e%2d\n" %  \
                           (i_idx+1,j_idx+1,k_idx+1,l_idx+1,1,phi,kd,1)
             dihedrals_string += "%6d %6d %6d %6d%2d%18.9e%18.9e%2d\n" %  \
@@ -587,8 +569,8 @@ class SmogCalpha(object):
             
             res_a = self.contacts[i][0]
             res_b = self.contacts[i][1]
-            x_a = self.coords[res_a-1]
-            x_b = self.coords[res_b-1]
+            x_a = self.atom_coords[res_a-1]
+            x_b = self.atom_coords[res_b-1]
             sig_ab = np.linalg.norm(x_a - x_b)
             self.contact_sigmas[i] = sig_ab
             eps_ab = self.contact_epsilons[i] 
@@ -601,8 +583,8 @@ class SmogCalpha(object):
                     pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
                                     (res_a,res_b,1,c10,c12)
 
-                resid_a = self.residues[res_a-1]
-                resid_b = self.residues[res_b-1]
+                resid_a = self.atom_residues[res_a-1]
+                resid_b = self.atom_residues[res_b-1]
 
                 beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d\n" % \
                                 (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,self.LJtype[i])
@@ -612,8 +594,8 @@ class SmogCalpha(object):
                 pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
                                 (res_a,res_b,6,eps_ab,sig_ab,width_ab,ncwall_ab)
 
-                resid_a = self.residues[res_a-1]
-                resid_b = self.residues[res_b-1]
+                resid_a = self.atom_residues[res_a-1]
+                resid_b = self.atom_residues[res_b-1]
 
                 beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d%18.9e%18.9e\n" % \
                     (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,1,width_ab,ncwall_ab)
@@ -632,8 +614,8 @@ class SmogCalpha(object):
         for i in range(len(self.disulfides)/2):
             cys_a = self.disulfides[2*i]
             cys_b = self.disulfides[2*i + 1]
-            x_a = self.coords[cys_a-1]
-            x_b = self.coords[cys_b-1]
+            x_a = self.atom_coords[cys_a-1]
+            x_b = self.atom_coords[cys_b-1]
             sig_ab = np.linalg.norm(x_a - x_b)
             eps_ab = 50.
             width_ab = 0.05
@@ -647,8 +629,8 @@ class SmogCalpha(object):
                 pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
                                 (cys_a,cys_b,1,c10,c12)
 
-                resid_a = self.residues[cys_a-1]
-                resid_b = self.residues[cys_b-1]
+                resid_a = self.atom_residues[cys_a-1]
+                resid_b = self.atom_residues[cys_b-1]
 
                 beadbead_string += "%5d%5d%8s%8s%5s%18.9e%18.9e%18d\n" % \
                                 (cys_a,cys_b,resid_a,resid_b,"ss",sig_ab,eps_ab,1)
@@ -657,8 +639,8 @@ class SmogCalpha(object):
                 pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
                                 (res_a,res_b,6,eps_ab,sig_ab,width_ab,noncontact)
 
-                resid_a = self.residues[res_a-1]
-                resid_b = self.residues[res_b-1]
+                resid_a = self.atom_residues[res_a-1]
+                resid_b = self.atom_residues[res_b-1]
 
                 beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d%18.9e%18.9e\n" % \
                     (res_a,res_b,resid_a,resid_b,"ss",sig_ab,eps_ab,1,width_ab,noncontact)
@@ -685,11 +667,11 @@ class SmogCalpha(object):
     def generate_grofile(self):
 
         gro_string = " Structure-based Gro file\n"
-        gro_string += "%12d\n" % len(self.atoms)
-        for i in range(len(self.atoms)):
+        gro_string += "%12d\n" % len(self.atom_types)
+        for i in range(len(self.atom_types)):
             gro_string += "%5d%5s%4s%6d%8.3f%8.3f%8.3f\n" % \
-                (self.indices[i],self.residues[i],self.atoms[i],self.indices[i],
-                self.coords[i][0],self.coords[i][1],self.coords[i][2])
+                (self.atom_indices[i],self.atom_residues[i],self.atom_types[i],self.atom_indices[i],
+                self.atom_coords[i][0],self.atom_coords[i][1],self.atom_coords[i][2])
         gro_string += "   %-25.16f%-25.16f%-25.16f" % (5.0,5.0,5.0)
 
         self.grofile = gro_string
