@@ -492,6 +492,7 @@ class SmogCalpha(object):
         return bonds_string
 
     def _get_tabled_string(self):
+        """ Generate the topology files to specify table interactions. """
         tabled_string = ""
         ## Add special nonbonded table interactions. 
         if (self.contact_type == "LJ1210"):
@@ -560,11 +561,6 @@ class SmogCalpha(object):
             res_b = self.contacts[i][1]
             sig_ab = self.pairwise_distances[i]
             eps_ab = self.pairwise_strengths[i]
-            #x_a = self.atom_coords[res_a-1]
-            #x_b = self.atom_coords[res_b-1]
-            #sig_ab = np.linalg.norm(x_a - x_b)
-            #self.contact_sigmas[i] = sig_ab
-            #eps_ab = self.contact_epsilons[i] 
 
             ## Generalize for writing parameters for any pair potential
             if self.contact_type in [None, "LJ1210"]:
@@ -666,7 +662,7 @@ class SmogCalpha(object):
             gro_string += "%5d%5s%4s%6d%8.3f%8.3f%8.3f\n" % \
                 (self.atom_indices[i],self.atom_residues[i],self.atom_types[i],self.atom_indices[i],
                 self.atom_coords[i][0],self.atom_coords[i][1],self.atom_coords[i][2])
-        gro_string += "   %-25.16f%-25.16f%-25.16f" % (5.0,5.0,5.0)
+        gro_string += "   %-25.16f%-25.16f%-25.16f" % (100.0,100.0,100.0)
 
         self.grofile = gro_string
 
