@@ -30,6 +30,7 @@ class SmogCalpha(object):
     ##  1. Delineate between 'model parameters' and 'interaction strengths':
     ##     where model parameters are non-redundant list.
     ##  2. Create list of interaction potentials.
+    ##  3. self.interaction_
     def __init__(self,**kwargs):
 
         self.path = os.getcwd()
@@ -40,11 +41,24 @@ class SmogCalpha(object):
                 setattr(self,key,kwargs[key])
             else:
                 setattr(self,key.lower(),kwargs[key])
+        need_to_define = ["Tf_iteration","Mut_iteration","model_code",
+                          "beadmodel","epsilon_bar","contact_params",
+                          "fitting_data","fitting_solver","fitting_allowswitch",
+                          "citation","disulfides","LJtype"]
+        for thing in need_to_define:
+            if not hasattr(self,thing):
+                setattr(self,thing,None)
+        if not hasattr(self,"fitting_includes"):
+            setattr(self,"fitting_includes",[self.pdb])
+        #if not hasattr(self,"contact_type"):
+        #    setattr(self,"contact_type","LJ1210")
 
         if not os.path.exists(self.pdb):
             print "ERROR! The inputted pdb: %s does not exist" % pdb
             print " Exiting."
             raise SystemExit
+
+        self.iteration = self.Tf_iteration
 
         self.beadmodel = "CA"
         self.backbone_params = ["Kb","Ka","Kd"]
@@ -86,6 +100,8 @@ class SmogCalpha(object):
         repstring += "%s\n" % self.pdb
         repstring += "[ Subdir ]\n"
         repstring += "%s\n" % self.subdir
+        repstring += "[ Iteration ]\n"
+        repstring += "%s\n" % self.iteration
         repstring += "[ Tf_Iteration ]\n"
         repstring += "%s\n" % self.Tf_iteration
         repstring += "[ Mut_Iteration ]\n"
@@ -149,24 +165,78 @@ class SmogCalpha(object):
         return citations[key]
 
     def check_contact_opts(self):
-        """ """
-        if self.contact_epsilons == None:
+        """ Set default pairwise interaction terms.
+
+        In the future we can just pass the pairwise_type and pairwise_parameters.
+
+        """
+        ## Grab structural distances.
+        self.contact_sigmas = np.zeros(len(self.contacts),float)
+        self.pairwise_distances = np.zeros(len(self.contacts),float)
+        for i in range(len(self.contacts)):
+            i_idx = self.contacts[i][0]
+            j_idx = self.contacts[i][1]
+            self.contact_sigmas[i] = bond.distance(self.atom_coords,i_idx-1,j_idx-1)
+            self.pairwise_distances[i] = bond.distance(self.atom_coords,i_idx-1,j_idx-1)
+
+        ## Set some defaults for pairwise interaction potential.
+        if (not hasattr(self,"epsilon_bar")):
+            self.epsilon_bar = None
+        if (not hasattr(self,"contact_epsilons")) or (self.contact_epsilons == None) :
             print "  No contact epsilons set. Setting contacts to homogeneous model. 1"
             self.contact_epsilons = np.ones(self.n_contacts,float)
-        if self.contact_type == "LJ1210":
+
+        if (not hasattr(self,"contact_type")) or (self.contact_type == "LJ1210"):
+            self.contact_type = "LJ1210"
+            self.pairwise_type = 2*np.ones(self.n_contacts,float)
+            self.tabled_interaction = np.zeros(self.n_contacts,float)
             if self.LJtype == None:
                 print "  No LJtype given. Setting contacts to attractive. 1"
                 self.LJtype = np.ones(self.n_contacts,float)
+            else:
+                for rep_indx in (np.where(self.LJtype == -1))[0]:
+                    self.pairwise_type[rep_indx] = 3
+                    self.tabled_interaction[rep_indx] = 1
+            self.pairwise_other_parameters = [ [self.contact_sigmas[x]] for x in range(self.n_contacts) ]
         elif self.contact_type == "Gaussian":
-            if self.contact_widths == None:
+            self.pairwise_type = 4*np.ones(self.n_contacts,float)
+            if (not hasattr(self,"contact_widths")) or (self.contact_widths == None):
                 print "  No contact widths set. Setting contact widths to attractive. 0.5 Angstrom"
                 self.contact_widths = 0.05*np.ones(self.n_contacts,float)
-            if self.noncontact_wall == None:
+            if (not hasattr(self,"noncontact_wall")) or (self.noncontact_wall == None):
                 print "  No noncontact wall set. Setting noncontact wall to 0.4 nm"
                 noncontact = 0.4
                 self.noncontact_wall = noncontact*np.ones(self.n_contacts,float)
+            self.pairwise_other_parameters = [ [self.contact_sigmas[x],self.contact_widths[x]] for x in range(self.n_contacts) ]
 
-        self.interaction_potentials = []
+        ## Assings each pairwise interaction model parameter that this interaction uses.
+        self.pairwise_param_assignment = np.arange(self.n_contacts)     
+                                                       
+        ## Values of the model parameters. To be generalized.
+        self.model_param_values = self.contact_epsilons
+        self.n_model_param = len(self.model_param_values)
+
+        ## List of array indices indicating which interactions have the associated model parameter.
+        self.model_param_interactions = [ np.where(self.pairwise_param_assignment == p) for p in range(self.n_model_param) ]
+        self.pairwise_strengths = np.array([  self.model_param_values[x] for x in self.pairwise_param_assignment ])
+
+        ## Wrap the pairwise contact potentials so that only distance needs to be input.
+        self.pairwise_potentials = [ pairwise.wrap_pairwise(pairwise.get_pair_potential(self.pairwise_type[x]),\
+                                                *self.pairwise_other_parameters[x]) for x in range(self.n_contacts) ]
+
+        ## File to save parameters for pairwise potentials. 
+        self.pairwise_param_file = "#  i  j    param   int_type    other_params"
+        for i in range(self.n_contacts):
+            i_idx = self.contacts[i][0]
+            j_idx = self.contacts[i][1]
+            model_param = self.pairwise_param_assignment[i]
+            int_type = self.pairwise_type[i]
+            other_param_string = ""
+            for p in range(len(self.pairwise_other_parameters[i])):
+                other_param_string += " %10.5f " % self.pairwise_other_parameters[i][p] 
+            
+            self.pairwise_param_file += "%6d%6d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
+
 
     def check_disulfides(self):
         ''' Check that specified disulfides are between cysteine and that 
@@ -273,7 +343,6 @@ class SmogCalpha(object):
         if not hasattr(self,"dihedral_strengths"):
             self.dihedral_strengths = [ self.backbone_param_vals["Kd"] for i in range(len(self.dihedral_min)) ]
 
-
     def calculate_contact_potential(self,rij):
         """ Contact potential for all contacts in the trajectory """
 
@@ -282,7 +351,6 @@ class SmogCalpha(object):
 
         ## Epsilons, deltas, and sigmas for all contacts
         conts = np.arange(self.n_contacts)
-        epsilons = self.contact_epsilons[conts]
         sigmas = self.contact_sigmas[conts]
         if self.contact_type == "LJ1210":
             allindx = np.arange(self.n_contacts)
@@ -295,14 +363,12 @@ class SmogCalpha(object):
             ## evaluation.
             Vij = np.zeros(rij.shape,float)
             x = sigmas/rij
-            #x[x > 1.09] = 1.09  # <-- 1.09 is where LJ12-10 crosses zero for attractive
-            Vij[:,attindx] = epsilons[attindx]*(5.*(x[:,attindx]**12) - 6.*(x[:,attindx]**10))     
+            Vij[:,attindx] = (5.*(x[:,attindx]**12) - 6.*(x[:,attindx]**10))     
             for i in range(self.n_repcontacts):
                 indx = repindx[i]
-                eps = self.contact_epsilons[indx]
                 sigma = self.contact_sigmas[indx]
                 x_indx = x[:,indx]
-                V_indx = self._get_repLJ1210_potential(x_indx,eps,sigma)
+                V_indx = self._get_repLJ1210_potential(x_indx,1.,sigma)
                 Vij[:,indx] = V_indx
 
         elif self.contact_type == "Gaussian":
@@ -311,9 +377,8 @@ class SmogCalpha(object):
             contact_sigmas = np.ones(rij.shape)*sigmas
             widths = self.contact_widths[conts]
             contact_widths = np.ones(rij.shape)*widths
-            
             x = noncontact_sigmas/rij
-            Vij = epsilons*((1. + (1./epsilons)*(x**12))*(1. - np.exp(-((rij - contact_sigmas)**2)/(2.*(contact_widths**2)))) - 1.)
+            Vij = ((1. + (x**12))*(1. - np.exp(-((rij - contact_sigmas)**2)/(2.*(contact_widths**2)))) - 1.)
 
         return Vij
 
@@ -481,23 +546,25 @@ class SmogCalpha(object):
         if self.epsilon_bar != None:
             print "  Scaling attractive contacts such that epsilon_bar =", self.epsilon_bar
             ## TO DO:
+            ## - epsilon bar for attractive contacts
             #stability = sum(self.contact_epsilons[self.LJtype == 1]) - sum(
             #avg_eps = np.mean(self.contact_epsilons[attractive])
             #self.contact_epsilons[attractive] = /avg_eps
 
-        self.contact_sigmas = np.zeros(len(self.contacts),float)
         pairs_string = " [ pairs ]\n"
-        pairs_string += " ; i j type and weights\n"
+        #pairs_string += " ; i    j      type  c10  \n"
+        pairs_string += " ; %5s  %5s %4s    %8s   %8s\n" % ("i","j","type","c10","c12")
         beadbead_string = ""
         for i in range(len(self.contacts)):
-            
             res_a = self.contacts[i][0]
             res_b = self.contacts[i][1]
-            x_a = self.atom_coords[res_a-1]
-            x_b = self.atom_coords[res_b-1]
-            sig_ab = np.linalg.norm(x_a - x_b)
-            self.contact_sigmas[i] = sig_ab
-            eps_ab = self.contact_epsilons[i] 
+            sig_ab = self.pairwise_distances[i]
+            eps_ab = self.pairwise_strengths[i]
+            #x_a = self.atom_coords[res_a-1]
+            #x_b = self.atom_coords[res_b-1]
+            #sig_ab = np.linalg.norm(x_a - x_b)
+            #self.contact_sigmas[i] = sig_ab
+            #eps_ab = self.contact_epsilons[i] 
 
             ## Generalize for writing parameters for any pair potential
             if self.contact_type in [None, "LJ1210"]:
@@ -529,6 +596,7 @@ class SmogCalpha(object):
                 print "Exiting"
                 raise SystemExit
 
+        self.beadbead = beadbead_string 
         #noncontact = 0.4        ## Noncontact radius 4 Angstroms
         #if self.disulfides != None:
         #    pairs_string, beadbead_string = self._add_disulfides(pairs_string,beadbead_string,noncontact)

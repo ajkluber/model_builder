@@ -36,14 +36,14 @@ General Objectives
 
 3. Figure out how to grab source code docstrings into Sphinx documentation.
 
-4. Write a simple example Document example.
+4. Write a simple example document.
 
 Models
 ^^^^^^
 
 1. Submodules for bonded_potentials & pairwise_potentials to store
    contact interaction functions:
-    1. Bonded potential utility library.
+    1. Bonded potential utility library. DONE
     2. Pairwise potentials library. With dimensionless
        pairwise potential types:
         - LJ1210
@@ -54,13 +54,16 @@ Models
         - Others? (Desolvation barriers, etc.)
     3. Consider allowing for interactions made up of a small set of 
        basis functions.
-    4. Determine a quick way to evaluate the energies of contacts.
+    4. Determine a quick way to evaluate the energies of contacts. 
     
 2. Define the potential energy as the sum of "interaction strengths"
    multiplied by corresponding "interaction potentials". Then the list
    of non-redundant interaction strengths are the "model parameters".
    Want to generalize parameter fitting to act on model parameters. 
    
-3. Code disulfides as a bonded interaction with harmonic bond, angle, etc.
+   
+3. Code disulfides as a bonded interaction with harmonic bond, angle, etc. DONE, but not tested.
    
 4. Decide on design that allows for multiple chains in the topology.
+
+5. Deprecated distinquishing "Tf" from "Mut" instead just use iteration.
