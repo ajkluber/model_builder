@@ -27,7 +27,7 @@ def convert_beadbead(filename):
 
     int_params = "#   i   j   param int_type  other_params\n"
     model_params = "# model parameters\n"
-    for i in range(len(beadbead[:,0])):
+    for i in range(sum(use.astype(int))):
         i_idx = pairs[i][0]
         j_idx = pairs[i][1]
         model_p = params[i]
@@ -46,10 +46,10 @@ if __name__ == "__main__":
     ## Find all BeadBead.dat files within three layers of current directory 
     ## and add the new file format alongside them.
 
-    beads = glob.glob("*/*/*/BeadBead.dat") + glob.glob("*/*/BeadBead.dat")
+    beads = glob.glob("*/*/*/BeadBead.dat") + glob.glob("*/*/BeadBead.dat") \
+          + glob.glob("*/*/*/NewBeadBead*.dat") + glob.glob("*/*/NewBeadBead*.dat")
 
     #beads = ["1FMK/Tf_0/119_0/BeadBead.dat"]
-     
     for n in range(len(beads)):
         fullpath = beads[n]
         dir = os.path.dirname(beads[n])
