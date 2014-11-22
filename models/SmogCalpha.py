@@ -223,9 +223,13 @@ class SmogCalpha(object):
         ## Wrap the pairwise contact potentials so that only distance needs to be input.
         self.pairwise_potentials = [ pairwise.wrap_pairwise(pairwise.get_pair_potential(self.pairwise_type[x]),\
                                                 *self.pairwise_other_parameters[x]) for x in range(self.n_contacts) ]
+        ## File to save model parameters
+        self.model_param_file = "# model parameters\n"
+        for i in range(self.n_model_param):
+            self.model_param_file += "%10.5f\n" % self.model_param_values[i]
 
-        ## File to save parameters for pairwise potentials. 
-        self.pairwise_param_file = "#  i  j    param   int_type    other_params"
+        ## File to save interaction parameters for pairwise potentials. 
+        self.pairwise_param_file = "#   i   j   param int_type  other_params\n"
         for i in range(self.n_contacts):
             i_idx = self.contacts[i][0]
             j_idx = self.contacts[i][1]
@@ -235,7 +239,7 @@ class SmogCalpha(object):
             for p in range(len(self.pairwise_other_parameters[i])):
                 other_param_string += " %10.5f " % self.pairwise_other_parameters[i][p] 
             
-            self.pairwise_param_file += "%6d%6d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
+            self.pairwise_param_file += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
 
 
     def check_disulfides(self):

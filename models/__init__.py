@@ -21,3 +21,4 @@ import SmogCalpha
 import bonded_potentials
 import pairwise_potentials
 import pdb_parser
+import beadbead_to_params
