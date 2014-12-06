@@ -1,25 +1,21 @@
-""" Parse and clean pdb file.
+''' Parse and clean pdb file.
+
+Find the full PDB format specification at:
+http://www.wwpdb.org/documentation/format33/sect9.html#ATOM
+
+PDB fixed-width column format is given by:
+ATOM     44  C   ALA A  11      12.266  21.667  20.517  1.00 28.80           C  
 
 To Do:
 - Handle pdbs with multiple chains/molecules.
-- Move utility to dissect 
-- Can extend this utility to parse other useful info from PDB files.
-"""
+- Extend to parse other useful info from PDB files.
 
+'''
+
+import numpy as np
 
 def clean(pdbname):
-    """ Grab only the lines of the pdb that we want. 
-
-    Description:
-        
-        Returns an all-atom pdb and a C-alpha only pdb.
-
-    Find the full PDB format specification at:
-    http://www.wwpdb.org/documentation/format33/sect9.html#ATOM
-
-    PDB fixed-width column format is given by:
-    ATOM     44  C   ALA A  11      12.266  21.667  20.517  1.00 28.80           C  
-    """
+    ''' Filter pdb lines. Ignores everything before first ATOM line and after first END or TER '''
     first_full = 0
     atomid_full = 1
     cleanpdb_full = ''
@@ -74,3 +70,27 @@ def clean(pdbname):
     cleanpdb_full_noH += 'END\n'
     cleanpdb_ca += 'END\n'
     return cleanpdb_full,cleanpdb_full_noH,cleanpdb_ca
+
+def get_coords_atoms_residues(pdb):
+    ''' Parse lines of a pdb string'''
+    indices = []
+    atoms = []
+    residues = []
+    coords = []
+    pdblines = pdb.split("\n")
+    res_indx = 0
+    for line in pdblines:
+        if line.startswith("END"):
+            break
+        else:
+            indices.append(int(line[6:13]))
+            atoms.append(line[11:16].strip())
+            coords.append([float(line[31:39]),float(line[39:47]),float(line[47:55])]) 
+            if (int(line[23:26]) == (res_indx + 1)):
+                res_indx += 1 
+                residues.append(line[17:20])
+
+    ## Coordinates in pdb files are Angstroms. Convert to nanometers.
+    coords = np.array(coords)/10.
+
+    return coords,indices,atoms,residues

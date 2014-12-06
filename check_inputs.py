@@ -1,6 +1,9 @@
 """ Check inputs to SmogCalpha
 
 
+This could be cleaned up. 
+
+
 """
 
 import numpy as np
@@ -327,23 +330,6 @@ def load_model(subdir,dry_run=False):
 
     options = load_args(subdir,dry_run)
     model = SmogCalpha.SmogCalpha(**options)
-    #model = SmogCalpha.SmogCalpha(
-    #        options["PDB"],
-    #        contacts=options["Contacts"],
-    #        contact_params=options["Contact_Params"],
-    #        contact_epsilons=options["Contact_Epsilons"],
-    #        LJtype=options["LJtype"],
-    #        contact_widths=options["Contact_Widths"],
-    #        contact_type=options["Contact_Type"],
-    #        disulfides=options["Disulfides"],
-    #        epsilon_bar=options["Epsilon_Bar"],
-    #        model_code=options["Model_Code"],
-    #        Tf_iteration=options["Tf_Iteration"],
-    #        Mut_iteration=options["Mut_Iteration"],
-    #        fitting_data=options["Fitting_Data"],
-    #        fitting_includes=options["Fitting_Includes"],
-    #        fitting_allowswitch=options["Fitting_AllowSwitch"],
-    #        dry_run=options["Dry_Run"])
 
     return model
 
@@ -364,23 +350,6 @@ def new_models(subdirs,options):
     for subdir in subdirs:
         options["PDB"] = subdir+".pdb"
         model = SmogCalpha.SmogCalpha(**options)
-        #model = SmogCalpha.SmogCalpha(
-        #        options["PDB"],
-        #        contacts=options["Contacts"],
-        #        contact_params=options["Contact_Params"],
-        #        contact_epsilons=options["Contact_Epsilons"],
-        #        LJtype=options["LJtype"],
-        #        contact_widths=options["Contact_Widths"],
-        #        contact_type=options["Contact_Type"],
-        #        disulfides=options["Disulfides"],
-        #        epsilon_bar=options["Epsilon_Bar"],
-        #        model_code=options["Model_Code"],
-        #        Tf_iteration=options["Tf_Iteration"],
-        #        Mut_iteration=options["Mut_Iteration"],
-        #        fitting_data=options["Fitting_Data"],
-        #        fitting_includes=options["Fitting_Includes"],
-        #        fitting_allowswitch=options["Fitting_AllowSwitch"],
-        #        dry_run=options["Dry_Run"])
 
         Models.append(model)
     return Models

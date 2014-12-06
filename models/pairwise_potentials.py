@@ -42,6 +42,7 @@ def wrap_sum_of_pairwise(*args):
     Returns:
         A function that evaluates the sum of the inputted functions.
     The returned function is also depends on the distance (r).
+    NOT USED
     """
     def sum_pairwise(r):
         return sum(np.array([ args[i](r) for i in range(len(args)) ]))
@@ -58,6 +59,7 @@ def wrap_sum_of_pairwise_with_coefficients(*args):
         A function that evaluates the weighted sum of the inputted functions.
     The weights are the numbers in the first half of the inputted list.
     The returned function is also depends on the distance (r).
+    NOT USED
     """
     def sum_pairwise_with_coefficients(r):
         return sum(np.array([ args[i]*args[i+(len(args)/2)](r) for i in range(len(args)/2) ]))

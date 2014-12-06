@@ -1,4 +1,4 @@
-""" SmogCalpha
+''' SmogCalpha
 
 Description:
 
@@ -12,7 +12,7 @@ References:
 (1) Noel, J.K.; Whitford, P.C.; Sanbonmatsu, K.Y.; Onuchic, J.N. SMOG@ctbp:
 Simplified Deployment of Structure-Based Models in GROMACS. Nucleic Acids Res.
 2010, 38, W657-61.
-"""
+'''
 
 import numpy as np
 import subprocess as sb
@@ -25,7 +25,7 @@ import pdb_parser
 
 
 class SmogCalpha(object):
-    """ This class creates a smog-like topology and grofile """
+    ''' This class creates a topology and grofile '''
     ## To Do:
     ##  1. Delineate between 'model parameters' and 'interaction strengths':
     ##     where model parameters are non-redundant list.
@@ -71,7 +71,7 @@ class SmogCalpha(object):
 
         ## Prepare the coordinates from the pdb file.
         self.cleanpdb_full, self.cleanpdb_full_noH, self.cleanpdb = pdb_parser.clean(self.pdb)
-        self.dissect_native_pdb(self.cleanpdb)
+        self.set_backbone_interactions()
         self.n_contacts = len(self.contacts)
         if self.LJtype == None:
             self.n_repcontacts = 0
@@ -93,55 +93,62 @@ class SmogCalpha(object):
         self._get_interaction_tables()
             
     def __repr__(self):
+        pass
+
+    def get_model_info_string(self):
         ''' The string representation of all the model info.'''
-        repstring = "[ Path ]\n"
-        repstring += "%s\n" % self.path
-        repstring += "[ PDB ]\n"
-        repstring += "%s\n" % self.pdb
-        repstring += "[ Subdir ]\n"
-        repstring += "%s\n" % self.subdir
-        repstring += "[ Iteration ]\n"
-        repstring += "%s\n" % self.iteration
-        repstring += "[ Tf_Iteration ]\n"
-        repstring += "%s\n" % self.Tf_iteration
-        repstring += "[ Mut_Iteration ]\n"
-        repstring += "%s\n" % self.Mut_iteration
-        repstring += "[ Model_Code ]\n" 
-        repstring += "%s\n" % self.model_code
-        repstring += "[ Bead_Model ]\n" 
-        repstring += "%s\n" % self.beadmodel
-        repstring += "[ Backbone_params ]\n" 
-        repstring += "  %5s       %5s       %5s\n" % ("Kb","Ka","Kd")
-        repstring += "[ Backbone_param_vals ]\n" 
-        repstring += "%10.2f%10.2f%10.2f\n" % \
+        model_info_string = "[ Path ]\n"
+        model_info_string += "%s\n" % self.path
+        model_info_string += "[ PDB ]\n"
+        model_info_string += "%s\n" % self.pdb
+        model_info_string += "[ Subdir ]\n"
+        model_info_string += "%s\n" % self.subdir
+        model_info_string += "[ Iteration ]\n"
+        model_info_string += "%s\n" % self.iteration
+        model_info_string += "[ Tf_Iteration ]\n"
+        model_info_string += "%s\n" % self.Tf_iteration
+        model_info_string += "[ Mut_Iteration ]\n"
+        model_info_string += "%s\n" % self.Mut_iteration
+        model_info_string += "[ Model_Code ]\n" 
+        model_info_string += "%s\n" % self.model_code
+        model_info_string += "[ Bead_Model ]\n" 
+        model_info_string += "%s\n" % self.beadmodel
+        model_info_string += "[ Backbone_params ]\n" 
+        model_info_string += "  %5s       %5s       %5s\n" % ("Kb","Ka","Kd")
+        model_info_string += "[ Backbone_param_vals ]\n" 
+        model_info_string += "%10.2f%10.2f%10.2f\n" % \
             (self.backbone_param_vals["Kb"],self.backbone_param_vals["Ka"],self.backbone_param_vals["Kd"])
-        repstring += "[ Disulfides ]\n"
+        model_info_string += "[ Disulfides ]\n"
         if self.disulfides == None:
-            repstring += "%s\n" % None
+            model_info_string += "%s\n" % None
         else:
             temp = ''
             for x in self.disulfides:
                 temp += " %d " % x 
-            repstring += "%s\n" % temp
-        repstring += "[ Epsilon_Bar ]\n"
-        repstring += "%s\n" % str(self.epsilon_bar)
-        repstring += "[ Contact_Params ]\n"
-        repstring += "%s\n" % str(self.contact_params)
-        repstring += "[ Contact_Type ]\n"
-        repstring += "%s\n" % self.contact_type
-        repstring += "[ Fitting_Data ]\n"
-        repstring += "%s\n" % self.fitting_data
-        repstring += "[ Fitting_Includes ]\n"
+            model_info_string += "%s\n" % temp
+        model_info_string += "[ Epsilon_Bar ]\n"
+        model_info_string += "%s\n" % str(self.epsilon_bar)
+        model_info_string += "[ Contact_Params ]\n"
+        model_info_string += "%s\n" % str(self.contact_params)
+        model_info_string += "[ Pairwise_Params ]\n"
+        model_info_string += "%s\n" % "None"
+        model_info_string += "[ Model_Params ]\n"
+        model_info_string += "%s\n" % "None"
+        model_info_string += "[ Contact_Type ]\n"
+        model_info_string += "%s\n" % self.contact_type
+        model_info_string += "[ Fitting_Data ]\n"
+        model_info_string += "%s\n" % self.fitting_data
+        model_info_string += "[ Fitting_Includes ]\n"
         for dir in self.fitting_includes:
-            repstring += "%s" % str(dir)
-        repstring += "\n"
-        repstring += "[ Fitting_Solver ]\n"
-        repstring += "%s\n" % self.fitting_solver
-        repstring += "[ Fitting_AllowSwitch ]\n"
-        repstring += "%s\n" % self.fitting_allowswitch
-        repstring += "[ Reference ]\n" 
-        repstring += "%s\n" % self.citation
-        return repstring
+            model_info_string += "%s" % str(dir)
+        model_info_string += "\n"
+        model_info_string += "[ Fitting_Solver ]\n"
+        model_info_string += "%s\n" % self.fitting_solver
+        model_info_string += "[ Fitting_AllowSwitch ]\n"
+        model_info_string += "%s\n" % self.fitting_allowswitch
+        model_info_string += "[ Reference ]\n" 
+        model_info_string += "%s\n" % self.citation
+        return model_info_string
 
     def append_log(self,string):
         now = time.localtime()
@@ -165,11 +172,11 @@ class SmogCalpha(object):
         return citations[key]
 
     def check_contact_opts(self):
-        """ Set default pairwise interaction terms.
+        ''' Set default pairwise interaction terms.
 
         In the future we can just pass the pairwise_type and pairwise_parameters.
 
-        """
+        '''
         ## Grab structural distances.
         self.contact_sigmas = np.zeros(len(self.contacts),float)
         self.pairwise_distances = np.zeros(len(self.contacts),float)
@@ -179,24 +186,26 @@ class SmogCalpha(object):
             self.contact_sigmas[i] = bond.distance(self.atom_coords,i_idx-1,j_idx-1)
             self.pairwise_distances[i] = bond.distance(self.atom_coords,i_idx-1,j_idx-1)
 
+        ###### vvvvvv For backwards compatibility vvvvvvv 
+        ## In the future, this info should be passed in SmogCalpha 
         ## Set some defaults for pairwise interaction potential.
+        self.tabled_interactions = np.zeros(self.n_contacts,float)
         if (not hasattr(self,"epsilon_bar")):
             self.epsilon_bar = None
         if (not hasattr(self,"contact_epsilons")) or (self.contact_epsilons == None) :
             print "  No contact epsilons set. Setting contacts to homogeneous model. 1"
-            self.contact_epsilons = np.ones(self.n_contacts,float)
+            self.contact_epsilons = np.ones(self.n_contacts,float)  ## Deprecated for pairwise_strength
 
         if (not hasattr(self,"contact_type")) or (self.contact_type == "LJ1210"):
             self.contact_type = "LJ1210"
             self.pairwise_type = 2*np.ones(self.n_contacts,float)
-            self.tabled_interaction = np.zeros(self.n_contacts,float)
             if self.LJtype == None:
                 print "  No LJtype given. Setting contacts to attractive. 1"
-                self.LJtype = np.ones(self.n_contacts,float)
+                self.LJtype = np.ones(self.n_contacts,float)  ## Deprecated for pairwise_type
             else:
                 for rep_indx in (np.where(self.LJtype == -1))[0]:
                     self.pairwise_type[rep_indx] = 3
-                    self.tabled_interaction[rep_indx] = 1
+                    self.tabled_interactions[rep_indx] = 1
             self.pairwise_other_parameters = [ [self.contact_sigmas[x]] for x in range(self.n_contacts) ]
         elif self.contact_type == "Gaussian":
             self.pairwise_type = 4*np.ones(self.n_contacts,float)
@@ -208,13 +217,17 @@ class SmogCalpha(object):
                 noncontact = 0.4
                 self.noncontact_wall = noncontact*np.ones(self.n_contacts,float)
             self.pairwise_other_parameters = [ [self.contact_sigmas[x],self.contact_widths[x]] for x in range(self.n_contacts) ]
-
+        
         ## Assings each pairwise interaction model parameter that this interaction uses.
         self.pairwise_param_assignment = np.arange(self.n_contacts)     
                                                        
         ## Values of the model parameters. To be generalized.
         self.model_param_values = self.contact_epsilons
         self.n_model_param = len(self.model_param_values)
+        ###### ^^^^^^^ For backwards compatibility ^^^^^^^^
+
+        self.tabled_pairs = np.where(self.tabled_interactions == 1)[0]
+        self.n_tables = len(self.tabled_pairs)
 
         ## List of array indices indicating which interactions have the associated model parameter.
         self.model_param_interactions = [ np.where(self.pairwise_param_assignment == p) for p in range(self.n_model_param) ]
@@ -222,6 +235,9 @@ class SmogCalpha(object):
 
         ## Wrap the pairwise contact potentials so that only distance needs to be input.
         self.pairwise_potentials = [ pairwise.wrap_pairwise(pairwise.get_pair_potential(self.pairwise_type[x]),\
+                                                *self.pairwise_other_parameters[x]) for x in range(self.n_contacts) ]
+
+        self.pairwise_potentials_deriv = [ pairwise.wrap_pairwise(pairwise.get_pair_potential_deriv(self.pairwise_type[x]),\
                                                 *self.pairwise_other_parameters[x]) for x in range(self.n_contacts) ]
         ## File to save model parameters
         self.model_param_file = "# model parameters\n"
@@ -239,6 +255,43 @@ class SmogCalpha(object):
             for p in range(len(self.pairwise_other_parameters[i])):
                 other_param_string += " %10.5f " % self.pairwise_other_parameters[i][p] 
             
+            self.pairwise_param_file += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
+
+    def update_pairwise_interactions(self):
+        ''' Update pairwise interactions 
+
+            Update pairwise interactions in case the interaction type or
+        interaction strengths has changed.
+
+        NOT DONE
+
+        '''
+
+        ## List of array indices indicating which interactions have the associated model parameter.
+        self.model_param_interactions = [ np.where(self.pairwise_param_assignment == p) for p in range(self.n_model_param) ]
+        self.pairwise_strengths = np.array([  self.model_param_values[x] for x in self.pairwise_param_assignment ])
+
+        ## Wrap the pairwise contact potentials so that only distance needs to be input.
+        self.pairwise_potentials = [ pairwise.wrap_pairwise(pairwise.get_pair_potential(self.pairwise_type[x]),\
+                                                *self.pairwise_other_parameters[x]) for x in range(self.n_contacts) ]
+        self.pairwise_potentials_deriv = [ pairwise.wrap_pairwise(pairwise.get_pair_potential_deriv(self.pairwise_type[x]),\
+                                                *self.pairwise_other_parameters[x]) for x in range(self.n_contacts) ]
+        ## File to save model parameters
+        self.model_param_file = "# model parameters\n"
+        for i in range(self.n_model_param):
+            self.model_param_file += "%10.5f\n" % self.model_param_values[i]
+
+        ## File to save interaction parameters for pairwise potentials. 
+        self.pairwise_param_file = "#   i   j   param int_type  other_params\n"
+        for i in range(self.n_contacts):
+            i_idx = self.contacts[i][0]
+            j_idx = self.contacts[i][1]
+            model_param = self.pairwise_param_assignment[i]
+            int_type = self.pairwise_type[i]
+            other_param_string = ""
+            for p in range(len(self.pairwise_other_parameters[i])):
+                other_param_string += " %10.5f " % self.pairwise_other_parameters[i][p]
+
             self.pairwise_param_file += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
 
 
@@ -303,33 +356,17 @@ class SmogCalpha(object):
         for i in range(self.n_contacts):
             self.contacts_ndx += "%4d %4d\n" % (self.contacts[i][0],self.contacts[i][1])
 
-    def dissect_native_pdb(self,pdb):
-        ''' Extract info from the Native.pdb for making index and top file'''
-        indices = []
-        atoms = []
-        residues = []
-        coords = []
-        pdblines = pdb.split("\n")
-        res_indx = 0
-        for line in pdblines:
-            if line.startswith("END"):
-                break
-            else:
-                indices.append(int(line[6:13]))
-                atoms.append(line[11:16].strip())
-                coords.append([float(line[31:39]),float(line[39:47]),float(line[47:55])]) 
-                if (int(line[23:26]) == (res_indx + 1)):
-                    res_indx += 1 
-                    residues.append(line[17:20])
+    def set_backbone_interactions(self):
+        ''' Extract info from the Native.pdb for making index and top file '''
+        coords, indices, atoms, residues = pdb_parser.get_coords_atoms_residues(self.cleanpdb)
 
-        ## Coordinates in pdb files are Angstroms. Convert to nanometers.
-        coords = np.array(coords)/10.
-        self.n_residues = len(residues)
-        self.n_atoms = len(atoms)
         self.atom_indices = indices
         self.atom_types = atoms
         self.atom_residues = residues
         self.atom_coords = coords
+
+        self.n_residues = len(residues)
+        self.n_atoms = len(atoms)
 
         ## Set bonded force field terms quantities.
         self.bond_indices = [[indices[i],indices[i+1]] for i in range(self.n_atoms-1)]
@@ -347,68 +384,24 @@ class SmogCalpha(object):
         if not hasattr(self,"dihedral_strengths"):
             self.dihedral_strengths = [ self.backbone_param_vals["Kd"] for i in range(len(self.dihedral_min)) ]
 
-    def calculate_contact_potential(self,rij):
-        """ Contact potential for all contacts in the trajectory """
-
-        ## To Do:
-        ## 1. Loop over 
-
-        ## Epsilons, deltas, and sigmas for all contacts
-        conts = np.arange(self.n_contacts)
-        sigmas = self.contact_sigmas[conts]
-        if self.contact_type == "LJ1210":
-            allindx = np.arange(self.n_contacts)
-            repindx = allindx[self.LJtype == -1]
-            attindx = allindx[self.LJtype == 1]
-
-            ## Only count values of potential energy function where interaction is
-            ## attractive. Assign attractive interaction en masse then loop over
-            ## repulsive interactions because each one requires different function
-            ## evaluation.
-            Vij = np.zeros(rij.shape,float)
-            x = sigmas/rij
-            Vij[:,attindx] = (5.*(x[:,attindx]**12) - 6.*(x[:,attindx]**10))     
-            for i in range(self.n_repcontacts):
-                indx = repindx[i]
-                sigma = self.contact_sigmas[indx]
-                x_indx = x[:,indx]
-                V_indx = self._get_repLJ1210_potential(x_indx,1.,sigma)
-                Vij[:,indx] = V_indx
-
-        elif self.contact_type == "Gaussian":
-            ## NEEDS TO BE TESTED
-            noncontact_sigmas = self.noncontact_wall[conts]
-            contact_sigmas = np.ones(rij.shape)*sigmas
-            widths = self.contact_widths[conts]
-            contact_widths = np.ones(rij.shape)*widths
-            x = noncontact_sigmas/rij
-            Vij = ((1. + (x**12))*(1. - np.exp(-((rij - contact_sigmas)**2)/(2.*(contact_widths**2)))) - 1.)
-
-        return Vij
-
-
     def _get_interaction_tables(self):
-        ''' Returns the table for interaction type 'i'. The values of the
-            potential is set to 0.0 when r is too close to zero to avoid
-            blowup. 
-        '''
+        ''' Generates tables of user-defined potentials '''
 
-        if self.contact_type == "LJ1210":
-    
-            self.table = self._get_LJ1210_table()
+        self.tablep = self._get_LJ1210_table()
+        self.LJtable = self.tablep
+        r = np.arange(0.002,100.0,0.002)
+        self.tables = []
+        self.tablenames = []
+        for i in range(self.n_tables):
+            pair_indx = self.tabled_pairs[i]
+            table_name = "table_b%d.xvg" % (i+1)
+            self.tablenames.append(table_name)
 
-            self.rep_tables = []
-            self.rep_tablenames = []
-            if self.n_repcontacts != 0:
-                for i in range(self.n_repcontacts):
-                    pair = self.contacts[self.LJtype == -1][i]
-                    epsilon = self.contact_epsilons[self.LJtype == -1][i]
-                    sigma = self.contact_sigmas[self.LJtype == -1][i]
-                    table = self._get_repLJ1210_table(epsilon,sigma)
-                    table_name = "table_b%d.xvg" % (i+1)
-
-                    self.rep_tables.append(table)
-                    self.rep_tablenames.append(table_name)
+            table = np.zeros((len(r)+1,3),float)
+            table[1:,0] = r 
+            table[1:,1] = self.pairwise_potentials[pair_indx](r) 
+            table[1:,2] = -1.*self.pairwise_potentials_deriv[pair_indx](r) 
+            self.tables.append(table)
 
     def _get_LJ1210_table(self):
         ''' LJ12-10 interaction potential ''' 
@@ -425,28 +418,6 @@ class SmogCalpha(object):
         table[:5,1:] = 0
         table[0,0] = 0
         return table
-
-    def _get_repLJ1210_table(self,eps,sigma):
-        ''' A repulsive LJ12-10 interaction potential '''
-        r = np.arange(0.0,100.0,0.002)
-        r[0] = 1
-        x = sigma/r
-        table = np.zeros((len(r),3),float)
-        table[:,0] = r
-        table[x > 1,1] = eps*(5*(x[x > 1]**12) - 6*(x[x > 1]**10) + 2)
-        table[x <= 1,1] = -eps*(5*(x[x <= 1]**12) - 6*(x[x <= 1]**10))
-        table[x > 1, 2] = 60*(eps/sigma)*(x[x > 1]**13 - x[x > 1]**11)
-        table[x <= 1,2] = -60*(eps/sigma)*(x[x <= 1]**13 - x[x <= 1]**11)
-        table[:5, 1:] = 0.
-        table[0,0] = 0
-
-        return table
-
-    def _get_repLJ1210_potential(self,x,eps,sigma):
-        V = np.zeros(x.shape,float)
-        V[x > 1] = eps*(5*(x[x > 1]**12) - 6*(x[x > 1]**10) + 2)
-        V[x <= 1] = -eps*(5*(x[x <= 1]**12) - 6*(x[x <= 1]**10))
-        return V
 
     def _get_index_ndx(self):
         ''' Generates index file for gromacs analysis utilities. '''
@@ -496,17 +467,22 @@ class SmogCalpha(object):
         return bonds_string
 
     def _get_tabled_string(self):
-        """ Generate the topology files to specify table interactions. """
-        tabled_string = ""
+        ''' Generate the topology files to specify table interactions. '''
         ## Add special nonbonded table interactions. 
-        if (self.contact_type == "LJ1210"):
-            if self.n_repcontacts != 0:
-                tabled_string += "; tabled interactions contacts below\n"
-                for i in range(self.n_repcontacts):
-                    ## add extra tabled string
-                    pair = self.contacts[self.LJtype == -1][i]
-                    tabled_string += "%6d %6d%2d%18d%18.9e\n" %  \
-                              (pair[0],pair[1],9,i+1,1.0)
+        tabled_string = "; tabled interactions contacts below\n"
+        for i in range(self.n_tables):
+            pair = self.contacts[self.tabled_pairs[i]]
+            tabled_string += "%6d %6d%2d%18d%18.9e\n" %  \
+                      (pair[0],pair[1],9,i+1,1.0)
+
+        #if (self.contact_type == "LJ1210"):
+        #    if self.n_repcontacts != 0:
+        #        tabled_string += "; tabled interactions contacts below\n"
+        #        for i in range(self.n_repcontacts):
+        #            ## add extra tabled string
+        #            pair = self.contacts[self.LJtype == -1][i]
+        #            tabled_string += "%6d %6d%2d%18d%18.9e\n" %  \
+        #                      (pair[0],pair[1],9,i+1,1.0)
 
         return tabled_string
 
@@ -546,7 +522,7 @@ class SmogCalpha(object):
         return dihedrals_string
 
     def _get_pairs_string(self):
-        """ Get the [ pairs ] string"""
+        ''' Get the [ pairs ] string '''
 
         if self.epsilon_bar != None:
             print "  Scaling attractive contacts such that epsilon_bar =", self.epsilon_bar
@@ -597,60 +573,22 @@ class SmogCalpha(object):
                 raise SystemExit
 
         self.beadbead = beadbead_string 
-        #noncontact = 0.4        ## Noncontact radius 4 Angstroms
-        #if self.disulfides != None:
-        #    pairs_string, beadbead_string = self._add_disulfides(pairs_string,beadbead_string,noncontact)
-        #self.beadbead = beadbead_string 
         return pairs_string
 
-    #def _add_disulfides(self,pairs_string,beadbead_string,noncontact):
-    #   ## To Do: Add disulfides to list of bonded interactions.
-    #   for i in range(len(self.disulfides)/2):
-    #       cys_a = self.disulfides[2*i]
-    #       cys_b = self.disulfides[2*i + 1]
-    #       x_a = self.atom_coords[cys_a-1]
-    #       x_b = self.atom_coords[cys_b-1]
-    #       sig_ab = np.linalg.norm(x_a - x_b)
-    #       eps_ab = 50.
-    #       width_ab = 0.05
-    #       noncontact = 0.4**12
-
-    #       if self.contact_type in [None, "LJ1210"]:
-    #           c12 = eps_ab*5.0*(sig_ab**12)
-    #           c10 = eps_ab*6.0*(sig_ab**10)
-
-    #           print " Linking disulfide: ",cys_a,cys_b, " with eps = ",eps_ab
-    #           pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
-    #                           (cys_a,cys_b,1,c10,c12)
-
-    #           resid_a = self.atom_residues[cys_a-1]
-    #           resid_b = self.atom_residues[cys_b-1]
-
-    #           beadbead_string += "%5d%5d%8s%8s%5s%18.9e%18.9e%18d\n" % \
-    #                           (cys_a,cys_b,resid_a,resid_b,"ss",sig_ab,eps_ab,1)
-    #       elif self.contact_type == "Gaussian":
-    #           print " Linking disulfide: ",cys_a,cys_b, " with eps = ",eps_ab
-    #           pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
-    #                           (res_a,res_b,6,eps_ab,sig_ab,width_ab,noncontact)
-
-    #           resid_a = self.atom_residues[res_a-1]
-    #           resid_b = self.atom_residues[res_b-1]
-    # 
-    #           beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d%18.9e%18.9e\n" % \
-    #               (res_a,res_b,resid_a,resid_b,"ss",sig_ab,eps_ab,1,width_ab,noncontact)
-    #
-    #    return pairs_string, beadbead_string
-
-
     def _get_exclusions_string(self):
-        """ Get the [ exclusions ] string"""
-        exclusions_string = " [ exclusions ]\n"
-        exclusions_string += " ; ai aj \n"
-        for i in range(len(self.contacts)):
-            res_a = self.contacts[i][0]
-            res_b = self.contacts[i][1]
-            exclusions_string += "%6d %6d\n" % (res_a,res_b)
+        ''' Get the [ exclusions ] string '''
+        exclusions_string = ""
+        #exclusions_string = " [ exclusions ]\n"
+        #exclusions_string += " ; ai aj \n"
+        ## Removing exlusions for pairwise interactions so that hard-sphere 
+        ## radius of beads is always respected.
+        #for i in range(len(self.contacts)):
+        #    res_a = self.contacts[i][0]
+        #    res_b = self.contacts[i][1]
+        #    exclusions_string += "%6d %6d\n" % (res_a,res_b)
         if self.disulfides != None:
+            exclusions_string = " [ exclusions ]\n"
+            exclusions_string += " ; ai aj \n"
             for i in range(len(self.disulfides)/2):
                 cys_a = self.disulfides[2*i]
                 cys_b = self.disulfides[2*i + 1]
@@ -659,7 +597,7 @@ class SmogCalpha(object):
         return exclusions_string
 
     def generate_grofile(self):
-
+        ''' Get the .gro string '''
         gro_string = " Structure-based Gro file\n"
         gro_string += "%12d\n" % len(self.atom_types)
         for i in range(len(self.atom_types)):
@@ -671,7 +609,7 @@ class SmogCalpha(object):
         self.grofile = gro_string
 
     def generate_topology(self):
-        """ Return a structure-based topology file. SMOG-style."""
+        ''' Return a structure-based topology file. '''
 
         top_string =  " ; Structure-based  topology file for Gromacs:\n"
         top_string += " [ defaults ]\n"
@@ -701,6 +639,25 @@ class SmogCalpha(object):
 
         self.topology = top_string
 
+    def save_simulation_files(self):
+        ''' Write all needed simulation files. '''
+        open("Native.pdb","w").write(self.cleanpdb)
+        open("index.ndx","w").write(self.index_ndx)
+        open("dihedrals.ndx","w").write(self.dihedrals_ndx)
+        open("contacts.ndx","w").write(self.contacts_ndx)
+        open("conf.gro","w").write(self.grofile)
+        open("topol.top","w").write(self.topology)
+        open("BeadBead.dat","w").write(self.beadbead)
+        open("interaction_params","w").write()
+        open("model_params","w").write()
+        np.savetxt("Qref_cryst.dat",self.Qref,fmt="%1d",delimiter=" ")
+        np.savetxt("contacts.dat",self.contacts,fmt="%4d",delimiter=" ")
+
+        ## Save needed table files
+        np.savetxt("table.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
+        for i in range(self.n_tables):
+            np.savetxt(self.tablenames[i],self.tables[i],fmt="%16.15e",delimiter=" ")
+
 if __name__ == "__main__":
 
     import argparse
@@ -719,8 +676,9 @@ if __name__ == "__main__":
     else:
         contacts = np.loadtxt(contactsfile,dtype=int)
 
-    model = SmogCalpha(pdb,contacts=contacts,contact_type="Gaussian")
+    model = SmogCalpha(pdb=pdb,contacts=contacts)
+    model.save_simulation_files()
 
-    open("%s.top" % name, "w").write(model.topology)
-    open("%s.gro" % name, "w").write(model.grofile)
+    #open("%s.top" % name, "w").write(model.topology)
+    #open("%s.gro" % name, "w").write(model.grofile)
 
