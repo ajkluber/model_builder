@@ -218,6 +218,7 @@ def new_args(args):
     model_code = args.model_code
     beadmodel = args.bead_model 
 
+    inputs["Iteration"] = 0
     inputs["Tf_iteration"] = 0
     inputs["Mut_iteration"] = 0
     inputs["PDB"] = args.pdbs[0]
@@ -294,6 +295,7 @@ def load_args(subdir,dry_run):
         line = info_file.readline()
 
     contactsfile = "%s/contacts.dat" % subdir
+    pairwise_params = inputs["Contact_Params"]
     contactparams = inputs["Contact_Params"]
     contacttype = inputs["Contact_Type"] 
     epsilonbar = inputs["Epsilon_Bar"] 

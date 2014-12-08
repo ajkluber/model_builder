@@ -1,12 +1,13 @@
 """ Utilities for nonbonded/pairwise potential terms.
 
+Potentials to add: 
+- Repulsive tanh function by Ryan Cheng to complement Gaussian
+- Heiko's Gaussian with hard wall function.
+- Attractive and repulsive LJ126 potentials
 
 """
 
 import numpy as np
-
-## To Do:
-## - Dictionary of pairwise potential types. extensible
 
 def get_pair_potential(code):
     """ Returns pairwise potential function"""
@@ -106,3 +107,6 @@ def Gaussian(r,r0,width):
 def Gaussian_deriv(r,r0,width):
     V = ((r - r0)/(width**2))*np.exp(-((r - r0)**2)/(2.*(width**2)))
     return V
+
+def Cheng_rep(r,r0,width):      
+    pass

@@ -27,10 +27,6 @@ import pdb_parser
 class SmogCalpha(object):
     ''' This class creates a topology and grofile '''
     ## To Do:
-    ##  1. Delineate between 'model parameters' and 'interaction strengths':
-    ##     where model parameters are non-redundant list.
-    ##  2. Create list of interaction potentials.
-    ##  3. self.interaction_
     def __init__(self,**kwargs):
 
         self.path = os.getcwd()
@@ -44,7 +40,7 @@ class SmogCalpha(object):
         need_to_define = ["Tf_iteration","Mut_iteration","model_code",
                           "beadmodel","epsilon_bar","contact_params",
                           "fitting_data","fitting_solver","fitting_allowswitch",
-                          "citation","disulfides","LJtype"]
+                          "disulfides","LJtype"]
         for thing in need_to_define:
             if not hasattr(self,thing):
                 setattr(self,thing,None)
@@ -63,37 +59,28 @@ class SmogCalpha(object):
         self.beadmodel = "CA"
         self.backbone_params = ["Kb","Ka","Kd"]
         self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
-        self.citation = self.citation_info(self.model_code)
+
         self.error = 0
         self.initial_T_array = None
         self.name = self.pdb.split(".pdb")[0]
         self.subdir = self.name
 
-        ## Prepare the coordinates from the pdb file.
-        self.cleanpdb_full, self.cleanpdb_full_noH, self.cleanpdb = pdb_parser.clean(self.pdb)
-        self.set_backbone_interactions()
+        ## Set backbone parameters
+        self._set_backbone_interactions()
         self.n_contacts = len(self.contacts)
-        if self.LJtype == None:
-            self.n_repcontacts = 0
-        else:
-            self.n_repcontacts = sum((self.LJtype == -1).astype(int))
-
         self.Qref = np.zeros((self.n_residues,self.n_residues))
         for pair in self.contacts:
             self.Qref[pair[0]-1,pair[1]-1] = 1 
-        self._get_index_ndx()
 
         ## Check disulfide separation and remove from contacts list.
-        self.check_disulfides() 
+        self._check_disulfides() 
 
         ## Generate grofile, topology file, and necessary table files.
-        self.check_contact_opts()
+        self._check_contact_opts()
+        self._get_interaction_tables()
+        self._generate_index_ndx()
         self.generate_grofile()
         self.generate_topology()
-        self._get_interaction_tables()
-            
-    def __repr__(self):
-        pass
 
     def get_model_info_string(self):
         ''' The string representation of all the model info.'''
@@ -130,9 +117,9 @@ class SmogCalpha(object):
         model_info_string += "%s\n" % str(self.epsilon_bar)
         model_info_string += "[ Contact_Params ]\n"
         model_info_string += "%s\n" % str(self.contact_params)
-        model_info_string += "[ Pairwise_Params ]\n"
+        model_info_string += "[ Pairwise_Params_File ]\n"
         model_info_string += "%s\n" % "None"
-        model_info_string += "[ Model_Params ]\n"
+        model_info_string += "[ Model_Params_File ]\n"
         model_info_string += "%s\n" % "None"
         model_info_string += "[ Contact_Type ]\n"
         model_info_string += "%s\n" % self.contact_type
@@ -147,7 +134,7 @@ class SmogCalpha(object):
         model_info_string += "[ Fitting_AllowSwitch ]\n"
         model_info_string += "%s\n" % self.fitting_allowswitch
         model_info_string += "[ Reference ]\n" 
-        model_info_string += "%s\n" % self.citation
+        model_info_string += "None\n" 
         return model_info_string
 
     def append_log(self,string):
@@ -155,23 +142,7 @@ class SmogCalpha(object):
         now_string = "%s:%s:%s:%s:%s" % (now.tm_year,now.tm_mon,now.tm_mday,now.tm_hour,now.tm_min)
         logfile = open('%s/%s/%s.log' % (path,self.subdir,self.subdir),'a').write("%s %s\n" % (now_string,string))
 
-    def citation_info(self,key):
-        ''' Dictionary of references'''
-        citations = {'HomGo':"Clementi, C.; Nymeyer, H.; Onuchic, J. N. \n"+  \
-                    "Topological and Energetic Factors: What Determines the \n"+ \
-                    "Structural Details of the Transition State Ensemble and \n"+ \
-                    "'En-Route' Intermediates for Protein Folding? An Investigation\n"+ \
-                    "for Small Globular Proteins. J. Mol. Biol. 2000, 298, 937-53.", 
-                     'HetGo':"Matysiak, S; Clementi, C. Optimal Combination of \n"+ \
-                    "Theory and Experiment for the Characterization of the Protein \n"+ \
-                    "Folding Landscape of S6: How Far Can a Minimalist Model Go? \n"+ \
-                    "J. Mol. Biol. 2004, 343, 235-48", 
-                     'DMC':"Matyiak, S; Clementi, C. Minimalist Protein Model as \n"+  \
-                    "a Diagnostic Tool for Misfolding and Aggregation. J. Mol. Biol. \n"+ \
-                    "2006, 363, 297-308.",None:"None"}
-        return citations[key]
-
-    def check_contact_opts(self):
+    def _check_contact_opts(self):
         ''' Set default pairwise interaction terms.
 
         In the future we can just pass the pairwise_type and pairwise_parameters.
@@ -198,7 +169,8 @@ class SmogCalpha(object):
 
         if (not hasattr(self,"contact_type")) or (self.contact_type == "LJ1210"):
             self.contact_type = "LJ1210"
-            self.pairwise_type = 2*np.ones(self.n_contacts,float)
+            if not hasattr(self,"pairwise_type"):
+                self.pairwise_type = 2*np.ones(self.n_contacts,float)
             if self.LJtype == None:
                 print "  No LJtype given. Setting contacts to attractive. 1"
                 self.LJtype = np.ones(self.n_contacts,float)  ## Deprecated for pairwise_type
@@ -208,7 +180,8 @@ class SmogCalpha(object):
                     self.tabled_interactions[rep_indx] = 1
             self.pairwise_other_parameters = [ [self.contact_sigmas[x]] for x in range(self.n_contacts) ]
         elif self.contact_type == "Gaussian":
-            self.pairwise_type = 4*np.ones(self.n_contacts,float)
+            if not hasattr(self,"pairwise_type"):
+                self.pairwise_type = 4*np.ones(self.n_contacts,float)
             if (not hasattr(self,"contact_widths")) or (self.contact_widths == None):
                 print "  No contact widths set. Setting contact widths to attractive. 0.5 Angstrom"
                 self.contact_widths = 0.05*np.ones(self.n_contacts,float)
@@ -221,10 +194,11 @@ class SmogCalpha(object):
         ## Assings each pairwise interaction model parameter that this interaction uses.
         self.pairwise_param_assignment = np.arange(self.n_contacts)     
                                                        
-        ## Values of the model parameters. To be generalized.
-        self.model_param_values = self.contact_epsilons
-        self.n_model_param = len(self.model_param_values)
+        if not hasattr(self,"model_param_values"):
+            ## Values of the model parameters. 
+            self.model_param_values = self.contact_epsilons
         ###### ^^^^^^^ For backwards compatibility ^^^^^^^^
+        self.n_model_param = len(self.model_param_values)
 
         self.tabled_pairs = np.where(self.tabled_interactions == 1)[0]
         self.n_tables = len(self.tabled_pairs)
@@ -295,7 +269,7 @@ class SmogCalpha(object):
             self.pairwise_param_file += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
 
 
-    def check_disulfides(self):
+    def _check_disulfides(self):
         ''' Check that specified disulfides are between cysteine and that 
             the corresonding pairs are within 0.8 nm.
 
@@ -356,8 +330,10 @@ class SmogCalpha(object):
         for i in range(self.n_contacts):
             self.contacts_ndx += "%4d %4d\n" % (self.contacts[i][0],self.contacts[i][1])
 
-    def set_backbone_interactions(self):
+    def _set_backbone_interactions(self):
         ''' Extract info from the Native.pdb for making index and top file '''
+        ## Grab coordinates from the pdb file.
+        self.cleanpdb_full, self.cleanpdb_full_noH, self.cleanpdb = pdb_parser.clean(self.pdb)
         coords, indices, atoms, residues = pdb_parser.get_coords_atoms_residues(self.cleanpdb)
 
         self.atom_indices = indices
@@ -419,7 +395,7 @@ class SmogCalpha(object):
         table[0,0] = 0
         return table
 
-    def _get_index_ndx(self):
+    def _generate_index_ndx(self):
         ''' Generates index file for gromacs analysis utilities. '''
         ca_string = ''
         i = 1
@@ -474,16 +450,6 @@ class SmogCalpha(object):
             pair = self.contacts[self.tabled_pairs[i]]
             tabled_string += "%6d %6d%2d%18d%18.9e\n" %  \
                       (pair[0],pair[1],9,i+1,1.0)
-
-        #if (self.contact_type == "LJ1210"):
-        #    if self.n_repcontacts != 0:
-        #        tabled_string += "; tabled interactions contacts below\n"
-        #        for i in range(self.n_repcontacts):
-        #            ## add extra tabled string
-        #            pair = self.contacts[self.LJtype == -1][i]
-        #            tabled_string += "%6d %6d%2d%18d%18.9e\n" %  \
-        #                      (pair[0],pair[1],9,i+1,1.0)
-
         return tabled_string
 
     def _get_angles_string(self):
@@ -536,39 +502,38 @@ class SmogCalpha(object):
         #pairs_string += " ; i    j      type  c10  \n"
         pairs_string += " ; %5s  %5s %4s    %8s   %8s\n" % ("i","j","type","c10","c12")
         beadbead_string = ""
-        for i in range(len(self.contacts)):
+        for i in range(self.n_contacts):
             res_a = self.contacts[i][0]
             res_b = self.contacts[i][1]
+            resid_a = self.atom_residues[res_a-1]
+            resid_b = self.atom_residues[res_b-1]
             sig_ab = self.pairwise_distances[i]
             eps_ab = self.pairwise_strengths[i]
 
-            ## Generalize for writing parameters for any pair potential
-            if self.contact_type in [None, "LJ1210"]:
-                if self.LJtype[i] == 1:
-                    c12 = eps_ab*5.0*(sig_ab**12)
-                    c10 = eps_ab*6.0*(sig_ab**10)
+            if self.pairwise_type[i] == 2:   ## LJ1210
+                c12 = eps_ab*5.0*(sig_ab**12)
+                c10 = eps_ab*6.0*(sig_ab**10)
 
-                    pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % \
-                                    (res_a,res_b,1,c10,c12)
-
-                resid_a = self.atom_residues[res_a-1]
-                resid_b = self.atom_residues[res_b-1]
-
+                pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
                 beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d\n" % \
-                                (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,self.LJtype[i])
-            elif self.contact_type == "Gaussian":
+                                (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,self.pairwise_type[i])
+
+            elif self.pairwise_type[i] == 4: ## Gaussian
                 width_ab = self.contact_widths[i] 
                 ncwall_ab = self.noncontact_wall[i]**12
                 pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
                                 (res_a,res_b,6,eps_ab,sig_ab,width_ab,ncwall_ab)
-
-                resid_a = self.atom_residues[res_a-1]
-                resid_b = self.atom_residues[res_b-1]
-
+                beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d%18.9e%18.9e\n" % \
+                    (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,1,width_ab,ncwall_ab)
+            elif self.pairwise_type[i] == 4: ## Gaussian
+                width_ab = self.contact_widths[i] 
+                ncwall_ab = self.noncontact_wall[i]**12
+                pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
+                                (res_a,res_b,6,eps_ab,sig_ab,width_ab,ncwall_ab)
                 beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d%18.9e%18.9e\n" % \
                     (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,1,width_ab,ncwall_ab)
             else:
-                print "ERROR! unrecognized contact option."
+                print "ERROR! unrecognized contact option: ", self.pairwise_type[i]
                 print "Exiting"
                 raise SystemExit
 
@@ -609,7 +574,7 @@ class SmogCalpha(object):
         self.grofile = gro_string
 
     def generate_topology(self):
-        ''' Return a structure-based topology file. '''
+        ''' Return a structure-based topology file. Currently only for one molecule. '''
 
         top_string =  " ; Structure-based  topology file for Gromacs:\n"
         top_string += " [ defaults ]\n"
@@ -617,7 +582,8 @@ class SmogCalpha(object):
         top_string += "      1           1 no\n\n"
         top_string += " [ atomtypes ]\n"
         top_string += " ;name  mass     charge   ptype c10       c12\n"
-        top_string += " CA     1.000    0.000 A    0.000   0.167772160E-04\n\n"
+        #top_string += " CA     1.000    0.000 A    0.000   0.167772160E-04\n\n"
+        top_string += " CA     1.000    0.000 A    0.000   %10.9e\n\n" % (0.2**12) 
         top_string += " [ moleculetype ]\n"
         top_string += " ;name   nrexcl\n"
         top_string += " Macromolecule           3\n\n"
@@ -648,8 +614,8 @@ class SmogCalpha(object):
         open("conf.gro","w").write(self.grofile)
         open("topol.top","w").write(self.topology)
         open("BeadBead.dat","w").write(self.beadbead)
-        open("interaction_params","w").write()
-        open("model_params","w").write()
+        open("pairwise_params","w").write(self.pairwise_param_file)
+        open("model_params","w").write(self.model_param_file)
         np.savetxt("Qref_cryst.dat",self.Qref,fmt="%1d",delimiter=" ")
         np.savetxt("contacts.dat",self.contacts,fmt="%4d",delimiter=" ")
 
@@ -678,7 +644,3 @@ if __name__ == "__main__":
 
     model = SmogCalpha(pdb=pdb,contacts=contacts)
     model.save_simulation_files()
-
-    #open("%s.top" % name, "w").write(model.topology)
-    #open("%s.gro" % name, "w").write(model.grofile)
-
