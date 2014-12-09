@@ -33,14 +33,10 @@ class SmogCalpha(object):
         ## Set any keyword argument given as an attribute. Assumes it has what it needs.
         for key in kwargs.iterkeys():
             #print key.lower(),kwargs[key]
-            if key in ["LJtype","Tf_iteration","Mut_iteration"]:
-                setattr(self,key,kwargs[key])
-            else:
-                setattr(self,key.lower(),kwargs[key])
-        need_to_define = ["Tf_iteration","Mut_iteration","model_code",
-                          "beadmodel","epsilon_bar","contact_params",
+            setattr(self,key.lower(),kwargs[key])
+        need_to_define = ["model_code","beadmodel","epsilon_bar",
                           "fitting_data","fitting_solver","fitting_allowswitch",
-                          "disulfides","LJtype","fitting_params"]
+                          "disulfides","fitting_params"]
         for thing in need_to_define:
             if not hasattr(self,thing):
                 setattr(self,thing,None)
@@ -54,7 +50,6 @@ class SmogCalpha(object):
             print " Exiting."
             raise SystemExit
 
-        self.iteration = self.Tf_iteration
 
         self.beadmodel = "CA"
         self.backbone_params = ["Kb","Ka","Kd"]
@@ -92,10 +87,6 @@ class SmogCalpha(object):
         model_info_string += "%s\n" % self.subdir
         model_info_string += "[ Iteration ]\n"
         model_info_string += "%s\n" % self.iteration
-        #model_info_string += "[ Tf_Iteration ]\n"
-        #model_info_string += "%s\n" % self.Tf_iteration
-        #model_info_string += "[ Mut_Iteration ]\n"
-        #model_info_string += "%s\n" % self.Mut_iteration
         model_info_string += "[ Model_Code ]\n" 
         model_info_string += "%s\n" % self.model_code
         model_info_string += "[ Bead_Model ]\n" 
@@ -115,14 +106,16 @@ class SmogCalpha(object):
             model_info_string += "%s\n" % temp
         model_info_string += "[ Epsilon_Bar ]\n"
         model_info_string += "%s\n" % str(self.epsilon_bar)
-        model_info_string += "[ Contact_Params ]\n"
-        model_info_string += "%s\n" % str(self.contact_params)
+        model_info_string += "[ Nonnative ]\n"
+        model_info_string += "%s\n" % str(None)
+        #model_info_string += "[ Contact_Params ]\n"
+        #model_info_string += "%s\n" % str(self.contact_params)
         model_info_string += "[ Pairwise_Params_File ]\n"
         model_info_string += "%s\n" % "None"
         model_info_string += "[ Model_Params_File ]\n"
         model_info_string += "%s\n" % "None"
-        model_info_string += "[ Contact_Type ]\n"
-        model_info_string += "%s\n" % self.contact_type
+        #model_info_string += "[ Contact_Type ]\n"
+        #model_info_string += "%s\n" % self.contact_type
         model_info_string += "[ Fitting_Data ]\n"
         model_info_string += "%s\n" % self.fitting_data
         model_info_string += "[ Fitting_Includes ]\n"
@@ -150,6 +143,17 @@ class SmogCalpha(object):
         In the future we can just pass the pairwise_type and pairwise_parameters.
 
         '''
+        ## All non-native pairs
+        self.nonnative_pairs = []
+        for i in range(self.n_residues):
+            for j in range(i+4,self.n_residues):
+                self.nonnative_pairs.append([i+1,j+1])
+
+        self.nearnative_pairs = list(self.nonnative_pairs)
+        ## Remove native pairs
+        for n in range(self.n_contacts):
+            self.nonnative_pairs.pop(self.nonnative_pairs.index(list(self.contacts[n,:])))
+
         ## Grab structural distances.
         self.contact_sigmas = np.zeros(len(self.contacts),float)
         self.pairwise_distances = np.zeros(len(self.contacts),float)

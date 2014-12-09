@@ -1,18 +1,29 @@
-""" Check inputs to SmogCalpha
+''' Check inputs to SmogCalpha
 
 
 This could be cleaned up. 
 
 
-"""
+'''
 
 import numpy as np
 import os
 
 import models.SmogCalpha as SmogCalpha
 
+def _get_pairwise_params():
+    pair_params = np.loadtxt("pairwise_params",skiprows=1)
+    model_params = np.loadtxt("model_params",skiprows=1)
+    
+    contacts = pair_params[:,:2].astype(int)
+    pairwise_param_assignment = pair_params[:,2].astype(int)
+    pairwise_type = pair_params[:,3].astype(int)
+    pairwise_other_params = pair_params[:,4:]
+    
+    return contacts,pairwise_param_assignment,model_params,pairwise_type,pairwise_other_params
+
 def get_contact_params(paramfile,contact_type):
-    """ Read contact info from inputted contact parameter file """
+    ''' Read contact info from inputted contact parameter file '''
     if paramfile.endswith(".dat"):
         ## Read in BeadBead.dat parameter file type
         beadbead = np.loadtxt(paramfile,dtype=str) 
@@ -65,30 +76,19 @@ def get_contact_params(paramfile,contact_type):
     return contacts,contact_epsilons,LJtype,contact_widths
 
 def check_contact_args(inputs,negvals,contactsfile,contactparams,contacttype,epsilonbar):
-    """ Check input arguments for contacts """
-    contacttypes = ["LJ1210","Gaussian"]
+    ''' Check input arguments for contacts '''
     contacts = None
     contact_epsilons = None
-    LJtype = None
     contact_widths = None
     contact_params = None
+    pairwise_params_ = None
+    contact_params = None
     epsilon_bar = None
-
-    ## Check if contact type is LJ1210 or Gaussian
-    if contacttype in negvals:
-        contact_type = "LJ1210"
-    else:
-        if contacttype not in contacttypes:
-            print "ERROR! %s not recognized. --contact_type must be from: " % contacttype, contacttypes
-            print "Exiting"
-            raise SystemExit
-        else:
-            contact_type = contacttype
 
     ## Load contacts or contact parameters if given.
     if contactparams in negvals:
         if contactsfile in negvals:
-            print "ERROR! specify either --contacts <filename>  or --contact_params <filename>!"
+            print "ERROR! specify either --contacts <filename>  or --pairwise_params_file <filename>!"
             print "Exiting"
             raise SystemExit
         else:
@@ -119,6 +119,8 @@ def check_contact_args(inputs,negvals,contactsfile,contactparams,contacttype,eps
 
     inputs["Contact_Type"] = contact_type
     inputs["Contact_Params"] = contact_params
+    inputs["Pairwise_Params_Params"] = contact_params
+    inputs["Contact_Params"] = contact_params
     inputs["Contacts"] = contacts
     inputs["Contact_Epsilons"] = contact_epsilons
     inputs["LJtype"] = LJtype
@@ -128,7 +130,7 @@ def check_contact_args(inputs,negvals,contactsfile,contactparams,contacttype,eps
     return inputs
 
 def check_fitting_args(inputs,negvals,fittingdata,fittingincludes,fittingsolver,fittingallowswitch):
-    """ Check parameter fitting options """
+    ''' Check parameter fitting options '''
     ## If parameter fitting is being used check that the fitting inputs make sense.
     ##      fitting_data indicates the type of data to fit
     ##      fitting_includes allows fitting over multiple subdirectories.
@@ -174,7 +176,7 @@ def check_fitting_args(inputs,negvals,fittingdata,fittingincludes,fittingsolver,
     return inputs
 
 def check_disulfide_args(inputs,negvals,inputdisulfides):
-    """ Check disulfide argument """
+    ''' Check disulfide argument '''
     if inputdisulfides in negvals:
         disulfides = None
     else:
@@ -200,10 +202,9 @@ def check_disulfide_args(inputs,negvals,inputdisulfides):
     return inputs
 
 def new_args(args):
-    """ Check new input arguments """
+    ''' Check new input arguments '''
     available_models = ["HomGo","HetGo","DMC"]
     beadmodels = {"HomGo":["CA"],"HetGo":["CA"]}
-    contacttypes = ["LJ1210","Gaussian"]
     fittingdatas = ["ddG_MC2004","RMSF","FRET","contact_Qi"]
     negvals = ["None",None,"",False]
     inputs = {}
@@ -219,8 +220,6 @@ def new_args(args):
     beadmodel = args.bead_model 
 
     inputs["Iteration"] = 0
-    inputs["Tf_iteration"] = 0
-    inputs["Mut_iteration"] = 0
     inputs["PDB"] = args.pdbs[0]
     inputs["Model_Code"] = args.model_code
     inputs["Bead_Model"] = args.bead_model
@@ -240,7 +239,10 @@ def new_args(args):
         raise SystemExit
 
     ## Check all contact-related inputs
-    inputs = check_contact_args(inputs,negvals,args.contacts,args.contact_params,args.contact_type,args.epsilon_bar)
+    inputs = check_contact_args(inputs,negvals,args.contacts,args.pairwise_params_file,args.model_params_file,args.contact_type,args.epsilon_bar)
+
+    ## TO DO: Update new args
+    #inputs = check_contact_args(inputs,negvals,contactsfile,pairwise_params_file,model_params_file,epsilonbar)
 
     ## Check parameter fitting inputs
     inputs = check_fitting_args(inputs,negvals,args.fitting_data,args.fitting_includes,args.fitting_solver,args.fitting_allowswitch)
@@ -283,21 +285,16 @@ def load_args(subdir,dry_run):
             break
         elif field in ["Interaction_Groups","Model_Name",
                         "Backbone_params","Backbone_param_vals",
-                        "Interaction_Types"]:
+                        "Interaction_Types","Tf_iteration","Mut_iteration",
+                        "Contact_Type","Contact_params","Contact_Energies"]:
             pass
-        elif field == "Contact_Energies":
-            inputs["Contact_Params"] = value.rstrip("\n")
-        elif field.endswith("Iteration"):
-            field = field.rstrip("Iteration") + "iteration"
-            inputs[field] = int(value)
         else:
             inputs[field] = value.rstrip("\n")
         line = info_file.readline()
 
     contactsfile = "%s/contacts.dat" % subdir
-    pairwise_params = inputs["Contact_Params"]
-    contactparams = inputs["Contact_Params"]
-    contacttype = inputs["Contact_Type"] 
+    pairwise_params_file = inputs["Pairwise_Params_File"]
+    model_params_file = inputs["Model_Params_File"]
     epsilonbar = inputs["Epsilon_Bar"] 
     fittingdata = inputs["Fitting_Data"]
     fittingincludes = inputs["Fitting_Includes"].split()
@@ -306,7 +303,7 @@ def load_args(subdir,dry_run):
     disulfides = inputs["Disulfides"]
         
     ## Check all contact-related inputs
-    inputs = check_contact_args(inputs,negvals,contactsfile,contactparams,contacttype,epsilonbar)
+    inputs = check_contact_args(inputs,negvals,contactsfile,pairwise_params_file,model_params_file,epsilonbar)
 
     ## Check parameter fitting inputs
     inputs = check_fitting_args(inputs,negvals,fittingdata,fittingincludes,fittingsolver,fittingallowswitch)
