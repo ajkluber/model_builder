@@ -40,7 +40,7 @@ class SmogCalpha(object):
         need_to_define = ["Tf_iteration","Mut_iteration","model_code",
                           "beadmodel","epsilon_bar","contact_params",
                           "fitting_data","fitting_solver","fitting_allowswitch",
-                          "disulfides","LJtype"]
+                          "disulfides","LJtype","fitting_params"]
         for thing in need_to_define:
             if not hasattr(self,thing):
                 setattr(self,thing,None)
@@ -66,7 +66,7 @@ class SmogCalpha(object):
         self.subdir = self.name
 
         ## Set backbone parameters
-        self._set_backbone_interactions()
+        self._set_bonded_interactions()
         self.n_contacts = len(self.contacts)
         self.Qref = np.zeros((self.n_residues,self.n_residues))
         for pair in self.contacts:
@@ -92,10 +92,10 @@ class SmogCalpha(object):
         model_info_string += "%s\n" % self.subdir
         model_info_string += "[ Iteration ]\n"
         model_info_string += "%s\n" % self.iteration
-        model_info_string += "[ Tf_Iteration ]\n"
-        model_info_string += "%s\n" % self.Tf_iteration
-        model_info_string += "[ Mut_Iteration ]\n"
-        model_info_string += "%s\n" % self.Mut_iteration
+        #model_info_string += "[ Tf_Iteration ]\n"
+        #model_info_string += "%s\n" % self.Tf_iteration
+        #model_info_string += "[ Mut_Iteration ]\n"
+        #model_info_string += "%s\n" % self.Mut_iteration
         model_info_string += "[ Model_Code ]\n" 
         model_info_string += "%s\n" % self.model_code
         model_info_string += "[ Bead_Model ]\n" 
@@ -133,6 +133,8 @@ class SmogCalpha(object):
         model_info_string += "%s\n" % self.fitting_solver
         model_info_string += "[ Fitting_AllowSwitch ]\n"
         model_info_string += "%s\n" % self.fitting_allowswitch
+        model_info_string += "[ Fitting_Params ]\n"
+        model_info_string += "%s\n" % self.fitting_params
         model_info_string += "[ Reference ]\n" 
         model_info_string += "None\n" 
         return model_info_string
@@ -163,16 +165,20 @@ class SmogCalpha(object):
         self.tabled_interactions = np.zeros(self.n_contacts,float)
         if (not hasattr(self,"epsilon_bar")):
             self.epsilon_bar = None
-        if (not hasattr(self,"contact_epsilons")) or (self.contact_epsilons == None) :
-            print "  No contact epsilons set. Setting contacts to homogeneous model. 1"
-            self.contact_epsilons = np.ones(self.n_contacts,float)  ## Deprecated for pairwise_strength
+        #if (not hasattr(self,"contact_epsilons")) or (self.contact_epsilons == None) :
+        #    self.contact_epsilons = np.ones(self.n_contacts,float)  ## Deprecated for pairwise_strength
 
+        if not hasattr(self,"model_param_values"):
+            print "  No model_param_values given. Taking homogeneous parameters: 1"
+            ## Values of the model parameters. 
+            self.model_param_values = np.ones(self.n_contacts,float)
+            
         if (not hasattr(self,"contact_type")) or (self.contact_type == "LJ1210"):
             self.contact_type = "LJ1210"
             if not hasattr(self,"pairwise_type"):
+                print "  No pairwise_type given. Setting contacts to LJ1210."
                 self.pairwise_type = 2*np.ones(self.n_contacts,float)
             if self.LJtype == None:
-                print "  No LJtype given. Setting contacts to attractive. 1"
                 self.LJtype = np.ones(self.n_contacts,float)  ## Deprecated for pairwise_type
             else:
                 for rep_indx in (np.where(self.LJtype == -1))[0]:
@@ -183,7 +189,7 @@ class SmogCalpha(object):
             if not hasattr(self,"pairwise_type"):
                 self.pairwise_type = 4*np.ones(self.n_contacts,float)
             if (not hasattr(self,"contact_widths")) or (self.contact_widths == None):
-                print "  No contact widths set. Setting contact widths to attractive. 0.5 Angstrom"
+                print "  No contact widths set. Setting contact widths to 0.5 Angstrom"
                 self.contact_widths = 0.05*np.ones(self.n_contacts,float)
             if (not hasattr(self,"noncontact_wall")) or (self.noncontact_wall == None):
                 print "  No noncontact wall set. Setting noncontact wall to 0.4 nm"
@@ -194,9 +200,6 @@ class SmogCalpha(object):
         ## Assings each pairwise interaction model parameter that this interaction uses.
         self.pairwise_param_assignment = np.arange(self.n_contacts)     
                                                        
-        if not hasattr(self,"model_param_values"):
-            ## Values of the model parameters. 
-            self.model_param_values = self.contact_epsilons
         ###### ^^^^^^^ For backwards compatibility ^^^^^^^^
         self.n_model_param = len(self.model_param_values)
 
@@ -330,7 +333,7 @@ class SmogCalpha(object):
         for i in range(self.n_contacts):
             self.contacts_ndx += "%4d %4d\n" % (self.contacts[i][0],self.contacts[i][1])
 
-    def _set_backbone_interactions(self):
+    def _set_bonded_interactions(self):
         ''' Extract info from the Native.pdb for making index and top file '''
         ## Grab coordinates from the pdb file.
         self.cleanpdb_full, self.cleanpdb_full_noH, self.cleanpdb = pdb_parser.clean(self.pdb)
