@@ -101,9 +101,9 @@ class SmogCalpha(object):
         model_info_string += "[ Nonnative ]\n"
         model_info_string += "%s\n" % str(None)
         model_info_string += "[ Pairwise_Params_File ]\n"
-        model_info_string += "%s\n" % str(self.pairwise_param_file_location)
+        model_info_string += "%s\n" % str(self.pairwise_params_file_location)
         model_info_string += "[ Model_Params_File ]\n"
-        model_info_string += "%s\n" % str(self.model_param_file_location)
+        model_info_string += "%s\n" % str(self.model_params_file_location)
         model_info_string += "[ Fitting_Data ]\n"
         model_info_string += "%s\n" % self.fitting_data
         model_info_string += "[ Fitting_Includes ]\n"
