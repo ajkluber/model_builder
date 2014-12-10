@@ -48,7 +48,7 @@ def check_contact_args(inputs,contacts_file,pairwise_params_file,model_params_fi
             else:
                 contacts = np.loadtxt("%s" % contacts_file,dtype=int)
         ##For removing the unnecessary columns from the smog contact map output
-		if len(contacts[0,:]) == 4:
+        if len(contacts[0,:]) == 4:
             contacts = contacts[:,np.array([1,3])]
     else:
         contacts,pairwise_param_assignment,model_param_values,pairwise_type,pairwise_other_params = get_pairwise_params(pairwise_params_file,model_params_file)
