@@ -169,8 +169,8 @@ class SmogCalpha(object):
             pass
 
         ## List of array indices indicating which interactions have the associated model parameter.
-        self.model_param_interactions = [ np.where(self.pairwise_param_assignment == p) for p in range(self.n_model_param) ]
         self.n_model_param = len(self.model_param_values)
+        self.model_param_interactions = [ np.where(self.pairwise_param_assignment == p) for p in range(self.n_model_param) ]
 
     def _check_disulfides(self):
         ''' Check that specified disulfides are between cysteine and that 
