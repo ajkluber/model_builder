@@ -31,7 +31,8 @@ class SmogCalpha(object):
             setattr(self,key.lower(),kwargs[key])
         need_to_define = ["model_code","beadmodel","epsilon_bar",
                           "fitting_data","fitting_solver","fitting_allowswitch",
-                          "disulfides","fitting_params","nonnative","pairwise_params_file_location","model_params_file_location"]
+                          "disulfides","fitting_params","nonnative",
+                          "pairwise_params_file_location","model_params_file_location"]
         for thing in need_to_define:
             if not hasattr(self,thing):
                 setattr(self,thing,None)
@@ -52,6 +53,7 @@ class SmogCalpha(object):
         self.initial_T_array = None
         self.name = self.pdb.split(".pdb")[0]
         self.subdir = self.name
+        self.exclusions = []
 
         ## Set backbone parameters
         self._set_bonded_interactions()
@@ -164,8 +166,19 @@ class SmogCalpha(object):
             needed = [hasattr(self,"model_param_values"),hasattr(self,"pairwise_type"), \
                     hasattr(self,"pairwise_param_assignment"),hasattr(self,"pairwise_other_parameters")]
             if not all(needed):
-                print "ERROR! If not using  "
+                print "ERROR! If not using defualts then the following need to be inputted:"
+                print "     model_param_values"
+                print "     pairwise_type"
+                print "     pairwise_param_assignment"
+                print "     pairwise_other_parameters"
         
+
+        ## Any contact that would be disrupted by an 
+        ## excluded volume radius of 0.4nm
+        for i in range(self.n_contacts):
+            if self.pairwise_other_parameters[i][0] < 0.85:
+                self.exclusions.append(list(self.contacts[i]))
+
         self.contact_type = "none"
         for i in self.pairwise_type:
             if i == 4:
@@ -184,11 +197,7 @@ class SmogCalpha(object):
 
     def _check_disulfides(self):
         ''' Check that specified disulfides are between cysteine and that 
-            the corresonding pairs are within 0.8 nm.
-
-        To Do: 
-            - Add disulfides to the list of atoms to be bonded.
-        '''
+            the corresonding pairs are within 0.8 nm. '''
         coords = self.atom_coords
         residues = self.atom_residues
         if self.disulfides != None:
@@ -217,6 +226,7 @@ class SmogCalpha(object):
                             new_conts.append(pair)
                     self.contacts = np.array(new_conts)
 
+                    self.exclusions.append([i_idx,j_idx])
                     ## Set cysteine bond distance, angles, and dihedral.
                     self.bond_indices.append([i_idx,j_idx])
                     self.bond_min.append(dist)
@@ -443,7 +453,6 @@ class SmogCalpha(object):
         ''' Get the [ pairs ] string '''
 
         pairs_string = " [ pairs ]\n"
-        #pairs_string += " ; i    j      type  c10  \n"
         pairs_string += " ; %5s  %5s %4s    %8s   %8s\n" % ("i","j","type","c10","c12")
         for i in range(self.n_contacts):
             res_a = self.contacts[i][0]
@@ -461,26 +470,27 @@ class SmogCalpha(object):
             else:
                 pass
 
+        ## Give a smaller hard-wall exclusion for contacts that are closer.
+        for i in range(len(self.exclusions)):
+            res_a = self.exclusions[i][0]
+            res_b = self.exclusions[i][1]
+            c12 = (0.2**12)
+            c10 = 0
+            pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
+
         return pairs_string
 
     def _get_exclusions_string(self):
         ''' Get the [ exclusions ] string '''
-        exclusions_string = ""
-        #exclusions_string = " [ exclusions ]\n"
-        #exclusions_string += " ; ai aj \n"
-        ## Removing exlusions for pairwise interactions so that hard-sphere 
-        ## radius of beads is always respected.
-        #for i in range(len(self.contacts)):
-        #    res_a = self.contacts[i][0]
-        #    res_b = self.contacts[i][1]
-        #    exclusions_string += "%6d %6d\n" % (res_a,res_b)
-        if self.disulfides != None:
+        if len(self.exclusions) > 0: 
             exclusions_string = " [ exclusions ]\n"
-            exclusions_string += " ; ai aj \n"
-            for i in range(len(self.disulfides)/2):
-                cys_a = self.disulfides[2*i]
-                cys_b = self.disulfides[2*i + 1]
-                exclusions_string += "%6d %6d\n" % (cys_a,cys_b)
+            exclusions_string += " ;  i    j \n"
+            for i in range(len(self.exclusions)):
+                res_a = self.exclusions[i][0]
+                res_b = self.exclusions[i][1]
+                exclusions_string += "%6d %6d\n" % (res_a,res_b)
+        else:
+            exclusions_string = ""
 
         return exclusions_string
 
@@ -505,8 +515,7 @@ class SmogCalpha(object):
         top_string += "      1           1 no\n\n"
         top_string += " [ atomtypes ]\n"
         top_string += " ;name  mass     charge   ptype c10       c12\n"
-        #top_string += " CA     1.000    0.000 A    0.000   0.167772160E-04\n\n"
-        top_string += " CA     1.000    0.000 A    0.000   %10.9e\n\n" % (0.2**12) 
+        top_string += " CA     1.000    0.000 A    0.000   %10.9e\n\n" % (0.4**12) ## 0.4nm excluded vol radius
         top_string += " [ moleculetype ]\n"
         top_string += " ;name   nrexcl\n"
         top_string += " Macromolecule           3\n\n"
@@ -531,8 +540,8 @@ class SmogCalpha(object):
     def save_simulation_files(self):
         ''' Write all needed simulation files. '''
         cwd = os.getcwd()
-        self.pairwise_param_file_location = "%s/pairwise_params" % cwd
-        self.model_param_file_location = "%s/model_params" % cwd
+        self.pairwise_params_file_location = "%s/pairwise_params" % cwd
+        self.model_params_file_location = "%s/model_params" % cwd
 
         open("Native.pdb","w").write(self.cleanpdb)
         open("index.ndx","w").write(self.index_ndx)
@@ -547,6 +556,7 @@ class SmogCalpha(object):
 
         ## Save needed table files
         np.savetxt("table.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
+        np.savetxt("tablep.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
         for i in range(self.n_tables):
             np.savetxt(self.tablenames[i],self.tables[i],fmt="%16.15e",delimiter=" ")
 
