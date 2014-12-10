@@ -35,7 +35,7 @@ def check_contact_args(inputs,contacts_file,pairwise_params_file,model_params_fi
     inputs["Defaults"] = True
 
     ## Load contacts or contact parameters if given.
-    if contactparams in negvals:
+    if pairwise_params_file in negvals:
         if contacts_file in negvals:
             print "ERROR! specify either --contacts <filename>  or --pairwise_params_file <filename>!"
             print "Exiting"
@@ -47,10 +47,9 @@ def check_contact_args(inputs,contacts_file,pairwise_params_file,model_params_fi
                 raise SystemExit
             else:
                 contacts = np.loadtxt("%s" % contacts_file,dtype=int)
-                ##For removing the unnecessary columns from the smog contact map output
+        ##For removing the unnecessary columns from the smog contact map output
 		if len(contacts[0,:]) == 4:
-                    contacts = contacts[:,np.array([1,3])]
-		    
+            contacts = contacts[:,np.array([1,3])]
     else:
         contacts,pairwise_param_assignment,model_param_values,pairwise_type,pairwise_other_params = get_pairwise_params(pairwise_params_file,model_params_file)
         inputs["pairwise_param_assignment"] = pairwise_param_assignment
