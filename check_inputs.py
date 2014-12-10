@@ -184,7 +184,7 @@ def new_args(args):
         raise SystemExit
 
     ## Check all contact-related inputs
-    inputs = check_contact_args(inputs,args.contacts,args.pairwise_params_file,args.model_params_file,args.epsilonbar)
+    inputs = check_contact_args(inputs,args.contacts,args.pairwise_params_file,args.model_params_file,args.epsilon_bar)
 
     ## Check parameter fitting inputs
     inputs = check_fitting_args(inputs,args.fitting_data,args.fitting_includes,args.fitting_solver,args.fitting_allowswitch)
