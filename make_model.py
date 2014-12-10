@@ -2,16 +2,16 @@
 import numpy as np
 import models
 
-def _get_pairwise_params():
-    pair_params = np.loadtxt("pairwise_params",skiprows=1)
-    model_params = np.loadtxt("model_params",skiprows=1)
+def get_pairwise_params(pairwise_params_file,model_params_file):
+    pair_params = np.loadtxt(pairwise_params_file)
+    model_param_values = np.loadtxt(model_params_file)
     
     contacts = pair_params[:,:2].astype(int)
     pairwise_param_assignment = pair_params[:,2].astype(int)
     pairwise_type = pair_params[:,3].astype(int)
-    pairwise_other_params = pair_params[:,4:]
+    pairwise_other_parameters = pair_params[:,4:]
     
-    return contacts,pairwise_param_assignment,model_params,pairwise_type,pairwise_other_params
+    return contacts,pairwise_param_assignment,model_param_values,pairwise_type,pairwise_other_parameters
 
 if __name__ == "__main__":
     import argparse
@@ -21,8 +21,15 @@ if __name__ == "__main__":
 
     name = args.name
     pdb = "%s.pdb" % name
+    pairwise_params_file = "pairwise_params"
+    model_params_file = "model_params"
 
-    contacts,pairwise_param_assignment,model_params,pairwise_type,pairwise_other_params = _get_pairwise_params()
+    contacts,pairwise_param_assignment,model_param_values,pairwise_type,pairwise_other_parameters = get_pairwise_params(pairwise_params_file,model_params_file)
 
-    model = models.SmogCalpha.SmogCalpha(pdb=pdb,pairwise_other_params=pairwise_other_params,contacts=contacts,model_param_values=model_params)
+    model = models.SmogCalpha.SmogCalpha(pdb=pdb,contacts=contacts,
+                    pairwise_param_assignment=pairwise_param_assignment,
+                    pairwise_type=pairwise_type,
+                    pairwise_other_parameters=pairwise_other_parameters,
+                    model_param_values=model_param_values)
+
     model.save_simulation_files()

@@ -9,9 +9,6 @@ Example Usage:
     See project_tools/examples
 
 References:
-(1) Noel, J.K.; Whitford, P.C.; Sanbonmatsu, K.Y.; Onuchic, J.N. SMOG@ctbp:
-Simplified Deployment of Structure-Based Models in GROMACS. Nucleic Acids Res.
-2010, 38, W657-61.
 '''
 
 import numpy as np
@@ -42,8 +39,8 @@ class SmogCalpha(object):
                 setattr(self,thing,None)
         if not hasattr(self,"fitting_includes"):
             setattr(self,"fitting_includes",[self.pdb])
-        #if not hasattr(self,"contact_type"):
-        #    setattr(self,"contact_type","LJ1210")
+        if not hasattr(self,"defaults"):
+            self.defaults = False
 
         if not os.path.exists(self.pdb):
             print "ERROR! The inputted pdb: %s does not exist" % pdb
@@ -108,14 +105,10 @@ class SmogCalpha(object):
         model_info_string += "%s\n" % str(self.epsilon_bar)
         model_info_string += "[ Nonnative ]\n"
         model_info_string += "%s\n" % str(None)
-        #model_info_string += "[ Contact_Params ]\n"
-        #model_info_string += "%s\n" % str(self.contact_params)
         model_info_string += "[ Pairwise_Params_File ]\n"
         model_info_string += "%s\n" % "None"
         model_info_string += "[ Model_Params_File ]\n"
         model_info_string += "%s\n" % "None"
-        #model_info_string += "[ Contact_Type ]\n"
-        #model_info_string += "%s\n" % self.contact_type
         model_info_string += "[ Fitting_Data ]\n"
         model_info_string += "%s\n" % self.fitting_data
         model_info_string += "[ Fitting_Includes ]\n"
@@ -138,75 +131,47 @@ class SmogCalpha(object):
         logfile = open('%s/%s/%s.log' % (path,self.subdir,self.subdir),'a').write("%s %s\n" % (now_string,string))
 
     def _check_contact_opts(self):
-        ''' Set default pairwise interaction terms.
-
-        In the future we can just pass the pairwise_type and pairwise_parameters.
-
-        '''
+        ''' Set default pairwise interaction terms '''
         ## All non-native pairs
         self.nonnative_pairs = []
         for i in range(self.n_residues):
             for j in range(i+4,self.n_residues):
                 self.nonnative_pairs.append([i+1,j+1])
 
-        self.nearnative_pairs = list(self.nonnative_pairs)
+        self.nearnative_pairs = list(self.nonnative_pairs)  ## To Do: List of near-native contacts
         ## Remove native pairs
         for n in range(self.n_contacts):
             self.nonnative_pairs.pop(self.nonnative_pairs.index(list(self.contacts[n,:])))
 
         ## Grab structural distances.
-        self.contact_sigmas = np.zeros(len(self.contacts),float)
         self.pairwise_distances = np.zeros(len(self.contacts),float)
         for i in range(len(self.contacts)):
             i_idx = self.contacts[i][0]
             j_idx = self.contacts[i][1]
-            self.contact_sigmas[i] = bond.distance(self.atom_coords,i_idx-1,j_idx-1)
             self.pairwise_distances[i] = bond.distance(self.atom_coords,i_idx-1,j_idx-1)
 
-        ###### vvvvvv For backwards compatibility vvvvvvv 
-        ## In the future, this info should be passed in SmogCalpha 
         ## Set some defaults for pairwise interaction potential.
-        self.tabled_interactions = np.zeros(self.n_contacts,float)
-        if (not hasattr(self,"epsilon_bar")):
+        if not hasattr(self,"epsilon_bar"):
             self.epsilon_bar = None
-        #if (not hasattr(self,"contact_epsilons")) or (self.contact_epsilons == None) :
-        #    self.contact_epsilons = np.ones(self.n_contacts,float)  ## Deprecated for pairwise_strength
 
-        if not hasattr(self,"model_param_values"):
-            print "  No model_param_values given. Taking homogeneous parameters: 1"
-            ## Values of the model parameters. 
+        ## If defaults is False then all these need to be defined.
+        if self.defaults:
+            print "  Using defaults: LJ1210 contacts, homogeneous contacts 1, each contact free param."
             self.model_param_values = np.ones(self.n_contacts,float)
-            
-        if (not hasattr(self,"contact_type")) or (self.contact_type == "LJ1210"):
-            self.contact_type = "LJ1210"
-            if not hasattr(self,"pairwise_type"):
-                print "  No pairwise_type given. Setting contacts to LJ1210."
-                self.pairwise_type = 2*np.ones(self.n_contacts,float)
-            if self.LJtype == None:
-                self.LJtype = np.ones(self.n_contacts,float)  ## Deprecated for pairwise_type
-            else:
-                for rep_indx in (np.where(self.LJtype == -1))[0]:
-                    self.pairwise_type[rep_indx] = 3
-                    self.tabled_interactions[rep_indx] = 1
-            self.pairwise_other_parameters = [ [self.contact_sigmas[x]] for x in range(self.n_contacts) ]
-        elif self.contact_type == "Gaussian":
-            if not hasattr(self,"pairwise_type"):
-                self.pairwise_type = 4*np.ones(self.n_contacts,float)
-            if (not hasattr(self,"contact_widths")) or (self.contact_widths == None):
-                print "  No contact widths set. Setting contact widths to 0.5 Angstrom"
-                self.contact_widths = 0.05*np.ones(self.n_contacts,float)
-            if (not hasattr(self,"noncontact_wall")) or (self.noncontact_wall == None):
-                print "  No noncontact wall set. Setting noncontact wall to 0.4 nm"
-                noncontact = 0.4
-                self.noncontact_wall = noncontact*np.ones(self.n_contacts,float)
-            self.pairwise_other_parameters = [ [self.contact_sigmas[x],self.contact_widths[x]] for x in range(self.n_contacts) ]
-        
-        ## Assings each pairwise interaction model parameter that this interaction uses.
-        self.pairwise_param_assignment = np.arange(self.n_contacts)     
-                                                       
-        ###### ^^^^^^^ For backwards compatibility ^^^^^^^^
-        self.n_model_param = len(self.model_param_values)
+            self.pairwise_type = 2*np.ones(self.n_contacts,float)
+            self.pairwise_param_assignment = np.arange(self.n_contacts)     
+            self.pairwise_other_parameters = [ [self.pairwise_distances[x]] for x in range(self.n_contacts) ]
+        else:
+            needed = [hasattr(self,"model_param_values"),hasattr(self,"pairwise_type"), \
+                    hasattr(self,"pairwise_param_assignment"),hasattr(self,"pairwise_other_parameters")]
+            if not all(needed):
+                print "ERROR! If not using  "
 
+        self.n_model_param = len(self.model_param_values)
+            
+        self.tabled_interactions = np.zeros(self.n_contacts,float)
+        for rep_indx in (np.where(self.pairwise_type != 2))[0]:
+            self.tabled_interactions[rep_indx] = 1
         self.tabled_pairs = np.where(self.tabled_interactions == 1)[0]
         self.n_tables = len(self.tabled_pairs)
 
@@ -525,24 +490,25 @@ class SmogCalpha(object):
                 beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d\n" % \
                                 (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,self.pairwise_type[i])
 
-            elif self.pairwise_type[i] == 4: ## Gaussian
-                width_ab = self.contact_widths[i] 
-                ncwall_ab = self.noncontact_wall[i]**12
-                pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
-                                (res_a,res_b,6,eps_ab,sig_ab,width_ab,ncwall_ab)
-                beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d%18.9e%18.9e\n" % \
-                    (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,1,width_ab,ncwall_ab)
-            elif self.pairwise_type[i] == 4: ## Gaussian
-                width_ab = self.contact_widths[i] 
-                ncwall_ab = self.noncontact_wall[i]**12
-                pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
-                                (res_a,res_b,6,eps_ab,sig_ab,width_ab,ncwall_ab)
-                beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d%18.9e%18.9e\n" % \
-                    (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,1,width_ab,ncwall_ab)
+            #elif self.pairwise_type[i] == 4: ## Gaussian
+            #    width_ab = self.contact_widths[i] 
+            #    ncwall_ab = self.noncontact_wall[i]**12
+            #    pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
+            #                    (res_a,res_b,6,eps_ab,sig_ab,width_ab,ncwall_ab)
+            #    beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d%18.9e%18.9e\n" % \
+            #        (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,1,width_ab,ncwall_ab)
+            #elif self.pairwise_type[i] == 4: ## Gaussian
+            #    width_ab = self.contact_widths[i] 
+            #    ncwall_ab = self.noncontact_wall[i]**12
+            #    pairs_string += "%6d %6d%2d%18.9e%18.9e%18.9e%18.9e\n" % \
+            #                    (res_a,res_b,6,eps_ab,sig_ab,width_ab,ncwall_ab)
+            #    beadbead_string += "%5d%5d%8s%8s%5d%18.9e%18.9e%18d%18.9e%18.9e\n" % \
+            #        (res_a,res_b,resid_a,resid_b,i+1,sig_ab,eps_ab,1,width_ab,ncwall_ab)
             else:
-                print "ERROR! unrecognized contact option: ", self.pairwise_type[i]
-                print "Exiting"
-                raise SystemExit
+                continue
+                #print "ERROR! unrecognized contact option: ", self.pairwise_type[i]
+                #print "Exiting"
+                #raise SystemExit
 
         self.beadbead = beadbead_string 
         return pairs_string
@@ -620,7 +586,6 @@ class SmogCalpha(object):
         open("contacts.ndx","w").write(self.contacts_ndx)
         open("conf.gro","w").write(self.grofile)
         open("topol.top","w").write(self.topology)
-        open("BeadBead.dat","w").write(self.beadbead)
         open("pairwise_params","w").write(self.pairwise_param_file)
         open("model_params","w").write(self.model_param_file)
         np.savetxt("Qref_cryst.dat",self.Qref,fmt="%1d",delimiter=" ")

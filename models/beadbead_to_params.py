@@ -54,6 +54,7 @@ if __name__ == "__main__":
         fullpath = beads[n]
         dir = os.path.dirname(beads[n])
         int_params, model_params = convert_beadbead(fullpath)
-        open(dir+"/interaction_params","w").write(int_params)
+        #open(dir+"/interaction_params","w").write(int_params)
+        open(dir+"/pairwise_params","w").write(int_params)
         open(dir+"/model_params","w").write(model_params)
 
