@@ -104,6 +104,8 @@ class SmogCalpha(object):
         model_info_string += "%s\n" % str(self.pairwise_params_file_location)
         model_info_string += "[ Model_Params_File ]\n"
         model_info_string += "%s\n" % str(self.model_params_file_location)
+        model_info_string += "[ Contact_Type ]\n"
+        model_info_string += "%s\n" % self.contact_type
         model_info_string += "[ Fitting_Data ]\n"
         model_info_string += "%s\n" % self.fitting_data
         model_info_string += "[ Fitting_Includes ]\n"
@@ -163,6 +165,14 @@ class SmogCalpha(object):
                     hasattr(self,"pairwise_param_assignment"),hasattr(self,"pairwise_other_parameters")]
             if not all(needed):
                 print "ERROR! If not using  "
+        
+        self.contact_type = "none"
+        for i in self.pairwise_type:
+            if i == 4:
+                self.contact_type="Gaussian"
+        
+        if self.contact_type == "none":
+            self.contact_type = "LJ1210"
 
         ## TO DO: - How to scale the model parameters to get constant stability?
         if self.epsilon_bar != None:
