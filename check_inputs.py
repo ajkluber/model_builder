@@ -217,7 +217,6 @@ def new_args(args):
 
 def load_args(subdir,dry_run):
 
-    negvals = ["None",None,"",False]
     info_file = open('%s/model.info' % subdir,'r')
     line = info_file.readline()
     inputs = {"Dry_Run":dry_run}
@@ -246,13 +245,13 @@ def load_args(subdir,dry_run):
     disulfides = inputs["Disulfides"]
         
     ## Check all contact-related inputs
-    inputs = check_contact_args(inputs,negvals,contacts_file,pairwise_params_file,model_params_file,epsilonbar)
+    inputs = check_contact_args(inputs,contacts_file,pairwise_params_file,model_params_file,epsilonbar)
 
     ## Check parameter fitting inputs
-    inputs = check_fitting_args(inputs,negvals,fittingdata,fittingincludes,fittingsolver,fittingallowswitch)
+    inputs = check_fitting_args(inputs,fittingdata,fittingincludes,fittingsolver,fittingallowswitch)
 
     ## Check disulfide list
-    inputs = check_disulfide_args(inputs,negvals,disulfides)
+    inputs = check_disulfide_args(inputs,disulfides)
 
     print "Using model options:"
     keys = inputs.keys()
