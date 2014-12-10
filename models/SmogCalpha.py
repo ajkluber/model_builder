@@ -101,9 +101,9 @@ class SmogCalpha(object):
         model_info_string += "[ Nonnative ]\n"
         model_info_string += "%s\n" % str(None)
         model_info_string += "[ Pairwise_Params_File ]\n"
-        model_info_string += "%s\n" % "None"
+        model_info_string += "%s\n" % self.pairwise_param_file_location
         model_info_string += "[ Model_Params_File ]\n"
-        model_info_string += "%s\n" % "None"
+        model_info_string += "%s\n" % self.model_param_file_location
         model_info_string += "[ Fitting_Data ]\n"
         model_info_string += "%s\n" % self.fitting_data
         model_info_string += "[ Fitting_Includes ]\n"
@@ -283,12 +283,12 @@ class SmogCalpha(object):
         self.pairwise_potentials_deriv = [ pairwise.wrap_pairwise(pairwise.get_pair_potential_deriv(self.pairwise_type[x]),\
                                                 *self.pairwise_other_parameters[x]) for x in range(self.n_contacts) ]
         ## File to save model parameters
-        self.model_param_file = "# model parameters\n"
+        self.model_param_file_string = "# model parameters\n"
         for i in range(self.n_model_param):
-            self.model_param_file += "%10.5f\n" % self.model_param_values[i]
+            self.model_param_file_string += "%10.5f\n" % self.model_param_values[i]
 
         ## File to save interaction parameters for pairwise potentials. 
-        self.pairwise_param_file = "#   i   j   param int_type  other_params\n"
+        self.pairwise_param_file_string = "#   i   j   param int_type  other_params\n"
         for i in range(self.n_contacts):
             i_idx = self.contacts[i][0]
             j_idx = self.contacts[i][1]
@@ -297,7 +297,7 @@ class SmogCalpha(object):
             other_param_string = ""
             for p in range(len(self.pairwise_other_parameters[i])):
                 other_param_string += " %10.5f " % self.pairwise_other_parameters[i][p] 
-            self.pairwise_param_file += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
+            self.pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
 
         self._generate_interaction_tables()
         self._generate_topology()
@@ -520,14 +520,18 @@ class SmogCalpha(object):
 
     def save_simulation_files(self):
         ''' Write all needed simulation files. '''
+        cwd = os.getcwd()
+        self.pairwise_param_file_location = "%s/pairwise_params" % cwd
+        self.model_param_file_location = "%s/model_params" % cwd
+
         open("Native.pdb","w").write(self.cleanpdb)
         open("index.ndx","w").write(self.index_ndx)
         open("dihedrals.ndx","w").write(self.dihedrals_ndx)
         open("contacts.ndx","w").write(self.contacts_ndx)
         open("conf.gro","w").write(self.grofile)
         open("topol.top","w").write(self.topology)
-        open("pairwise_params","w").write(self.pairwise_param_file)
-        open("model_params","w").write(self.model_param_file)
+        open("pairwise_params","w").write(self.pairwise_param_file_string)
+        open("model_params","w").write(self.model_param_file_string)
         np.savetxt("Qref_cryst.dat",self.Qref,fmt="%1d",delimiter=" ")
         np.savetxt("contacts.dat",self.contacts,fmt="%4d",delimiter=" ")
 
