@@ -132,7 +132,6 @@ class SmogCalpha(object):
     def _check_contact_opts(self):
         ''' Set default pairwise interaction terms '''
 
-
         ## All non-native pairs
         self.nonnative_pairs = []
         for i in range(self.n_residues):
@@ -460,7 +459,7 @@ class SmogCalpha(object):
             r0 = self.pairwise_distances[i]
             eps = self.pairwise_strengths[i]
             if self.pairwise_type[i] == 1:     ## LJ12
-                c12 = eps*5.0*(r0**12)
+                c12 = eps*(r0**12)
                 c10 = 0
                 pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
             elif self.pairwise_type[i] == 2:   ## LJ1210
