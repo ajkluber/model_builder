@@ -229,6 +229,8 @@ def load_args(subdir,dry_run):
                         "Interaction_Types","Tf_iteration","Mut_iteration",
                         "Contact_Type","Contact_params","Contact_Energies"]:
             pass
+        elif field == "Iteration":
+            inputs[field] = int(value.rstrip("\n"))
         else:
             inputs[field] = value.rstrip("\n")
         line = info_file.readline()
