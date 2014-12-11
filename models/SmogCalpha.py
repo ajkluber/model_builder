@@ -31,7 +31,7 @@ class SmogCalpha(object):
             setattr(self,key.lower(),kwargs[key])
         need_to_define = ["model_code","beadmodel","epsilon_bar",
                           "fitting_data","fitting_solver","fitting_allowswitch",
-                          "disulfides","fitting_params","nonnative",
+                          "disulfides","fitting_params","nonnative","n_native_contacts",
                           "pairwise_params_file_location","model_params_file_location"]
         for thing in need_to_define:
             if not hasattr(self,thing):
@@ -106,6 +106,8 @@ class SmogCalpha(object):
         model_info_string += "%s\n" % str(self.pairwise_params_file_location)
         model_info_string += "[ Model_Params_File ]\n"
         model_info_string += "%s\n" % str(self.model_params_file_location)
+        model_info_string += "[ N_Native_Contacts ]\n"
+        model_info_string += "%s\n" % str(self.n_native_contacts)
         model_info_string += "[ Contact_Type ]\n"
         model_info_string += "%s\n" % self.contact_type
         model_info_string += "[ Fitting_Data ]\n"
