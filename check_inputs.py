@@ -230,7 +230,10 @@ def load_args(subdir,dry_run):
         elif field == "Iteration":
             inputs[field] = int(value.rstrip("\n"))
         elif field == "N_Native_Contacts":
-            inputs[field] = int(value.rstrip("\n"))
+            if value.rstrip("\n") != "None":
+                inputs[field] = int(value.rstrip("\n"))
+            else:
+                inputs[field] = None
         else:
             inputs[field] = value.rstrip("\n")
         line = info_file.readline()
