@@ -54,8 +54,8 @@ def check_contact_args(inputs,contacts_file,pairwise_params_file,model_params_fi
         inputs["model_param_values"] = model_param_values 
         inputs["pairwise_type"] = pairwise_type
         inputs["pairwise_other_parameters"] = pairwise_other_params
-        inputs["Pairwise_Params_File"] = pairwise_params_file
-        inputs["Model_Params_File"] = model_params_file
+        inputs["pairwise_params_file_location"] = pairwise_params_file
+        inputs["model_params_file_location"] = model_params_file
         inputs["Defaults"] = False
 
     inputs["Contacts"] = contacts
