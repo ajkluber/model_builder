@@ -560,6 +560,7 @@ class SmogCalpha(object):
         np.savetxt("contacts.dat",self.contacts,fmt="%4d",delimiter=" ")
 
         ## Save needed table files
+        np.savetxt("table.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
         np.savetxt("tablep.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
         for i in range(self.n_tables):
             np.savetxt(self.tablenames[i],self.tables[i],fmt="%16.15e",delimiter=" ")
