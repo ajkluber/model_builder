@@ -173,6 +173,7 @@ class SmogCalpha(object):
                 print "     pairwise_type"
                 print "     pairwise_param_assignment"
                 print "     pairwise_other_parameters"
+                raise SystemExit
         
 
         ## Any contact that would be disrupted by an 
