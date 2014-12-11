@@ -16,6 +16,10 @@ global negvals
 negvals = ["None",None,"",False]
 
 def get_pairwise_params(pairwise_params_file,model_params_file):
+    ''' To Do: Parse lines individually. 
+
+    Different interactions can have different number of other_parameters
+    '''
     pair_params = np.loadtxt(pairwise_params_file)
     model_param_values = np.loadtxt(model_params_file)
     
