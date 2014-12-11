@@ -286,9 +286,10 @@ class SmogCalpha(object):
     def _set_nonbonded_interactions(self):
         ''' Set all interaction functions '''
 
-        ## Determine the number of tabled interactions
+        ## Determine the number of tabled interactions. Need to table if not LJ1210 or LJ12
+        flag = ((self.pairwise_type == 2).astype(int) + (self.pairwise_type == 1).astype(int))
         self.tabled_interactions = np.zeros(self.n_contacts,float)
-        for rep_indx in (np.where(self.pairwise_type != 2))[0]:
+        for rep_indx in (np.where(flag != 1))[0]:
             self.tabled_interactions[rep_indx] = 1
         self.tabled_pairs = np.where(self.tabled_interactions == 1)[0]
         self.n_tables = len(self.tabled_pairs)
@@ -302,6 +303,7 @@ class SmogCalpha(object):
 
         self.pairwise_potentials_deriv = [ pairwise.wrap_pairwise(pairwise.get_pair_potential_deriv(self.pairwise_type[x]),\
                                                 *self.pairwise_other_parameters[x]) for x in range(self.n_contacts) ]
+
         ## File to save model parameters
         self.model_param_file_string = "# model parameters\n"
         for i in range(self.n_model_param):
