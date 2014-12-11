@@ -30,8 +30,6 @@ def check_contact_args(inputs,contacts_file,pairwise_params_file,model_params_fi
     ''' Check input arguments for contacts '''
     contacts = None
     epsilon_bar = None
-    pairwise_params_file = None
-    model_params_file = None
     inputs["Defaults"] = True
 
     ## Load contacts or contact parameters if given.
@@ -84,7 +82,7 @@ def check_fitting_args(inputs,fittingdata,fittingincludes,fittingsolver,fittinga
     ##      fitting_allowswitch allows the fitting to change the attractive/repulsive nature of itnerations.
     fittingdatas = ["ddG_MC2004","RMSF","FRET","contact_Qi"]
     fittingallowswitches = ["True","False"]
-    fittingsolvers = ["Levenberg","TSVD","cplex"]
+    fittingsolvers = ["Levenberg","TSVD","TSVD_Cplex"]
 
     if fittingdata in negvals:
         fitting_data = None
