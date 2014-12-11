@@ -258,7 +258,8 @@ def load_args(subdir,dry_run):
     keys = inputs.keys()
     keys.sort()
     for key in keys:
-        if key in ["Contacts","Contact_Epsilons","LJtype","Contact_Widths"]:
+        if key in ["Contacts","model_param_values","pairwise_other_params",
+                   "pairwise_type","pairwise_param_assignment"]:
             if inputs[key] == None:
                 print "  ", key , " = ", inputs[key]
             else:
