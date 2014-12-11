@@ -142,6 +142,7 @@ class SmogCalpha(object):
         ## Remove native pairs
         for n in range(self.n_contacts):
             self.nonnative_pairs.pop(self.nonnative_pairs.index(list(self.contacts[n,:])))
+        self.n_nonnative_contacts = len(self.nonnative_pairs)
 
         ## Grab structural distances.
         self.pairwise_distances = np.zeros(len(self.contacts),float)
@@ -326,7 +327,7 @@ class SmogCalpha(object):
 
         self.tablep = self._get_LJ1210_table()
         self.LJtable = self.tablep
-        r = np.arange(0.002,100.0,0.002)
+        r = np.arange(0,100.0,0.002)
         self.tables = []
         self.tablenames = []
         for i in range(self.n_tables):
@@ -334,10 +335,10 @@ class SmogCalpha(object):
             table_name = "table_b%d.xvg" % (i+1)
             self.tablenames.append(table_name)
 
-            table = np.zeros((len(r)+1,3),float)
-            table[1:,0] = r 
-            table[1:,1] = self.pairwise_potentials[pair_indx](r) 
-            table[1:,2] = -1.*self.pairwise_potentials_deriv[pair_indx](r) 
+            table = np.zeros((len(r),3),float)
+            table[1:,0] = r[1:]
+            table[10:,1] = self.pairwise_potentials[pair_indx](r[10:]) 
+            table[10:,2] = -1.*self.pairwise_potentials_deriv[pair_indx](r[10:]) 
             self.tables.append(table)
 
     def _get_LJ1210_table(self):
@@ -554,7 +555,6 @@ class SmogCalpha(object):
         np.savetxt("contacts.dat",self.contacts,fmt="%4d",delimiter=" ")
 
         ## Save needed table files
-        np.savetxt("table.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
         np.savetxt("tablep.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
         for i in range(self.n_tables):
             np.savetxt(self.tablenames[i],self.tables[i],fmt="%16.15e",delimiter=" ")
