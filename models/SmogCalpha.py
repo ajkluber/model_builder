@@ -196,7 +196,7 @@ class SmogCalpha(object):
 
         ## List of array indices indicating which interactions have the associated model parameter.
         self.n_model_param = len(self.model_param_values)
-        self.model_param_interactions = [ np.where(self.pairwise_param_assignment == p) for p in range(self.n_model_param) ]
+        self.model_param_interactions = [ (np.where(self.pairwise_param_assignment == p))[0] for p in range(self.n_model_param) ]
 
     def _check_disulfides(self):
         ''' Check that specified disulfides are between cysteine and that 
@@ -571,6 +571,7 @@ class SmogCalpha(object):
         ## Switching between different interaction function types
         potential_type_switch = {2:3,3:2,4:5,5:4}
 
+    
         for p in range(self.n_model_param):
             p_pairs = self.model_param_interactions[p]
             for n in range(len(p_pairs)):
@@ -579,7 +580,7 @@ class SmogCalpha(object):
                     if self.pairwise_type[p_pairs[n]] == 1:
                         self.pairwise_type[p_pairs[n]] = 3
                     else:
-                        self.potential_type[p_pairs[n]] = potential_type_switch[self.pairwise_type[p_pairs[n]]]
+                        self.pairwise_type[p_pairs[n]] = potential_type_switch[self.pairwise_type[p_pairs[n]]]
                 else:
                     if self.pairwise_type[p_pairs[n]] == 1:
                         self.pairwise_type[p_pairs[n]] = 2
