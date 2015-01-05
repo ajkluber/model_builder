@@ -17,6 +17,8 @@ To Do:
 
 import numpy as np
 
+import bonded_potentials as bond
+
 def get_clean_CA(pdbname):
     ''' Gets first chain from pdb. Keeps only CA atoms.'''
     first = 0

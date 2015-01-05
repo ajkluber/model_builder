@@ -147,7 +147,7 @@ class SmogCalpha(object):
         self.n_nonnative_contacts = len(self.nonnative_pairs)
 
         ## Grab structural distances.
-        self.pairwise_distances = pdb_parser(self.cleanpdb,self.contacts)
+        self.pairwise_distances = pdb_parser.get_pairwise_distances(self.cleanpdb,self.contacts)
 
         ## Set some defaults for pairwise interaction potential.
         if not hasattr(self,"epsilon_bar"):
