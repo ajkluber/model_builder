@@ -3,7 +3,8 @@
 Potentials to add: 
 - Repulsive tanh function by Ryan Cheng to complement Gaussian  DONE
 - Attractive and repulsive LJ126 potentials DONE
-- Heiko's Gaussian with hard wall function.
+- 'Windowed' functions i.e. Heiko's product functions  DONE
+- Windowed functions with Gaussian barrier.
 
 '''
 
@@ -11,16 +12,23 @@ import numpy as np
 
 def get_pair_potential(code):
     ''' Returns pairwise potential function'''
-    potential = {1:LJ12,2:LJ1210,3:LJ1210rep,4:Gaussian,5:Cheng_rep}[code]
+    potential = {1:LJ12,2:LJ1210,3:LJ1210rep,4:Gaussian,
+                 5:Cheng_rep,6:LJ126,7:LJ126rep,
+                 8:LJ12_window_Gaussian,9:LJ12_window_double_Gaussian,
+                 10:Gaussian_window_Gaussian}[code]
     return potential
 
 def get_pair_potential_deriv(code):
     ''' Returns derivative of pairwise potential function'''
-    potential = {1:LJ12_deriv,2:LJ1210_deriv,3:LJ1210rep_deriv,4:Gaussian_deriv,5:Cheng_rep_deriv}[code]
+    potential = {1:LJ12_deriv,2:LJ1210_deriv,3:LJ1210rep_deriv,
+                 4:Gaussian_deriv,5:Cheng_rep_deriv,
+                 6:LJ126_deriv,7:LJ126rep_deriv,
+                 8:LJ12_window_Gaussian,9:LJ12_window_double_Gaussian,
+                 10:Gaussian_window_Gaussian}[code]
     return potential
 
 def get_switched_pair_potential_(code):
-    ''' Returns the "switched" pairwise potential function'''
+    ''' Returns the "switched" pairwise potential function. NOT DONE'''
     potential = {1:LJ12,2:LJ1210,3:LJ1210rep,4:Gaussian,5:Cheng_rep}[code]
     return potential
 
@@ -114,12 +122,14 @@ def Gaussian_deriv(r,r0,width):
     return V
 
 def Cheng_rep(r,r0,width):
+    ''' NEEDS TO BE CHECKED/TESTED '''
     alpha = 1./width      
     r0prime = r0 + width
     V = 0.5*(np.tanh(-alpha*(r - r0prime)) + 1.)
     return V
 
 def Cheng_rep_deriv(r,r0,width):      
+    ''' NEEDS TO BE CHECKED/TESTED '''
     alpha = 1./width      
     r0prime = r0 + width
     V = -0.5*alpha*(1. - (np.tanh(-alpha*(r - r0prime)))**2)
@@ -134,3 +144,36 @@ def LJ126_deriv(r,r0):
     x = r0/r
     V = (-12./r0)*((x**13) - (x**7))
     return V
+
+def LJ126rep(r,r0):
+    ''' ONLY PLACEHOLDER. NOT DONE '''
+    x = r0/r
+    V = (x**12) - 2.*(x**6)
+    return V
+
+def LJ126rep_deriv(r,r0):
+    ''' ONLY PLACEHOLDER. NOT DONE '''
+    x = r0/r
+    V = (-12./r0)*((x**13) - (x**7))
+    return V
+
+def LJ12_window_Gaussian(r,rNC,r0,width0):
+    return LJ12(r,rNC)*(1. + Gaussian(r,r0,width0))
+
+def LJ12_window_Gaussian_deriv(r,rNC,r0,width0):
+    return LJ12_deriv(r,rNC)*(1. + Gaussian(r,r0,width0)) + LJ12(r,rNC)*Gaussian_deriv(r,r0,width0)
+
+def LJ12_window_double_Gaussian(r,rNC,r0,width0,r1,width1):
+    return LJ12(r,rNC)*(1. + Gaussian(r,r0,width0))*(1. + Gaussian(r,r1,width1))
+
+def LJ12_window_double_Gaussian_deriv(r,rNC,r0,width0,r1,width1):
+    return LJ12_deriv(r,rNC)*(1. + Gaussian(r,r0,width0))*(1. + Gaussian(r,r1,width1)) + \
+           LJ12(r,rNC)*Gaussian_deriv(r,r0,width0)*(1. + Gaussian(r,r1,width1)) + \
+           LJ12(r,rNC)*(1. + Gaussian(r,r0,width0))*Gaussian_deriv(r,r1,width1)
+
+def Gaussian_window_Gaussian(r,rNC,r0,width0,r1,width1):
+    return Gaussian(r,r0,width0)*(1. + Gaussian(r,r1,width1))
+
+def Gaussian_window_Gaussian_deriv(r,rNC,r0,width0,r1,width1):
+    return Gaussian_deriv(r,r0,width0)*(1. + Gaussian(r,r1,width1)) +\
+           Gaussian(r,r0,width0)*Gaussian_deriv(r,r1,width1)
