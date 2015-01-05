@@ -147,11 +147,7 @@ class SmogCalpha(object):
         self.n_nonnative_contacts = len(self.nonnative_pairs)
 
         ## Grab structural distances.
-        self.pairwise_distances = np.zeros(len(self.contacts),float)
-        for i in range(len(self.contacts)):
-            i_idx = self.contacts[i][0]
-            j_idx = self.contacts[i][1]
-            self.pairwise_distances[i] = bond.distance(self.atom_coords,i_idx-1,j_idx-1)
+        self.pairwise_distances = pdb_parser(self.cleanpdb,self.contacts)
 
         ## Set some defaults for pairwise interaction potential.
         if not hasattr(self,"epsilon_bar"):
@@ -259,7 +255,9 @@ class SmogCalpha(object):
     def _set_bonded_interactions(self):
         ''' Extract info from the Native.pdb for making index and top file '''
         ## Grab coordinates from the pdb file.
-        self.cleanpdb_full, self.cleanpdb_full_noH, self.cleanpdb = pdb_parser.clean(self.pdb)
+        self.cleanpdb = pdb_parser.get_clean_CA(self.pdb)
+        self.cleanpdb_full = pdb_parser.get_clean_full(self.pdb)
+        self.cleanpdb_full_noH = pdb_parser.get_clean_full_noH(self.pdb)
         coords, indices, atoms, residues = pdb_parser.get_coords_atoms_residues(self.cleanpdb)
 
         self.atom_indices = indices

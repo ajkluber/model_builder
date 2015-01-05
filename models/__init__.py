@@ -22,6 +22,7 @@ import bonded_potentials
 import pairwise_potentials
 import pdb_parser
 import beadbead_to_params
+import prepare_compound_pairwise
 
 def citation_info(key):
     ''' Dictionary of references'''
