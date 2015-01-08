@@ -1,10 +1,4 @@
-''' Check inputs to SmogCalpha
-
-
-This could be cleaned up. 
-
-
-'''
+''' Check inputs to SmogCalpha '''
 
 import numpy as np
 import os
@@ -16,18 +10,30 @@ global negvals
 negvals = ["None",None,"",False]
 
 def get_pairwise_params(pairwise_params_file,model_params_file):
-    ''' To Do: Parse lines individually. 
-
-    Different interactions can have different number of other_parameters
-    '''
-    pair_params = np.loadtxt(pairwise_params_file)
+    ''' Grab pairwise_params from file. '''
     model_param_values = np.loadtxt(model_params_file)
-    
-    contacts = pair_params[:,:2].astype(int)
-    pairwise_param_assignment = pair_params[:,2].astype(int)
-    pairwise_type = pair_params[:,3].astype(int)
-    pairwise_other_params = pair_params[:,4:]
-    
+
+    p_lines = [ x.rstrip("\n") for x in open(pairwise_params_file,"r").readlines() ]
+
+    contacts = []
+    pairwise_param_assignment = []
+    pairwise_type = [] 
+    pairwise_other_params = []
+
+    for p in p_lines[1:]:
+        data = p.split() 
+        contacts.append([int(data[0]),int(data[1])])
+        pairwise_param_assignment.append(int(data[2]))
+        pairwise_type.append(int(data[3]))
+        temp = []
+        for otherparam in data[4:]:
+            temp.append(float(otherparam))
+        pairwise_other_params.append(temp)
+
+    contacts = np.array(contacts) 
+    pairwise_param_assignment = np.array(pairwise_param_assignment)
+    pairwise_type = np.array(pairwise_type)
+
     return contacts,pairwise_param_assignment,model_param_values,pairwise_type,pairwise_other_params
 
 def check_contact_args(inputs,contacts_file,pairwise_params_file,model_params_file,epsilonbar):

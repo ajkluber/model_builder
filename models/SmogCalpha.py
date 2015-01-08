@@ -134,17 +134,21 @@ class SmogCalpha(object):
     def _check_contact_opts(self):
         ''' Set default pairwise interaction terms '''
 
-        ## All non-native pairs
-        self.nonnative_pairs = []
-        for i in range(self.n_residues):
-            for j in range(i+4,self.n_residues):
-                self.nonnative_pairs.append([i+1,j+1])
+        ## TODO(alex):
+        ##   - Make a list of noncontacts
+        ##   - Make a list of near contacts
 
-        self.nearnative_pairs = list(self.nonnative_pairs)  ## To Do: List of near-native contacts
+        ## All non-native pairs
+        #self.nonnative_pairs = []
+        #for i in range(self.n_residues):
+        #    for j in range(i+4,self.n_residues):
+        #        self.nonnative_pairs.append([i+1,j+1])
+
+        #self.nearnative_pairs = list(self.nonnative_pairs)  
         ## Remove native pairs
-        for n in range(self.n_contacts):
-            self.nonnative_pairs.pop(self.nonnative_pairs.index(list(self.contacts[n,:])))
-        self.n_nonnative_contacts = len(self.nonnative_pairs)
+        #for n in range(self.n_contacts):
+        #    self.nonnative_pairs.pop(self.nonnative_pairs.index(list(self.contacts[n,:])))
+        #self.n_nonnative_contacts = len(self.nonnative_pairs)
 
         ## Grab structural distances.
         self.pairwise_distances = pdb_parser.get_pairwise_distances(self.cleanpdb,self.contacts)
@@ -186,7 +190,8 @@ class SmogCalpha(object):
         if self.contact_type == "none":
             self.contact_type = "LJ1210"
 
-        ## TO DO: - How to scale the model parameters to get constant stability?
+        ## TO DO: - How to scale the model parameters to get constant stability? 
+        ##          Evaluate energy of native structure?
         if self.epsilon_bar != None:
             pass
 
@@ -290,8 +295,8 @@ class SmogCalpha(object):
         ## Determine the number of tabled interactions. Need to table if not LJ1210 or LJ12
         flag = ((self.pairwise_type == 2).astype(int) + (self.pairwise_type == 1).astype(int))
         self.tabled_interactions = np.zeros(self.n_contacts,float)
-        for rep_indx in (np.where(flag != 1))[0]:
-            self.tabled_interactions[rep_indx] = 1
+        for tbl_indx in (np.where(flag != 1))[0]:
+            self.tabled_interactions[tbl_indx] = 1
         self.tabled_pairs = np.where(self.tabled_interactions == 1)[0]
         self.n_tables = len(self.tabled_pairs)
 
@@ -326,7 +331,11 @@ class SmogCalpha(object):
         self._generate_topology()
 
     def _generate_interaction_tables(self):
-        ''' Generates tables of user-defined potentials '''
+        ''' Generates tables of user-defined potentials 
+
+        TODO(alex):
+            - Sum all the tabled interactions between given pair? To reduce the # of table files.
+        '''
 
         self.tablep = self._get_LJ1210_table()
         self.LJtable = self.tablep
