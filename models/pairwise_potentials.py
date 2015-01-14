@@ -27,7 +27,7 @@ def get_pair_potential_deriv(code):
                  10:compound_double_Gaussian_deriv}[code]
     return potential
 
-def get_switched_pair_potential_(code):
+def get_switched_pair_potential(code):
     ''' Returns the "switched" pairwise potential function. NOT DONE/USED'''
     potential = {1:LJ12,2:LJ1210,3:LJ1210rep,4:Gaussian,5:Cheng_rep}[code]
     return potential
@@ -122,14 +122,12 @@ def Gaussian_deriv(r,r0,width):
     return V
 
 def Cheng_rep(r,r0,width):
-    ''' NEEDS TO BE CHECKED/TESTED '''
     alpha = 1./width      
     r0prime = r0 + width
     V = 0.5*(np.tanh(-alpha*(r - r0prime)) + 1.)
     return V
 
 def Cheng_rep_deriv(r,r0,width):      
-    ''' NEEDS TO BE CHECKED/TESTED '''
     alpha = 1./width      
     r0prime = r0 + width
     V = -0.5*alpha*(1. - (np.tanh(-alpha*(r - r0prime)))**2)

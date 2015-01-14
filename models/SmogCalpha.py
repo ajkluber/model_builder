@@ -9,6 +9,11 @@ Example Usage:
     See project_tools/examples
 
 References:
+
+
+
+TODO(alex):
+    - Delineate between native pairs and all pairs
 '''
 
 import numpy as np
@@ -20,6 +25,8 @@ import bonded_potentials as bond
 import pairwise_potentials as pairwise
 import pdb_parser
 
+global SKIP_INTERACTIONS
+SKIP_INTERACTIONS = [1,8,9]
 
 class SmogCalpha(object):
     ''' This class creates a topology and grofile '''
@@ -27,11 +34,11 @@ class SmogCalpha(object):
         self.path = os.getcwd()
         ## Set any keyword argument given as an attribute. Assumes it has what it needs.
         for key in kwargs.iterkeys():
-            #print key.lower(),kwargs[key]
             setattr(self,key.lower(),kwargs[key])
         need_to_define = ["model_code","beadmodel","epsilon_bar",
                           "fitting_data","fitting_solver","fitting_allowswitch",
-                          "disulfides","fitting_params","nonnative","n_native_contacts",
+                          "disulfides","fitting_params_file","fitting_params",
+                          "nonnative","n_native_pairs",
                           "pairwise_params_file_location","model_params_file_location"]
         for thing in need_to_define:
             if not hasattr(self,thing):
@@ -59,16 +66,16 @@ class SmogCalpha(object):
         self._set_bonded_interactions()
         self._generate_index_ndx()
         self._generate_grofile()
-        self.n_contacts = len(self.contacts)
+        self.n_pairs = len(self.pairs)
         self.Qref = np.zeros((self.n_residues,self.n_residues))
-        for pair in self.contacts:
+        for pair in self.pairs:
             self.Qref[pair[0]-1,pair[1]-1] = 1 
 
-        ## Check disulfide separation and remove from contacts list.
+        ## Check disulfide separation and remove from pairs list.
         self._check_disulfides() 
 
         ## Generate topology file and table files.
-        self._check_contact_opts()
+        self._check_pair_opts()
         self._set_nonbonded_interactions()
 
     def get_model_info_string(self):
@@ -107,7 +114,7 @@ class SmogCalpha(object):
         model_info_string += "[ Model_Params_File ]\n"
         model_info_string += "%s\n" % str(self.model_params_file_location)
         model_info_string += "[ N_Native_Contacts ]\n"
-        model_info_string += "%s\n" % str(self.n_native_contacts)
+        model_info_string += "%s\n" % str(self.n_native_pairs)
         model_info_string += "[ Contact_Type ]\n"
         model_info_string += "%s\n" % self.contact_type
         model_info_string += "[ Fitting_Data ]\n"
@@ -120,8 +127,8 @@ class SmogCalpha(object):
         model_info_string += "%s\n" % self.fitting_solver
         model_info_string += "[ Fitting_AllowSwitch ]\n"
         model_info_string += "%s\n" % self.fitting_allowswitch
-        model_info_string += "[ Fitting_Params ]\n"
-        model_info_string += "%s\n" % self.fitting_params
+        model_info_string += "[ Fitting_Params_File ]\n"
+        model_info_string += "%s\n" % self.fitting_params_file
         model_info_string += "[ Reference ]\n" 
         model_info_string += "None\n" 
         return model_info_string
@@ -131,39 +138,26 @@ class SmogCalpha(object):
         now_string = "%s:%s:%s:%s:%s" % (now.tm_year,now.tm_mon,now.tm_mday,now.tm_hour,now.tm_min)
         logfile = open('%s/%s/%s.log' % (path,self.subdir,self.subdir),'a').write("%s %s\n" % (now_string,string))
 
-    def _check_contact_opts(self):
+    def _check_pair_opts(self):
         ''' Set default pairwise interaction terms '''
-
-        ## TODO(alex):
-        ##   - Make a list of noncontacts
-        ##   - Make a list of near contacts
-
-        ## All non-native pairs
-        #self.nonnative_pairs = []
-        #for i in range(self.n_residues):
-        #    for j in range(i+4,self.n_residues):
-        #        self.nonnative_pairs.append([i+1,j+1])
-
-        #self.nearnative_pairs = list(self.nonnative_pairs)  
-        ## Remove native pairs
-        #for n in range(self.n_contacts):
-        #    self.nonnative_pairs.pop(self.nonnative_pairs.index(list(self.contacts[n,:])))
-        #self.n_nonnative_contacts = len(self.nonnative_pairs)
-
-        ## Grab structural distances.
-        self.pairwise_distances = pdb_parser.get_pairwise_distances(self.cleanpdb,self.contacts)
 
         ## Set some defaults for pairwise interaction potential.
         if not hasattr(self,"epsilon_bar"):
             self.epsilon_bar = None
 
+        ## If not specified, allow all parameters to be fit.
+        if (not hasattr(self,"fitting_params")) or (self.fitting_params == None):
+            self.fitting_params = range(self.n_pairs)
+        self.n_fitting_params = len(self.fitting_params)
+
         ## If defaults is False then all these need to be defined.
         if self.defaults:
-            print "  Using defaults: LJ1210 contacts, homogeneous contacts 1, each contact free param."
-            self.model_param_values = np.ones(self.n_contacts,float)
-            self.pairwise_type = 2*np.ones(self.n_contacts,float)
-            self.pairwise_param_assignment = np.arange(self.n_contacts)     
-            self.pairwise_other_parameters = [ [self.pairwise_distances[x]] for x in range(self.n_contacts) ]
+            print "  Using defaults: LJ1210 interactions, homogeneous strength 1, each param is free."
+            self.pairwise_distances = pdb_parser.get_pairwise_distances(self.cleanpdb,self.pairs)
+            self.model_param_values = np.ones(self.n_pairs,float)
+            self.pairwise_type = 2*np.ones(self.n_pairs,float)
+            self.pairwise_param_assignment = np.arange(self.n_pairs)     
+            self.pairwise_other_parameters = [ [self.pairwise_distances[x]] for x in range(self.n_pairs) ]
         else:
             needed = [hasattr(self,"model_param_values"),hasattr(self,"pairwise_type"), \
                     hasattr(self,"pairwise_param_assignment"),hasattr(self,"pairwise_other_parameters")]
@@ -174,13 +168,21 @@ class SmogCalpha(object):
                 print "     pairwise_param_assignment"
                 print "     pairwise_other_parameters"
                 raise SystemExit
-        
 
-        ## Any contact that would be disrupted by an 
-        ## excluded volume radius of 0.4nm
-        for i in range(self.n_contacts):
-            if self.pairwise_other_parameters[i][0] < 0.85:
-                self.exclusions.append(list(self.contacts[i]))
+        self.give_smaller_excluded_volume = []
+        for i in range(self.n_pairs):
+            ## Make sure to exclude any LJ1210 pairs
+            ## that would be disrupted by
+            ## excluded volume radius of 0.4nm
+            if self.pairwise_type[i] == 2:
+                if self.pairwise_other_parameters[i][0] < 0.85:
+                    if not (list(self.pairs[i]) in self.exclusions): 
+                        self.exclusions.append(list(self.pairs[i]))
+                        self.give_smaller_excluded_volume.append(list(self.pairs[i]))
+            ## Always exclude any pairs that isn't LJ1210.
+            else:
+                if not (list(self.pairs[i]) in self.exclusions): 
+                    self.exclusions.append(list(self.pairs[i]))
 
         self.contact_type = "none"
         for i in self.pairwise_type:
@@ -221,14 +223,14 @@ class SmogCalpha(object):
                 else:
                     print "   %s %s separated by %.4f nm, Good." % \
                     (residues[i_idx-1]+str(i_idx), residues[j_idx-1]+str(j_idx),dist)
-                    ## Remove disulfide pair from self.contacts if it is there.
-                    new_conts = []
-                    for pair in self.contacts:
+                    ## Remove disulfide pair from self.pairs if it is there.
+                    new_pairs = []
+                    for pair in self.pairs:
                         if (pair[0] == i_idx) and (pair[1] == j_idx):
                             continue
                         else:
-                            new_conts.append(pair)
-                    self.contacts = np.array(new_conts)
+                            new_pairs.append(pair)
+                    self.pairs = np.array(new_pairs)
 
                     self.exclusions.append([i_idx,j_idx])
                     ## Set cysteine bond distance, angles, and dihedral.
@@ -248,14 +250,10 @@ class SmogCalpha(object):
                     self.dihedral_strengths.append(self.backbone_param_vals["Kd"])
 
                 if self.Qref[i_idx-1][j_idx-1] == 1:
-                    #print "    Subtracting 1 from n_contacts for ", i_idx,j_idx, " disulfide"
-                    self.n_contacts -= 1
+                    #print "    Subtracting 1 from n_pairs for ", i_idx,j_idx, " disulfide"
+                    self.n_pairs -= 1
         else:
             print "  No disulfides to check."
-
-        self.contacts_ndx = "[ contacts ]\n"
-        for i in range(self.n_contacts):
-            self.contacts_ndx += "%4d %4d\n" % (self.contacts[i][0],self.contacts[i][1])
 
     def _set_bonded_interactions(self):
         ''' Extract info from the Native.pdb for making index and top file '''
@@ -294,7 +292,7 @@ class SmogCalpha(object):
 
         ## Determine the number of tabled interactions. Need to table if not LJ1210 or LJ12
         flag = ((self.pairwise_type == 2).astype(int) + (self.pairwise_type == 1).astype(int))
-        self.tabled_interactions = np.zeros(self.n_contacts,float)
+        self.tabled_interactions = np.zeros(self.n_pairs,float)
         for tbl_indx in (np.where(flag != 1))[0]:
             self.tabled_interactions[tbl_indx] = 1
         self.tabled_pairs = np.where(self.tabled_interactions == 1)[0]
@@ -303,12 +301,12 @@ class SmogCalpha(object):
         ## Assign pairwise interaction strength from model parameters
         self.pairwise_strengths = np.array([  self.model_param_values[x] for x in self.pairwise_param_assignment ])
 
-        ## Wrap the pairwise contact potentials so that only distance needs to be input.
+        ## Wrap the pairwise potentials so that only distance needs to be input.
         self.pairwise_potentials = [ pairwise.wrap_pairwise(pairwise.get_pair_potential(self.pairwise_type[x]),\
-                                                *self.pairwise_other_parameters[x]) for x in range(self.n_contacts) ]
+                                                *self.pairwise_other_parameters[x]) for x in range(self.n_pairs) ]
 
         self.pairwise_potentials_deriv = [ pairwise.wrap_pairwise(pairwise.get_pair_potential_deriv(self.pairwise_type[x]),\
-                                                *self.pairwise_other_parameters[x]) for x in range(self.n_contacts) ]
+                                                *self.pairwise_other_parameters[x]) for x in range(self.n_pairs) ]
 
         ## File to save model parameters
         self.model_param_file_string = "# model parameters\n"
@@ -317,9 +315,9 @@ class SmogCalpha(object):
 
         ## File to save interaction parameters for pairwise potentials. 
         self.pairwise_param_file_string = "#   i   j   param int_type  other_params\n"
-        for i in range(self.n_contacts):
-            i_idx = self.contacts[i][0]
-            j_idx = self.contacts[i][1]
+        for i in range(self.n_pairs):
+            i_idx = self.pairs[i][0]
+            j_idx = self.pairs[i][1]
             model_param = self.pairwise_param_assignment[i]
             int_type = self.pairwise_type[i]
             other_param_string = ""
@@ -327,6 +325,22 @@ class SmogCalpha(object):
                 other_param_string += " %10.5f " % self.pairwise_other_parameters[i][p] 
             self.pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
 
+
+        if self.n_native_pairs == None:
+        ## Need to determine which pairs are native pairs.
+        self.native_pairs_ndx = "[ native_pairs ]\n"
+        self.native_pairs = []
+        for i in range(self.n_pairs):
+            if (not (list(self.pairs[i,:]) in self.native_pairs)) and not (self.pairwise_type[i] in SKIP_INTERACTIONS):
+                self.native_pairs.append(list(self.pairs[i,:]))
+                self.native_pairs_ndx += "%4d %4d\n" % (self.pairs[i,0],self.pairs[i,1])
+        self.num_native_pairs = len(self.native_pairs)
+
+        self.native_stability = 0
+        for i in range(self.n_pairs):
+            if not (self.pairwise_type[i] in SKIP_INTERACTIONS):
+                self.native_stability += (self.pairwise_strengths[i]*self.pairwise_potentials[i](np.array([self.pairwise_other_parameters[i][0]])))[0]
+        self.num_native_pairs = len(self.native_pairs)
         self._generate_interaction_tables()
         self._generate_topology()
 
@@ -339,7 +353,7 @@ class SmogCalpha(object):
 
         self.tablep = self._get_LJ1210_table()
         self.LJtable = self.tablep
-        r = np.arange(0,100.0,0.002)
+        r = np.arange(0,20.0,0.002)
         self.tables = []
         self.tablenames = []
         for i in range(self.n_tables):
@@ -419,9 +433,9 @@ class SmogCalpha(object):
     def _get_tabled_string(self):
         ''' Generate the topology files to specify table interactions. '''
         ## Add special nonbonded table interactions. 
-        tabled_string = "; tabled interactions contacts below\n"
+        tabled_string = "; tabled interactions pairs below\n"
         for i in range(self.n_tables):
-            pair = self.contacts[self.tabled_pairs[i]]
+            pair = self.pairs[self.tabled_pairs[i]]
             tabled_string += "%6d %6d%2d%18d%18.9e\n" %  \
                       (pair[0],pair[1],9,i+1,1.0)
         return tabled_string
@@ -466,10 +480,10 @@ class SmogCalpha(object):
 
         pairs_string = " [ pairs ]\n"
         pairs_string += " ; %5s  %5s %4s    %8s   %8s\n" % ("i","j","type","c10","c12")
-        for i in range(self.n_contacts):
-            res_a = self.contacts[i][0]
-            res_b = self.contacts[i][1]
-            r0 = self.pairwise_distances[i]
+        for i in range(self.n_pairs):
+            res_a = self.pairs[i][0]
+            res_b = self.pairs[i][1]
+            r0 = self.pairwise_other_parameters[i][0]
             eps = self.pairwise_strengths[i]
             if self.pairwise_type[i] == 1:     ## LJ12
                 c12 = eps*(r0**12)
@@ -482,10 +496,10 @@ class SmogCalpha(object):
             else:
                 pass
 
-        ## Give a smaller hard-wall exclusion for contacts that are closer.
-        for i in range(len(self.exclusions)):
-            res_a = self.exclusions[i][0]
-            res_b = self.exclusions[i][1]
+        ## Give a smaller hard-wall exclusion for LJ1210 pairs that are closer.
+        for i in range(len(self.give_smaller_excluded_volume)):
+            res_a = self.give_smaller_excluded_volume[i][0]
+            res_b = self.give_smaller_excluded_volume[i][1]
             c12 = (0.2**12)
             c10 = 0
             pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
@@ -558,13 +572,14 @@ class SmogCalpha(object):
         open("Native.pdb","w").write(self.cleanpdb)
         open("index.ndx","w").write(self.index_ndx)
         open("dihedrals.ndx","w").write(self.dihedrals_ndx)
-        open("contacts.ndx","w").write(self.contacts_ndx)
+        open("native_contacts.ndx","w").write(self.native_pairs_ndx)
+        open("native_pairs.ndx","w").write(self.native_pairs_ndx)
         open("conf.gro","w").write(self.grofile)
         open("topol.top","w").write(self.topology)
         open("pairwise_params","w").write(self.pairwise_param_file_string)
         open("model_params","w").write(self.model_param_file_string)
         np.savetxt("Qref_cryst.dat",self.Qref,fmt="%1d",delimiter=" ")
-        np.savetxt("contacts.dat",self.contacts,fmt="%4d",delimiter=" ")
+        np.savetxt("pairs.dat",self.pairs,fmt="%4d",delimiter=" ")
 
         ## Save needed table files
         np.savetxt("table.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
@@ -574,15 +589,15 @@ class SmogCalpha(object):
 
     def update_model_param_values(self,new_model_param_values):
         ''' If parameter changed sign, change the pairwise interaction type '''
-
         ## Switching between different interaction function types
         potential_type_switch = {2:3,3:2,4:5,5:4}
-
     
-        for p in range(self.n_model_param):
-            p_pairs = self.model_param_interactions[p]
+        ## Loop over fitting_params only 
+        for i in range(self.n_fitting_params):
+            p_idx = self.fitting_params[i]
+            p_pairs = self.model_param_interactions[p_idx]
             for n in range(len(p_pairs)):
-                if new_model_param_values[p] < 0.:
+                if new_model_param_values[i] < 0.:
                     ## If parameter changes sign then the pairwise_type is flipped.
                     if self.pairwise_type[p_pairs[n]] == 1:
                         self.pairwise_type[p_pairs[n]] = 3
@@ -592,7 +607,7 @@ class SmogCalpha(object):
                     if self.pairwise_type[p_pairs[n]] == 1:
                         self.pairwise_type[p_pairs[n]] = 2
                 ## Model parameters are always positive
-                self.model_param_values[p] = abs(new_model_param_values[p])   
+                self.model_param_values[p_idx] = abs(new_model_param_values[i])   
 
         ## Refresh everything that depends on model parameters
         self._set_nonbonded_interactions()
@@ -602,18 +617,18 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='Build a SMOG model.')
     parser.add_argument('--name', type=str, required=True, help='pdb')
-    parser.add_argument('--contacts', type=str, required=True, help='contacts')
+    parser.add_argument('--pairs', type=str, required=True, help='pairs')
     args = parser.parse_args() 
 
     name = args.name
     pdb = "%s.pdb" % name
-    contactsfile = args.contacts
+    pairsfile = args.pairs
 
-    if not os.path.exists(contactsfile):
-        print "ERROR! file does not exists: ",contactsfile
+    if not os.path.exists(pairsfile):
+        print "ERROR! file does not exists: ",pairsfile
         raise SystemExit
     else:
-        contacts = np.loadtxt(contactsfile,dtype=int)
+        pairs = np.loadtxt(pairsfile,dtype=int)
 
-    model = SmogCalpha(pdb=pdb,contacts=contacts)
+    model = SmogCalpha(pdb=pdb,pairs=pairs)
     model.save_simulation_files()

@@ -2,11 +2,11 @@
 
 Description:
     Construct pairwise_params file for compound interactions, such
-as an LJ12 wall with Gaussian (Heiko's contacts). 
+as an LJ12 wall with Gaussian (Heiko's pairs). 
 
 Inputs:
     pdb file string
-    contacts
+    pairs
 
 Outputs:
     pairwise_params file string
@@ -21,22 +21,22 @@ import numpy as np
 
 import pdb_parser
 
-def get_compound_LJ12_Gaussian_pairwise(pdb,contacts,model_param=0):
+def get_compound_LJ12_Gaussian_pairwise(pdb,pairs,model_param=0):
     ''' '''
     rNC = 0.4
     width0 = 0.05
-    pairwise_distances = pdb_parser.get_pairwise_distances(pdb,contacts)
+    pairwise_distances = pdb_parser.get_pairwise_distances(pdb,pairs)
     model_param_value = 1.
 
-    ## Loop over contacts and create pair
+    ## Loop over pairs and create pair
     pairwise_param_file_string = "#   i   j   param int_type  other_params\n"
     model_param_file_string = "# model parameters\n"
-    for i in range(len(contacts)):
+    for i in range(len(pairs)):
         ## Each contact gets the interactions:
         ##  - compound_LJ12_Gaussian      Int.Type = 8
         ##  - Gaussian                    Int.Type = 4
-        i_idx = contacts[i][0]
-        j_idx = contacts[i][1]
+        i_idx = pairs[i][0]
+        j_idx = pairs[i][1]
         r0 = pairwise_distances[i] 
 
         ## compound_LJ12_Gaussian takes rNC, r0, width0
@@ -56,20 +56,20 @@ def get_compound_LJ12_Gaussian_pairwise(pdb,contacts,model_param=0):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='.')
     parser.add_argument('--pdb', type=str, required=True, help='PDB file with structure.')
-    parser.add_argument('--contacts', type=str, required=True, help='List of contacts.')
+    parser.add_argument('--pairs', type=str, required=True, help='List of pairs.')
     args = parser.parse_args()
 
     pdbfile = args.pdb
-    contactfile = args.contacts
+    pairsfile = args.pairs
     name = pdbfile.split(".pdb")[0]
 
-    contacts = np.loadtxt(contactfile,dtype=int)
-    if contacts.shape[0] == 4:
-        contacts = contacts[:,1::2]
+    pairs = np.loadtxt(pairsfile,dtype=int)
+    if pairs.shape[0] == 4:
+        pairs = pairs[:,1::2]
 
     pdb = pdb_parser.get_clean_CA(pdbfile)
 
-    pairwise_param_file_string, model_param_file_string = get_compound_LJ12_Gaussian_pairwise(pdb,contacts)
+    pairwise_param_file_string, model_param_file_string = get_compound_LJ12_Gaussian_pairwise(pdb,pairs)
 
     open("%s_pairwise_params" % name,"w").write(pairwise_param_file_string)
     open("%s_model_params" % name,"w").write(model_param_file_string)

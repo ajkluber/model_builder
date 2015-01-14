@@ -44,8 +44,8 @@ Models
 1. Submodules for bonded_potentials & pairwise_potentials to store
    contact interaction functions:
     1. Bonded potential utility library. DONE
-    2. Pairwise potentials library. With dimensionless
-       pairwise potential types:
+    2. Pairwise potentials library. With dimensionless 
+       pairwise potential types:    DONE
         - LJ1210
         - LJ1210rep
         - Bare Gaussian
@@ -59,11 +59,12 @@ Models
 2. Define the potential energy as the sum of "interaction strengths"
    multiplied by corresponding "interaction potentials". Then the list
    of non-redundant interaction strengths are the "model parameters".
-   Want to generalize parameter fitting to act on model parameters. 
+   Want to generalize parameter fitting to act on model parameters.  DONE
    
-   
-3. Code disulfides as a bonded interaction with harmonic bond, angle, etc. DONE, but not tested.
+3. Code disulfides as a bonded interaction with harmonic bond, angle, etc. DONE
    
 4. Decide on design that allows for multiple chains in the topology.
 
-5. Deprecated distinquishing "Tf" from "Mut" instead just use iteration.
+5. Deprecated distinquishing "Tf" from "Mut" instead just use iteration. DONE
+
+6. Have bonded interactions set in separate programs that deal with bead representations.
