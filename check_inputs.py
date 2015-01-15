@@ -37,7 +37,7 @@ def get_pairwise_params(pairwise_params_file,model_params_file):
 
     return pairs,pairwise_param_assignment,model_param_values,pairwise_type,pairwise_other_params
 
-def check_contact_args(inputs,pairs_file,pairwise_params_file,model_params_file,epsilonbar):
+def check_pairs_args(inputs,pairs_file,pairwise_params_file,model_params_file,epsilonbar):
     ''' Check input arguments for pairwise interactions'''
     pairs = None
     epsilon_bar = None
@@ -69,7 +69,7 @@ def check_contact_args(inputs,pairs_file,pairwise_params_file,model_params_file,
         inputs["model_params_file_location"] = model_params_file
         inputs["Defaults"] = False
 
-    inputs["Contacts"] = pairs
+    inputs["Pairs"] = pairs
     ## Check if average contact strength parameter, epsilon_bar, is set. This 
     ## keeps the average contact strength normalized to some number to maintain
     ## the same stability if the parameters are modified.
@@ -209,7 +209,7 @@ def new_args(args):
         raise SystemExit
 
     ## Check all contact-related inputs
-    inputs = check_contact_args(inputs,args.pairs,args.pairwise_params_file,args.model_params_file,args.epsilon_bar)
+    inputs = check_pairs_args(inputs,args.pairs,args.pairwise_params_file,args.model_params_file,args.epsilon_bar)
 
     ## Check parameter fitting inputs
     inputs = check_fitting_args(inputs,args.fitting_data,args.fitting_includes,args.fitting_solver,args.fitting_allowswitch,args.fitting_params_file)
@@ -229,7 +229,7 @@ def new_args(args):
     keys = inputs.keys()
     keys.sort()
     for key in keys:
-        if key in ["Contacts","model_param_values","pairwise_other_parameters",
+        if key in ["Contacts","Pairs","model_param_values","pairwise_other_parameters",
                    "pairwise_type","pairwise_param_assignment","fitting_params",
                     "Fitting_Params"]:
             if inputs[key] == None:
@@ -286,7 +286,7 @@ def load_args(subdir,dry_run):
     disulfides = inputs["Disulfides"]
         
     ## Check all contact-related inputs
-    inputs = check_contact_args(inputs,pairs_file,pairwise_params_file,model_params_file,epsilonbar)
+    inputs = check_pairs_args(inputs,pairs_file,pairwise_params_file,model_params_file,epsilonbar)
 
     ## Check parameter fitting inputs
     inputs = check_fitting_args(inputs,fittingdata,fittingincludes,fittingsolver,fittingallowswitch,fittingparamsfile)
@@ -298,7 +298,7 @@ def load_args(subdir,dry_run):
     keys = inputs.keys()
     keys.sort()
     for key in keys:
-        if key in ["Contacts","model_param_values","pairwise_other_parameters",
+        if key in ["Contacts","Pairs","model_param_values","pairwise_other_parameters",
                    "pairwise_type","pairwise_param_assignment","fitting_params",
                     "Fitting_Params"]:
             if inputs[key] == None:
