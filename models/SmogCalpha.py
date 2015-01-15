@@ -113,7 +113,7 @@ class SmogCalpha(object):
         model_info_string += "%s\n" % str(self.pairwise_params_file_location)
         model_info_string += "[ Model_Params_File ]\n"
         model_info_string += "%s\n" % str(self.model_params_file_location)
-        model_info_string += "[ N_Native_Contacts ]\n"
+        model_info_string += "[ N_Native_Pairs ]\n"
         model_info_string += "%s\n" % str(self.n_native_pairs)
         model_info_string += "[ Contact_Type ]\n"
         model_info_string += "%s\n" % self.contact_type

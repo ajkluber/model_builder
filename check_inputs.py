@@ -248,7 +248,7 @@ def load_args(subdir,dry_run):
     inputs = {"Dry_Run":dry_run}
     while line != '':
         field = line.split()[1]
-        value = info_file.readline()
+        value = info_file.readline().rstrip("\n")
         if field == "Reference":
             break
         elif field in ["Interaction_Groups","Model_Name",
@@ -257,21 +257,24 @@ def load_args(subdir,dry_run):
                         "Contact_Type","Contact_params","Contact_Energies"]:
             pass
         elif field == "Iteration":
-            inputs[field] = int(value.rstrip("\n"))
+            inputs[field] = int(value)
         elif field == "N_Native_Contacts":
-            if value.rstrip("\n") != "None":
-                inputs[field] = int(value.rstrip("\n"))
+            field = "N_Native_Pairs"
+            if value != "None":
+                inputs[field] = int(value)
             else:
                 inputs[field] = None
+        elif field == "Fitting_Params":
+            field = "Fitting_Params_File"
+            inputs[field] = value
         else:
-            inputs[field] = value.rstrip("\n")
+            inputs[field] = value
         line = info_file.readline()
 
     if not os.path.exists("%s/pairs.dat" % subdir):
         shutil.copy("%s/contacts.dat" % subdir,"%s/pairs.dat" % subdir)
 
     pairs_file = "%s/pairs.dat" % subdir
-
     pairwise_params_file = inputs["Pairwise_Params_File"]
     model_params_file = inputs["Model_Params_File"]
     epsilonbar = inputs["Epsilon_Bar"] 
