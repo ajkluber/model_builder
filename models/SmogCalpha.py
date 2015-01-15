@@ -327,6 +327,7 @@ class SmogCalpha(object):
 
 
         if self.n_native_pairs == None:
+            pass
         ## Need to determine which pairs are native pairs.
         self.native_pairs_ndx = "[ native_pairs ]\n"
         self.native_pairs = []
