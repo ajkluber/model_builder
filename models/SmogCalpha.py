@@ -67,9 +67,6 @@ class SmogCalpha(object):
         self._generate_index_ndx()
         self._generate_grofile()
         self.n_pairs = len(self.pairs)
-        self.Qref = np.zeros((self.n_residues,self.n_residues))
-        for pair in self.pairs:
-            self.Qref[pair[0]-1,pair[1]-1] = 1 
 
         ## Check disulfide separation and remove from pairs list.
         self._check_disulfides() 
@@ -108,7 +105,7 @@ class SmogCalpha(object):
         model_info_string += "[ Epsilon_Bar ]\n"
         model_info_string += "%s\n" % str(self.epsilon_bar)
         model_info_string += "[ Nonnative ]\n"
-        model_info_string += "%s\n" % str(None)
+        model_info_string += "%s\n" % str(self.nonnative)
         model_info_string += "[ Pairwise_Params_File ]\n"
         model_info_string += "%s\n" % str(self.pairwise_params_file_location)
         model_info_string += "[ Model_Params_File ]\n"
@@ -326,22 +323,37 @@ class SmogCalpha(object):
             self.pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
 
 
-        if self.n_native_pairs == None:
-            pass
         ## Need to determine which pairs are native pairs.
-        self.native_pairs_ndx = "[ native_pairs ]\n"
+        self.native_pairs_ndx = "[ native_contacts ]\n"
         self.native_pairs = []
-        for i in range(self.n_pairs):
-            if (not (list(self.pairs[i,:]) in self.native_pairs)) and not (self.pairwise_type[i] in SKIP_INTERACTIONS):
-                self.native_pairs.append(list(self.pairs[i,:]))
-                self.native_pairs_ndx += "%4d %4d\n" % (self.pairs[i,0],self.pairs[i,1])
-        self.num_native_pairs = len(self.native_pairs)
+        self.native_pairs_indices = []
+        self.Qref = np.zeros((self.n_residues,self.n_residues))
+        if self.n_native_pairs in [None,'None']:
+            print "  Considering all (nonredundant) pairs to be native pairs"
+            for i in range(self.n_pairs):
+                if (not (list(self.pairs[i,:]) in self.native_pairs)) and (not (self.pairwise_type[i] in SKIP_INTERACTIONS)):
+                    self.native_pairs_indices.append(i)
+                    self.native_pairs.append(list(self.pairs[i,:]))
+                    self.native_pairs_ndx += "%4d %4d\n" % (self.pairs[i,0],self.pairs[i,1])
+                    self.Qref[self.pairs[i,0]-1,self.pairs[i,1]-1] = 1 
+            self.n_native_pairs = len(self.native_pairs)
+        else:
+            print "  Considering the first %d unique pairs to be native pairs" % self.n_native_pairs
+            for i in range(self.n_pairs):
+                if (not (list(self.pairs[i,:]) in self.native_pairs)) and (not (self.pairwise_type[i] in SKIP_INTERACTIONS)):
+                    self.native_pairs_indices.append(i)
+                    self.native_pairs.append(list(self.pairs[i,:]))
+                    self.native_pairs_ndx += "%4d %4d\n" % (self.pairs[i,0],self.pairs[i,1])
+                    self.Qref[self.pairs[i,0]-1,self.pairs[i,1]-1] = 1 
+        
+        self.native_pairs_indices = np.array(self.native_pairs_indices)
 
+        ## Calculate the native stability.
         self.native_stability = 0
-        for i in range(self.n_pairs):
-            if not (self.pairwise_type[i] in SKIP_INTERACTIONS):
-                self.native_stability += (self.pairwise_strengths[i]*self.pairwise_potentials[i](np.array([self.pairwise_other_parameters[i][0]])))[0]
-        self.num_native_pairs = len(self.native_pairs)
+        for i in range(self.n_native_pairs):
+            idx = self.native_pairs_indices[i]
+            self.native_stability += (self.pairwise_strengths[idx]*self.pairwise_potentials[idx](np.array([self.pairwise_other_parameters[idx][0]])))[0]
+        
         self._generate_interaction_tables()
         self._generate_topology()
 
@@ -574,7 +586,6 @@ class SmogCalpha(object):
         open("index.ndx","w").write(self.index_ndx)
         open("dihedrals.ndx","w").write(self.dihedrals_ndx)
         open("native_contacts.ndx","w").write(self.native_pairs_ndx)
-        open("native_pairs.ndx","w").write(self.native_pairs_ndx)
         open("conf.gro","w").write(self.grofile)
         open("topol.top","w").write(self.topology)
         open("pairwise_params","w").write(self.pairwise_param_file_string)

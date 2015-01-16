@@ -258,7 +258,7 @@ def load_args(subdir,dry_run):
             pass
         elif field == "Iteration":
             inputs[field] = int(value)
-        elif field == "N_Native_Contacts":
+        elif field in ["N_Native_Contacts","N_Native_Pairs"]:
             field = "N_Native_Pairs"
             if value != "None":
                 inputs[field] = int(value)
