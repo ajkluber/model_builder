@@ -228,6 +228,7 @@ class SmogCalpha(object):
                         else:
                             new_pairs.append(pair)
                     self.pairs = np.array(new_pairs)
+                    self.n_pairs = len(self.pairs)
 
                     self.exclusions.append([i_idx,j_idx])
                     ## Set cysteine bond distance, angles, and dihedral.
@@ -245,10 +246,6 @@ class SmogCalpha(object):
                     self.dihedral_indices.append([i_idx-1,i_idx,j_idx,j_idx-1])
                     self.dihedral_min.append(phi)
                     self.dihedral_strengths.append(self.backbone_param_vals["Kd"])
-
-                if self.Qref[i_idx-1][j_idx-1] == 1:
-                    #print "    Subtracting 1 from n_pairs for ", i_idx,j_idx, " disulfide"
-                    self.n_pairs -= 1
         else:
             print "  No disulfides to check."
 
