@@ -1,17 +1,21 @@
-''' Utilities for nonbonded/pairwise potential terms.
+""" Utilities for nonbonded/pairwise potential terms.
 
 Potentials to add: 
 - Repulsive tanh function by Ryan Cheng to complement Gaussian  DONE
 - Attractive and repulsive LJ126 potentials DONE
 - Compound functions i.e. Heiko's product functions  DONE
-- Compound (product) functions with Gaussian barrier.
+- Compound (product) functions with Gaussian barrier. 
 
-'''
+"""
 
 import numpy as np
 
+##############################################################################
+# Utilities and wrappers
+##############################################################################
+
 def get_pair_potential(code):
-    ''' Returns pairwise potential function'''
+    """ Returns pairwise potential function"""
     potential = {1:LJ12,2:LJ1210,3:LJ1210rep,4:Gaussian,
                  5:Cheng_rep,6:LJ126,7:LJ126rep,
                  8:compound_LJ12_Gaussian,9:compound_LJ12_double_Gaussian,
@@ -19,7 +23,7 @@ def get_pair_potential(code):
     return potential
 
 def get_pair_potential_deriv(code):
-    ''' Returns derivative of pairwise potential function'''
+    """ Returns derivative of pairwise potential function"""
     potential = {1:LJ12_deriv,2:LJ1210_deriv,3:LJ1210rep_deriv,
                  4:Gaussian_deriv,5:Cheng_rep_deriv,
                  6:LJ126_deriv,7:LJ126rep_deriv,
@@ -28,12 +32,12 @@ def get_pair_potential_deriv(code):
     return potential
 
 def get_switched_pair_potential(code):
-    ''' Returns the "switched" pairwise potential function. NOT DONE/USED'''
+    """ Returns the "switched" pairwise potential function. NOT DONE/USED"""
     potential = {1:LJ12,2:LJ1210,3:LJ1210rep,4:Gaussian,5:Cheng_rep}[code]
     return potential
 
 def wrap_pairwise(old_pairwise,*args):
-    ''' Wraps pairwise function so only r needs to be passed 
+    """ Wraps pairwise function so only r needs to be passed 
 
     Inputs:
         A function that takes one distance (r) and a variable number of
@@ -43,13 +47,13 @@ def wrap_pairwise(old_pairwise,*args):
     Returns:
         A function that only depends on the distance, customized to fixed values
     of the remaining positional parameters.
-    '''
+    """
     def new_pairwise(r):
         return old_pairwise(r,*args)
     return new_pairwise
 
 def wrap_sum_of_pairwise(*args):
-    ''' Returns function that is sum of args functions. 
+    """ Returns function that is sum of args functions. 
 
     Inputs:
         A list of functions that each depend on a distance (r).
@@ -57,13 +61,13 @@ def wrap_sum_of_pairwise(*args):
         A function that evaluates the sum of the inputted functions.
     The returned function is also depends on the distance (r).
     NOT USED
-    '''
+    """
     def sum_pairwise(r):
         return sum(np.array([ args[i](r) for i in range(len(args)) ]))
     return sum_pairwise
 
 def wrap_sum_of_pairwise_with_coefficients(*args):
-    ''' Returns function that is sum of args functions. 
+    """ Returns function that is sum of args functions. 
 
     Inputs:
         A list where the first half is a list of numbers and the second
@@ -74,10 +78,14 @@ def wrap_sum_of_pairwise_with_coefficients(*args):
     The weights are the numbers in the first half of the inputted list.
     The returned function is also depends on the distance (r).
     NOT USED
-    '''
+    """
     def sum_pairwise_with_coefficients(r):
         return sum(np.array([ args[i]*args[i+(len(args)/2)](r) for i in range(len(args)/2) ]))
     return sum_pairwise_with_coefficients
+
+##############################################################################
+# Pairwise interaction potentials
+##############################################################################
 
 def LJ12(r,r0):
     x = r0/r
@@ -144,16 +152,21 @@ def LJ126_deriv(r,r0):
     return V
 
 def LJ126rep(r,r0):
-    ''' ONLY PLACEHOLDER. NOT DONE '''
+    """ ONLY PLACEHOLDER. NOT DONE """
     x = r0/r
     V = (x**12) - 2.*(x**6)
     return V
 
 def LJ126rep_deriv(r,r0):
-    ''' ONLY PLACEHOLDER. NOT DONE '''
+    """ ONLY PLACEHOLDER. NOT DONE """
     x = r0/r
     V = (-12./r0)*((x**13) - (x**7))
     return V
+
+
+##############################################################################
+# Compound pairwise potentials. 
+##############################################################################
 
 def compound_LJ12_Gaussian(r,rNC,r0,width0):
     return LJ12(r,rNC)*(1. + Gaussian(r,r0,width0))

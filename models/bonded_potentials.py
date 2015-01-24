@@ -1,7 +1,4 @@
-""" Utilities for bonded potential terms
-
-
-"""
+"""Utilities for bonded potential terms"""
 
 import numpy as np
 
@@ -10,7 +7,7 @@ def distance(coords,i_idx,j_idx):
     return dist
 
 def angle(coords,i_idx,j_idx,k_idx):
-    ''' Compute the angle between 3 atoms in degrees'''
+    """ Compute the angle between 3 atoms in degrees"""
     xkj = coords[k_idx] - coords[j_idx]
     xkj /= np.linalg.norm(xkj)
     xij = coords[i_idx] - coords[j_idx]
@@ -19,7 +16,7 @@ def angle(coords,i_idx,j_idx,k_idx):
     return theta
 
 def dihedral(coords,i_idx,j_idx,k_idx,l_idx):
-    ''' Compute the dihedral angle between planes formed by 4 atoms in degrees '''
+    """ Compute the dihedral angle between planes formed by 4 atoms in degrees """
     v21 = coords[j_idx] - coords[i_idx]
     v31 = coords[k_idx] - coords[i_idx]
     v32 = coords[k_idx] - coords[j_idx]

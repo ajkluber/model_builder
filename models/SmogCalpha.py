@@ -1,4 +1,4 @@
-''' SmogCalpha
+""" SmogCalpha
 
 Description:
 
@@ -14,7 +14,7 @@ References:
 
 TODO(alex):
     - Delineate between native pairs and all pairs
-'''
+"""
 
 import numpy as np
 import subprocess as sb
@@ -29,7 +29,7 @@ global SKIP_INTERACTIONS
 SKIP_INTERACTIONS = [1,8,9]
 
 class SmogCalpha(object):
-    ''' This class creates a topology and grofile '''
+    """ This class creates a topology and grofile """
     def __init__(self,**kwargs):
         self.path = os.getcwd()
         ## Set any keyword argument given as an attribute. Assumes it has what it needs.
@@ -76,7 +76,7 @@ class SmogCalpha(object):
         self._set_nonbonded_interactions()
 
     def get_model_info_string(self):
-        ''' The string representation of all the model info.'''
+        """ The string representation of all the model info."""
         model_info_string = "[ Path ]\n"
         model_info_string += "%s\n" % self.path
         model_info_string += "[ PDB ]\n"
@@ -136,7 +136,7 @@ class SmogCalpha(object):
         logfile = open('%s/%s/%s.log' % (path,self.subdir,self.subdir),'a').write("%s %s\n" % (now_string,string))
 
     def _check_pair_opts(self):
-        ''' Set default pairwise interaction terms '''
+        """ Set default pairwise interaction terms """
 
         ## Set some defaults for pairwise interaction potential.
         if not hasattr(self,"epsilon_bar"):
@@ -199,8 +199,8 @@ class SmogCalpha(object):
         self.model_param_interactions = [ (np.where(self.pairwise_param_assignment == p))[0] for p in range(self.n_model_param) ]
 
     def _check_disulfides(self):
-        ''' Check that specified disulfides are between cysteine and that 
-            the corresonding pairs are within 0.8 nm. '''
+        """ Check that specified disulfides are between cysteine and that 
+            the corresonding pairs are within 0.8 nm. """
         coords = self.atom_coords
         residues = self.atom_residues
         if self.disulfides != None:
@@ -250,7 +250,7 @@ class SmogCalpha(object):
             print "  No disulfides to check."
 
     def _set_bonded_interactions(self):
-        ''' Extract info from the Native.pdb for making index and top file '''
+        """ Extract info from the Native.pdb for making index and top file """
         ## Grab coordinates from the pdb file.
         self.cleanpdb = pdb_parser.get_clean_CA(self.pdb)
         self.cleanpdb_full = pdb_parser.get_clean_full(self.pdb)
@@ -282,7 +282,7 @@ class SmogCalpha(object):
             self.dihedral_strengths = [ self.backbone_param_vals["Kd"] for i in range(len(self.dihedral_min)) ]
             
     def _set_nonbonded_interactions(self):
-        ''' Set all interaction functions '''
+        """ Set all interaction functions """
 
         ## Determine the number of tabled interactions. Need to table if not LJ1210 or LJ12
         flag = ((self.pairwise_type == 2).astype(int) + (self.pairwise_type == 1).astype(int))
@@ -355,11 +355,11 @@ class SmogCalpha(object):
         self._generate_topology()
 
     def _generate_interaction_tables(self):
-        ''' Generates tables of user-defined potentials 
+        """ Generates tables of user-defined potentials 
 
         TODO(alex):
             - Sum all the tabled interactions between given pair? To reduce the # of table files.
-        '''
+        """
 
         self.tablep = self._get_LJ1210_table()
         self.LJtable = self.tablep
@@ -378,7 +378,7 @@ class SmogCalpha(object):
             self.tables.append(table)
 
     def _get_LJ1210_table(self):
-        ''' LJ12-10 interaction potential ''' 
+        """ LJ12-10 interaction potential """ 
         r = np.arange(0.0,100.0,0.002)
         r[0] = 1
         table = np.zeros((len(r),7),float)
@@ -394,7 +394,7 @@ class SmogCalpha(object):
         return table
 
     def _generate_index_ndx(self):
-        ''' Generates index file for gromacs analysis utilities. '''
+        """ Generates index file for gromacs analysis utilities. """
         ca_string = ''
         i = 1
         
@@ -416,7 +416,7 @@ class SmogCalpha(object):
         self.index_ndx = indexstring
 
     def _get_atoms_string(self):
-        ''' Generate the [ atoms ] string.'''
+        """ Generate the [ atoms ] string."""
         atoms_string = " [ atoms ]\n"
         atoms_string += " ;nr  type  resnr residue atom  cgnr charge  mass\n"
         for j in range(len(self.atom_indices)):
@@ -428,7 +428,7 @@ class SmogCalpha(object):
         return atoms_string
 
     def _get_bonds_string(self):
-        ''' Generate the [ bonds ] string.'''
+        """ Generate the [ bonds ] string."""
         bonds_string = " [ bonds ]\n"
         bonds_string += " ; ai aj func r0(nm) Kb\n"
         for j in range(len(self.bond_min)):
@@ -441,7 +441,7 @@ class SmogCalpha(object):
         return bonds_string
 
     def _get_tabled_string(self):
-        ''' Generate the topology files to specify table interactions. '''
+        """ Generate the topology files to specify table interactions. """
         ## Add special nonbonded table interactions. 
         tabled_string = "; tabled interactions pairs below\n"
         for i in range(self.n_tables):
@@ -451,7 +451,7 @@ class SmogCalpha(object):
         return tabled_string
 
     def _get_angles_string(self):
-        ''' Generate the [ angles ] string.'''
+        """ Generate the [ angles ] string."""
         angles_string = " [ angles ]\n"
         angles_string += " ; ai  aj  ak  func  th0(deg)   Ka\n"
         for j in range(len(self.angle_min)):
@@ -465,7 +465,7 @@ class SmogCalpha(object):
         return angles_string
 
     def _get_dihedrals_string(self):
-        ''' Generate the [ dihedrals ] string.'''
+        """ Generate the [ dihedrals ] string."""
         dihedrals_string = " [ dihedrals ]\n"
         dihedrals_string += " ; ai  aj  ak al  func  phi0(deg)   Kd mult\n"
         dihedrals_ndx = '[ dihedrals ]\n'
@@ -486,7 +486,7 @@ class SmogCalpha(object):
         return dihedrals_string
 
     def _get_pairs_string(self):
-        ''' Get the [ pairs ] string '''
+        """ Get the [ pairs ] string """
 
         pairs_string = " [ pairs ]\n"
         pairs_string += " ; %5s  %5s %4s    %8s   %8s\n" % ("i","j","type","c10","c12")
@@ -517,7 +517,7 @@ class SmogCalpha(object):
         return pairs_string
 
     def _get_exclusions_string(self):
-        ''' Get the [ exclusions ] string '''
+        """ Get the [ exclusions ] string """
         if len(self.exclusions) > 0: 
             exclusions_string = " [ exclusions ]\n"
             exclusions_string += " ;  i    j \n"
@@ -531,7 +531,7 @@ class SmogCalpha(object):
         return exclusions_string
 
     def _generate_grofile(self):
-        ''' Get the .gro string '''
+        """ Get the .gro string """
         gro_string = " Structure-based Gro file\n"
         gro_string += "%12d\n" % len(self.atom_types)
         for i in range(len(self.atom_types)):
@@ -543,7 +543,7 @@ class SmogCalpha(object):
         self.grofile = gro_string
 
     def _generate_topology(self):
-        ''' Return a structure-based topology file. Currently only for one molecule. '''
+        """ Return a structure-based topology file. Currently only for one molecule. """
 
         top_string =  " ; Structure-based  topology file for Gromacs:\n"
         top_string += " [ defaults ]\n"
@@ -574,7 +574,7 @@ class SmogCalpha(object):
         self.topology = top_string
 
     def save_simulation_files(self):
-        ''' Write all needed simulation files. '''
+        """ Write all needed simulation files. """
         cwd = os.getcwd()
         self.pairwise_params_file_location = "%s/pairwise_params" % cwd
         self.model_params_file_location = "%s/model_params" % cwd
@@ -597,7 +597,7 @@ class SmogCalpha(object):
             np.savetxt(self.tablenames[i],self.tables[i],fmt="%16.15e",delimiter=" ")
 
     def update_model_param_values(self,new_model_param_values):
-        ''' If parameter changed sign, change the pairwise interaction type '''
+        """ If parameter changed sign, change the pairwise interaction type """
         ## Switching between different interaction function types
         potential_type_switch = {2:3,3:2,4:5,5:4}
     

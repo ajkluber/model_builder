@@ -1,4 +1,4 @@
-''' Make pairwise_params strings for
+""" Make pairwise_params strings for
 
 Description:
     Construct pairwise_params file for compound interactions, such
@@ -14,7 +14,7 @@ Outputs:
 TODO:
     Allow for specifying the model_param of each interaction.
 
-'''
+"""
 
 import argparse
 import numpy as np
@@ -22,7 +22,7 @@ import numpy as np
 import pdb_parser
 
 def get_compound_LJ12_Gaussian_pairwise(pdb,pairs,model_param=0):
-    ''' '''
+    """ """
     rNC = 0.4
     width0 = 0.05
     pairwise_distances = pdb_parser.get_pairwise_distances(pdb,pairs)

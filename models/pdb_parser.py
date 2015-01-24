@@ -1,4 +1,4 @@
-''' Parse and clean pdb file.
+""" Parse and clean pdb file.
 
 Find the full PDB format specification at:
 http://www.wwpdb.org/documentation/format33/sect9.html#ATOM
@@ -15,7 +15,7 @@ To Do:
     - Calculate center of mass of sidechain atoms for use with
       Calpha-Cbeta model.
 
-'''
+"""
 
 import numpy as np
 
@@ -25,7 +25,7 @@ global atom_mass
 atom_mass = {"C":12.01,"N":14.00,"O":16.00,"S":32.07}
 
 def get_clean_CA(pdbname):
-    ''' Gets first chain from pdb. Keeps only CA atoms.'''
+    """ Gets first chain from pdb. Keeps only CA atoms."""
     first = 0
     atomid = 1
     cleanpdb = ''
@@ -56,7 +56,7 @@ def get_clean_CA(pdbname):
     return cleanpdb
 
 def get_clean_CA_CB(pdbname):
-    ''' Gets first chain from pdb. Keeps only CA CB atoms.'''
+    """ Gets first chain from pdb. Keeps only CA CB atoms."""
     first = 0
     atomid = 1
     cleanpdb = ''
@@ -87,7 +87,7 @@ def get_clean_CA_CB(pdbname):
     return cleanpdb
 
 def get_clean_full(pdbname):
-    ''' Gets first chain from pdb. Keeps all atoms.'''
+    """ Gets first chain from pdb. Keeps all atoms."""
     first = 0
     atomid = 1
     cleanpdb = ''
@@ -117,7 +117,7 @@ def get_clean_full(pdbname):
     return cleanpdb
 
 def get_clean_full_noH(pdbname):
-    ''' Gets first chain from pdb. Keeps all atoms except Hydrogen.'''
+    """ Gets first chain from pdb. Keeps all atoms except Hydrogen."""
     first = 0
     atomid = 1
     cleanpdb = ''
@@ -150,7 +150,7 @@ def get_clean_full_noH(pdbname):
     return cleanpdb
 
 def get_coords_atoms_residues(pdb):
-    ''' Parse lines of a pdb string. Returns coordinates in nm. '''
+    """ Parse lines of a pdb string. Returns coordinates in nm. """
     indices = []
     atoms = []
     residues = []
@@ -173,10 +173,8 @@ def get_coords_atoms_residues(pdb):
 
     return coords,indices,atoms,residues
 
-
-
 def get_pairwise_distances(pdb,pairs):
-    ''' Calculate atomic distances between pairs in nm. '''
+    """ Calculate atomic distances between pairs in nm. """
 
     coords,indices,atoms,residues = get_coords_atoms_residues(pdb)
 
