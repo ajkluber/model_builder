@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
     pairs,pairwise_param_assignment,model_param_values,pairwise_type,pairwise_other_parameters = get_pairwise_params(pairwise_params_file,model_params_file)
 
-    model = models.SmogCalpha.SmogCalpha(pdb=pdb,pairs=pairs,
+    model = models.CoarseGrainedModel.CoarseGrainedModel(pdb=pdb,pairs=pairs,
                     pairwise_param_assignment=pairwise_param_assignment,
                     pairwise_type=pairwise_type,
                     pairwise_other_parameters=pairwise_other_parameters,

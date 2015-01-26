@@ -1,4 +1,4 @@
-''' Package for generating Gromacs input files for coarse-grain Hamiltonians.
+""" Package for generating Gromacs input files for coarse-grain Hamiltonians.
 
 Description:
     
@@ -17,7 +17,9 @@ Example:
 >>> ls
 >>> 
 
-'''
+"""
 
 import models
-import check_inputs
+import inputs
+import info_string
+import make_model

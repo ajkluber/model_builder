@@ -1,17 +1,16 @@
-''' Check inputs to SmogCalpha '''
+""" Check inputs for making a CoarseGrainedModel """
 
 import numpy as np
 import os
 import shutil
 
-import models.SmogCalpha as SmogCalpha
-
+import models.CoarseGrainedModel as cg
 
 global negvals
 negvals = ["None",None,"",False,"False"]
 
 def get_pairwise_params(pairwise_params_file,model_params_file):
-    ''' Grab pairwise_params from file. '''
+    """ Grab pairwise_params from file. """
     model_param_values = np.loadtxt(model_params_file)
 
     p_lines = [ x.rstrip("\n") for x in open(pairwise_params_file,"r").readlines() ]
@@ -38,7 +37,7 @@ def get_pairwise_params(pairwise_params_file,model_params_file):
     return pairs,pairwise_param_assignment,model_param_values,pairwise_type,pairwise_other_params
 
 def check_pairs_args(inputs,pairs_file,pairwise_params_file,model_params_file,epsilonbar):
-    ''' Check input arguments for pairwise interactions'''
+    """ Check input arguments for pairwise interactions"""
     pairs = None
     epsilon_bar = None
     inputs["Defaults"] = True
@@ -85,7 +84,7 @@ def check_pairs_args(inputs,pairs_file,pairwise_params_file,model_params_file,ep
     return inputs
 
 def check_fitting_args(inputs,fittingdata,fittingincludes,fittingsolver,fittingallowswitch,fittingparamsfile):
-    ''' Check parameter fitting options.
+    """ Check parameter fitting options.
 
     If parameter fitting is being used check that the fitting inputs make sense:
       fitting_data          indicates the type of data to fit
@@ -93,7 +92,7 @@ def check_fitting_args(inputs,fittingdata,fittingincludes,fittingsolver,fittinga
       fitting_solver        choses the algorithm to select a solution.
       fitting_allowswitch   specifies if interactions are allowed to change from attractive/repulsive.
       fitting_params        specifies which parameters are being fit.
-    '''
+    """
     fittingdatas = ["ddG_MC2004","RMSF","FRET","contact_Qi"]
     fittingallowswitches = ["True","False"]
     fittingsolvers = ["Levenberg","TSVD","TSVD_Cplex"]
@@ -147,7 +146,7 @@ def check_fitting_args(inputs,fittingdata,fittingincludes,fittingsolver,fittinga
     return inputs
 
 def check_disulfide_args(inputs,inputdisulfides):
-    ''' Check disulfide argument '''
+    """ Check disulfide argument """
     if inputdisulfides in negvals:
         disulfides = None
     else:
@@ -173,7 +172,7 @@ def check_disulfide_args(inputs,inputdisulfides):
     return inputs
 
 def new_args(args):
-    ''' Check new input arguments '''
+    """ Check new input arguments """
     available_models = ["HomGo","HetGo","DMC"]
     beadmodels = {"HomGo":["CA"],"HetGo":["CA"]}
     fittingdatas = ["ddG_MC2004","RMSF","FRET","contact_Qi"]
@@ -310,30 +309,28 @@ def load_args(subdir,dry_run):
     return inputs
 
 def load_model(subdir,dry_run=False):
-    ''' Read model.info files in subdirectories and create models.'''
+    """ Read model.info files in subdirectories and create models."""
 
     options = load_args(subdir,dry_run)
-    model = SmogCalpha.SmogCalpha(**options)
+    model = cg.CoarseGrainedModel(**options)
 
     return model
 
 def load_models(subdirs,dry_run=False):
-    ''' Create models from saved options in model.info.'''
+    """ Create models from saved options in model.info."""
     Models = []
     for subdir in subdirs:
         print "Loading model from subdirectory: ", subdir
-        #Model = load_model(subdir,dry_run=dry_run)
         options = load_args(subdir,dry_run)
-        Model = SmogCalpha.SmogCalpha(**options)
-        Models.append(Model)
+        model = cg.CoarseGrainedModel(**options)
+        Models.append(model)
     return Models
 
 def new_models(subdirs,options):
-    ''' Create new models with inputted options.'''
+    """ Create new models with inputted options."""
     Models = []
     for subdir in subdirs:
         options["PDB"] = subdir+".pdb"
-        model = SmogCalpha.SmogCalpha(**options)
-
+        model = cg.CoarseGrainedModel(**options)
         Models.append(model)
     return Models

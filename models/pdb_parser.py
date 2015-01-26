@@ -19,10 +19,9 @@ To Do:
 
 import numpy as np
 
-import bonded_potentials as bond
 
 global atom_mass
-atom_mass = {"C":12.01,"N":14.00,"O":16.00,"S":32.07}
+atom_mass = {"H":1.00,"C":12.01,"N":14.00,"O":16.00,"S":32.07}
 
 def get_clean_CA(pdbname):
     """ Gets first chain from pdb. Keeps only CA atoms."""
@@ -151,64 +150,91 @@ def get_clean_full_noH(pdbname):
 
 def get_coords_atoms_residues(pdb):
     """ Parse lines of a pdb string. Returns coordinates in nm. """
-    indices = []
-    atoms = []
-    residues = []
-    coords = []
+    atm_indxs = []
+    atm_types = []
+    atm_coords = []
+    res_types = []
+    res_indxs = []
     pdblines = pdb.split("\n")
     res_indx = 0
     for line in pdblines:
         if line.startswith("END"):
             break
         else:
-            indices.append(int(line[6:13]))
-            atoms.append(line[11:16].strip())
-            coords.append([float(line[31:39]),float(line[39:47]),float(line[47:55])]) 
+            atm_indxs.append(int(line[6:13]))
+            atm_types.append(line[11:16].strip())
+            atm_coords.append([float(line[31:39]),float(line[39:47]),float(line[47:55])]) 
             if (int(line[23:26]) == (res_indx + 1)):
+                res_indxs.append(int(line[23:26]))
+                res_types.append(line[17:20])
                 res_indx += 1 
-                residues.append(line[17:20])
 
     ## Coordinates in pdb files are Angstroms. Convert to nanometers.
-    coords = np.array(coords)/10.
+    atm_coords = np.array(atm_coords)/10.
 
-    return coords,indices,atoms,residues
+    return atm_coords,atm_indxs,atm_types,res_indxs,res_types
 
 def get_pairwise_distances(pdb,pairs):
-    """ Calculate atomic distances between pairs in nm. """
+    """Calculate atomic distances between pairs in nm."""
 
-    coords,indices,atoms,residues = get_coords_atoms_residues(pdb)
+    coords = get_coords_atoms_residues(pdb)[0]
 
     pairwise_distances = np.zeros(len(pairs),float)
     for i in range(len(pairs)):
         i_idx = pairs[i][0]
         j_idx = pairs[i][1]
-        pairwise_distances[i] = bond.distance(coords,i_idx-1,j_idx-1)
+        pairwise_distances[i] = np.linalg.norm(coords[i_idx-1] - coords[j_idx-1])
     return pairwise_distances
 
-def get_clean_CA_center_of_mass_CB(pdb):
-    """ Return pdb with CACB atoms but with CB's at sidechain center of mass """
+def calc_center_of_mass(atoms,coords):
+    """Calculate center of mass of set of atoms"""
+    com_xyz = np.zeros(3,float)
+    n_atoms = len(atoms)
+    total_mass = 0.
+    for i in range(n_atoms):
+        total_mass += atom_mass[atoms[i]]
+        com_xyz += coords[i]*atom_mass[atoms[i]]
+    com_xyz /= total_mass
+    return com_xyz
 
-    backbone_atoms = ["N","CA","C","O"]
+def get_clean_CA_center_of_mass_CB(pdb):
+    """Get CA & CB of chain with CB at sidechain center of mass.
+
+    Parameters
+    ----------
+    pdb : str
+        String in PDB file format that has contents of one protein chain. 
+        Assumed to be one chain, numbering starting at 1. (e.g. as returned
+        by get_clean_full_noH.
+
+    Returns
+    -------
+    cacab_pdb : str
+        String in PDB format with only CA and CB atoms. With CB atoms placed
+        at the sidechain center of mass.
+
+    See Also
+    --------
+    pdb_parser.get_clean_full_noH
+    """
+
+    backbone_atoms = ["N","CA","C","O"] 
 
     pdblines = pdb.split("\n")
     res_indx = 1
     atm_indx = 1
-    sidechain_coords = []
-    sidechain_atoms = []
+    coords = []
+    atoms = []
     cacb_string = ""
+    # Parse each line in the PDB string.
     for line in pdblines:
-        if line.startswith("END"):
+        if (line.startswith("END")) or (line.startswith("TER")):
+            # Process final residue.
             if prev_res_name != "GLY":
-                com_xyz = np.zeros(3,float)
-                n_atoms = len(sidechain_atoms)
-                total_mass = 0.
-                for i in range(n_atoms):
-                    total_mass += atom_mass[sidechain_atoms[i]]
-                    com_xyz += sidechain_coords[i]*atom_mass[sidechain_atoms[i]]
-                com_xyz /= total_mass
-
+                # Skip glycines b/c they have no sidechain.
+                com_xyz = calc_center_of_mass(atoms,coords)
                 newline = 'ATOM%7d  %-4s%3s A%4d    %8.3f%8.3f%8.3f\n' % \
-                        (atm_indx,"CB",prev_res_name,res_indx-1,com_xyz[0],com_xyz[1],com_xyz[2])
+                    (atm_indx,"CB",prev_res_name,res_indx-1,com_xyz[0],com_xyz[1],com_xyz[2])
                 atm_indx += 1
                 cacb_string += newline
             break
@@ -217,39 +243,37 @@ def get_clean_CA_center_of_mass_CB(pdb):
             xyz = np.array([float(line[31:39]),float(line[39:47]),float(line[47:55])])
             res_num = int(line[23:26])
             if atom_type == "CA":
+                # We keep CA atoms just as they are.
                 newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                         (atm_indx,line[12:16],line[17:20],res_num,line[26:55])
                 atm_indx += 1
                 cacb_string += newline
 
             if res_num == (res_indx + 1):
-                ## Calculate center of mass of sidechain for previous residue.
+                # If we have moved to the next residuec calculate center of
+                # mass of sidechain for previous residue.
                 res_indx += 1 
-                sidechain_coords = np.array(sidechain_coords)
+                coords = np.array(coords)
                 if prev_res_name != "GLY":
-                    com_xyz = np.zeros(3,float)
-                    n_atoms = len(sidechain_atoms)
-                    total_mass = 0.
-                    for i in range(n_atoms):
-                        total_mass += atom_mass[sidechain_atoms[i]]
-                        com_xyz += sidechain_coords[i]*atom_mass[sidechain_atoms[i]]
-                    com_xyz /= total_mass
-
+                    # Skip glycines b/c they have no sidechain.
+                    com_xyz = calc_center_of_mass(atoms,coords)
                     newline = 'ATOM%7d  %-4s%3s A%4d    %8.3f%8.3f%8.3f\n' % \
-                            (atm_indx,"CB",prev_res_name,res_indx-1,com_xyz[0],com_xyz[1],com_xyz[2])
+                        (atm_indx,"CB",prev_res_name,res_indx-1,com_xyz[0],com_xyz[1],com_xyz[2])
                     atm_indx += 1
                     cacb_string += newline
+                # Start collecting the next residue's info.
                 if not atom_type in backbone_atoms: 
-                    sidechain_coords = [xyz]
-                    sidechain_atoms = [atom_type]
+                    coords = [xyz]
+                    atoms = [atom_type]
                 else:
-                    sidechain_coords = []
-                    sidechain_atoms = []
+                    coords = []
+                    atoms = []
             else:
+                # Collect sidechain atom type and coords.
                 prev_res_name = line[17:20]
                 if not atom_type in backbone_atoms: 
-                    sidechain_coords.append(xyz)
-                    sidechain_atoms.append(atom_type[0])
+                    coords.append(xyz)
+                    atoms.append(atom_type[0])
 
     cacb_string += "END"
 

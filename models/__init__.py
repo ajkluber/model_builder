@@ -9,18 +9,12 @@ in Gromacs. Each model is a seperate class.
 
 Classes:
 
-    SmogCalpha
-
-
 References:
-
 
 """
 
-#import SmogCalpha
-#import bonded_potentials
-#import pairwise_potentials
-#import pdb_parser
-#import beadbead_to_params
-#import prepare_compound_pairwise
-
+import CoarseGrainedModel
+import bonded_potentials
+import pairwise_potentials
+import pdb_parser
+import prepare_compound_pairwise
