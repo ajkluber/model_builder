@@ -407,5 +407,5 @@ if __name__ == "__main__":
     else:
         pairs = np.loadtxt(pairsfile,dtype=int)
 
-    model = CoarseGrainedModel(pdb=pdb,pairs=pairs,defaults=True)
+    model = CoarseGrainedModel(pdb=pdb,pairs=pairs,defaults=True,bead_repr="CACB")
     model.save_simulation_files()

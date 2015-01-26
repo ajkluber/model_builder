@@ -1,12 +1,10 @@
-""" Parse and clean pdb file.
+"""Clean and parse pdb files.
 
 Find the full PDB format specification at:
 http://www.wwpdb.org/documentation/format33/sect9.html#ATOM
 
 PDB fixed-width column format is given by:
 ATOM     44  C   ALA A  11      12.266  21.667  20.517  1.00 28.80           C  
-
-
 
 
 To Do:
@@ -23,6 +21,10 @@ import numpy as np
 global atom_mass
 atom_mass = {"H":1.00,"C":12.01,"N":14.00,"O":16.00,"S":32.07}
 
+#############################################################################
+# Helper functions to clean the junk out of PDB files.
+#############################################################################
+
 def get_clean_CA(pdbname):
     """ Gets first chain from pdb. Keeps only CA atoms."""
     first = 0
@@ -33,10 +35,11 @@ def get_clean_CA(pdbname):
         if line[:3] in ['TER','END']:
             break
         else:
-            ## Keep only ATOM lines.
+            # Keep only ATOM lines.
             if line[:4] == 'ATOM':
                 if line[13:16].strip() == "CA":
                     if first == 0:
+                        # Ignore alternative sidechain conformations.
                         if line[16] in ["A"," "]:
                             newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                     (atomid,line[12:16],line[17:20],1,line[26:55])
@@ -45,6 +48,7 @@ def get_clean_CA(pdbname):
                             first_index = int(line[22:26]) - 1
                             cleanpdb += newline
                     else:
+                        # Ignore alternative sidechain conformations.
                         if line[16] in ["A"," "]:
                             newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                     (atomid,line[12:16],line[17:20],int(line[22:26])-first_index,line[26:55])
@@ -64,10 +68,11 @@ def get_clean_CA_CB(pdbname):
         if line[:3] in ['TER','END']:
             break
         else:
-            ## Keep only ATOM lines.
+            # Keep only ATOM lines.
             if line[:4] == 'ATOM':
                 if line[13:16].strip() in ["CA","CB"]:
                     if first == 0:
+                        # Ignore alternative sidechain conformations.
                         if line[16] in ["A"," "]:
                             newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                     (atomid,line[12:16],line[17:20],1,line[26:55])
@@ -76,6 +81,7 @@ def get_clean_CA_CB(pdbname):
                             first_index = int(line[22:26]) - 1
                             cleanpdb += newline
                     else:
+                        # Ignore alternative sidechain conformations.
                         if line[16] in ["A"," "]:
                             newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                     (atomid,line[12:16],line[17:20],int(line[22:26])-first_index,line[26:55])
@@ -95,9 +101,10 @@ def get_clean_full(pdbname):
         if line[:3] in ['TER','END']:
             break
         else:
-            ## Keep only ATOM lines.
+            # Keep only ATOM lines.
             if line[:4] == 'ATOM':
                 if first == 0:
+                    # Ignore alternative sidechain conformations.
                     if (line[16] in ["A"," "]) and (line[13] not in ["E","D"]):
                         newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                 (atomid,line[12:16],line[17:20],1,line[26:55])
@@ -106,6 +113,7 @@ def get_clean_full(pdbname):
                         first_index = int(line[22:26]) - 1
                         cleanpdb += newline
                 else:
+                    # Ignore alternative sidechain conformations.
                     if (line[16] in ["A"," "]) and line[13] not in ["E","D"]:
                         newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                 (atomid,line[12:16],line[17:20],int(line[22:26])-first_index,line[26:55])
@@ -125,11 +133,12 @@ def get_clean_full_noH(pdbname):
         if line[:3] in ['TER','END']:
             break
         else:
-            ## Keep only ATOM lines.
+            # Keep only ATOM lines.
             if line[:4] == 'ATOM':
                 if first == 0:
+                    # Ignore alternative sidechain conformations.
                     if (line[16] in ["A"," "]) and (line[13] not in ["E","D"]):
-                        ## strip Hydrogens
+                        # strip Hydrogens
                         if not line[12:16].strip().startswith("H"):
                             newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                     (atomid,line[12:16],line[17:20],1,line[26:55])
@@ -138,6 +147,7 @@ def get_clean_full_noH(pdbname):
                             first_index = int(line[22:26]) - 1
                             cleanpdb += newline
                 else:
+                    # Ignore alternative sidechain conformations.
                     if (line[16] in ["A"," "]) and line[13] not in ["E","D"]:
                         if not line[12:16].strip().startswith("H"):
                             newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
@@ -149,7 +159,35 @@ def get_clean_full_noH(pdbname):
     return cleanpdb
 
 def get_coords_atoms_residues(pdb):
-    """ Parse lines of a pdb string. Returns coordinates in nm. """
+    """Parse lines of a pdb string.
+
+    Parameters
+    ----------
+    pdb : str
+        String in PDB file format that has contents of one protein chain. 
+        Assumed to be one chain, numbering starting at 1. (e.g. as returned
+        by get_clean_full_noH.
+    pairs : array 
+        Array of shape (n_pairs,2) that contains the atom indices to calculate
+        the distance between.
+
+    Returns
+    -------
+    atom_coords : array
+        Array of atomic coordinates. Shape (n_atoms,3)
+    atom_indices : array
+        List of atom indices.
+    atom_types : array
+        List of atom types (C,CA,N,O,etc.).
+    residue_indices : array
+        List of residue indices.
+    residue_types : array
+        List of residue types (GLY,THR,etc.).
+
+    See Also
+    --------
+    pdb_parser.get_clean_full_noH
+    """
     atm_indxs = []
     atm_types = []
     atm_coords = []
@@ -169,13 +207,33 @@ def get_coords_atoms_residues(pdb):
                 res_types.append(line[17:20])
                 res_indx += 1 
 
-    ## Coordinates in pdb files are Angstroms. Convert to nanometers.
+    # Coordinates in pdb files are Angstroms. Convert to nanometers.
     atm_coords = np.array(atm_coords)/10.
 
     return atm_coords,atm_indxs,atm_types,res_indxs,res_types
 
 def get_pairwise_distances(pdb,pairs):
-    """Calculate atomic distances between pairs in nm."""
+    """Gets distances between pairs in pdb.
+
+    Parameters
+    ----------
+    pdb : str
+        String in PDB file format that has contents of one protein chain. 
+        Assumed to be one chain, numbering starting at 1. (e.g. as returned
+        by get_clean_full_noH.
+    pairs : array 
+        Array of shape (n_pairs,2) that contains the atom indices to calculate
+        the distance between.
+
+    Returns
+    -------
+    distances : array
+        Array of distances between the pairs. Calculated in (nm).
+
+    See Also
+    --------
+    pdb_parser.get_clean_full_noH
+    """
 
     coords = get_coords_atoms_residues(pdb)[0]
 
@@ -197,7 +255,7 @@ def calc_center_of_mass(atoms,coords):
     com_xyz /= total_mass
     return com_xyz
 
-def get_clean_CA_center_of_mass_CB(pdb):
+def get_clean_CA_center_of_mass_CB(pdbname):
     """Get CA & CB of chain with CB at sidechain center of mass.
 
     Parameters
@@ -220,14 +278,13 @@ def get_clean_CA_center_of_mass_CB(pdb):
 
     backbone_atoms = ["N","CA","C","O"] 
 
-    pdblines = pdb.split("\n")
     res_indx = 1
     atm_indx = 1
     coords = []
     atoms = []
     cacb_string = ""
     # Parse each line in the PDB string.
-    for line in pdblines:
+    for line in open(pdbname,"r").readlines():
         if (line.startswith("END")) or (line.startswith("TER")):
             # Process final residue.
             if prev_res_name != "GLY":

@@ -2,7 +2,12 @@
 
 import numpy as np
 
+
+#############################################################################
+# Helper functions
+#############################################################################
 def distance(coords,i_idx,j_idx):
+    """Distance between atoms"""
     dist = np.linalg.norm(coords[i_idx] - coords[j_idx])
     return dist
 
@@ -31,3 +36,7 @@ def dihedral(coords,i_idx,j_idx,k_idx,l_idx):
         sign = 1.
     phi = 180. + sign*(180./np.pi)*np.arccos(np.dot(v21xv31,v32xv42))
     return phi
+
+#############################################################################
+# Potential energy functions to go below...
+#############################################################################

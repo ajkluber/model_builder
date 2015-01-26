@@ -37,16 +37,22 @@ def get_switched_pair_potential(code):
     return potential
 
 def wrap_pairwise(old_pairwise,*args):
-    """ Wraps pairwise function so only r needs to be passed 
+    """Wrap pairwise function so only r needs to be passed 
 
-    Inputs:
+    Parameters:
+    -----------
+    old_pairwise : function
         A function that takes one distance (r) and a variable number of
-    positional arguments depends on (such as equilibrium distance or 
-    width of well).
+        positional arguments depends on (such as equilibrium distance or width
+        of well).
+    args : tuple
+        A tuple that contains values of position arguments for old_pairwise
 
     Returns:
-        A function that only depends on the distance, customized to fixed values
-    of the remaining positional parameters.
+    --------
+    new_pairwise : function
+        A function that only depends on the distance, with the remaining 
+        positional parameters hard coded.
     """
     def new_pairwise(r):
         return old_pairwise(r,*args)

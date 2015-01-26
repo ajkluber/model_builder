@@ -3,9 +3,9 @@ import numpy as np
 import bonded_potentials as bond
 import pdb_parser
 
-#############################################################################
+############################################################################
 # Helper function to get representation
-#############################################################################
+############################################################################
 def set_bonded_interactions(model):
     allowed = "(CA, CACB)"
     if model.bead_repr == "CA":
@@ -22,12 +22,12 @@ def set_bonded_interactions(model):
     get_dihedrals_string(model)
     get_grofile(model)
 
-#############################################################################
+############################################################################
 # Calpha representation
-#############################################################################
+############################################################################
 def set_CA_bonded_interactions(model):
     """ Extract info from the Native.pdb for making index and top file """
-    ## Grab coordinates from the pdb file.
+    # Grab coordinates from the pdb file.
     model.cleanpdb = pdb_parser.get_clean_CA(model.pdb)
     model.cleanpdb_full = pdb_parser.get_clean_full(model.pdb)
     model.cleanpdb_full_noH = pdb_parser.get_clean_full_noH(model.pdb)
@@ -44,7 +44,7 @@ def set_CA_bonded_interactions(model):
     model.n_residues = len(np.unique(np.array(model.res_indxs)))
     model.n_atoms = len(model.atm_types)
 
-    ## Set bonded force field terms quantities.
+    # Set bonded force field terms quantities.
     model.bond_indices = [[indxs[i],indxs[i+1]] for i in range(model.n_atoms-1)]
     model.angle_indices = [[indxs[i],indxs[i+1],indxs[i+2]] for i in range(model.n_atoms-2)]
     model.dihedral_indices = [[indxs[i],indxs[i+1],indxs[i+2],indxs[i+3]] for i in range(model.n_atoms-3)]
@@ -86,53 +86,96 @@ def set_CA_bonded_interactions(model):
     indexstring += '[ SideChain-H ]\n\n'
     model.index_ndx = indexstring
 
-#############################################################################
+############################################################################
 # Calpha Cbeta representation
-#############################################################################
+############################################################################
 def set_CACB_bonded_interactions(model):
     """Extract info from the Native.pdb for making index and top file. 
     NOT DONE
     """
-    ## Grab coordinates from the pdb file.
+    # Grab coordinates from the pdb file.
     model.cleanpdb = pdb_parser.get_clean_CA_center_of_mass_CB(model.pdb)
     model.cleanpdb_full = pdb_parser.get_clean_full(model.pdb)
     model.cleanpdb_full_noH = pdb_parser.get_clean_full_noH(model.pdb)
     pdb_info = pdb_parser.get_coords_atoms_residues(model.cleanpdb)
 
     model.atm_coords = pdb_info[0]
-    model.atm_indxs = pdb_info[1]
-    model.atm_types = pdb_info[2]
-    model.res_indxs = pdb_info[3]
-    model.res_types = pdb_info[4]
+    model.atm_indxs = np.array(pdb_info[1])
+    model.atm_types = np.array(pdb_info[2])
+    model.res_indxs = np.array(pdb_info[3])
+    model.res_types = np.array(pdb_info[4])
     indxs = model.atm_indxs
     coords = model.atm_coords
 
-    model.n_residues = len(residues)
-    model.n_atoms = len(atoms)
+    model.n_residues = len(np.unique(np.array(model.res_indxs)))
+    model.n_atoms = len(model.atm_types)
 
-    ## Set bonded force field terms quantities.
+    CA_indxs = model.atm_indxs[model.atm_types == "CA"]
+    CB_indxs = model.atm_indxs[model.atm_types == "CB"]
+    # Set bonded force field terms quantities.
+    model.bond_min = [] 
     model.bond_indices = []
-    for i in range(model.n_atoms-1):
-        model.bond_indices.append([indices[2*i],indices[2*(i+1)]])
-        model.bond_indices.append([indices[2*(i+1)],indices[2*(i+1)+1]])
-
-    model.angle_indices = []
-    for i in range(model.n_atoms-2):
-        model.angle_indices.append([indices[i],indices[i+1],indices[i+2]])
-        model.angle_indices.append([indices[i],indices[i+1],indices[i+2]])
-
-
-    model.angle_indices = [[indices[i],indices[i+1],indices[i+2]] for i in range(model.n_atoms-2)]
-    model.dihedral_indices = [[indices[i],indices[i+1],indices[i+2],indices[i+3]] for i in range(model.n_atoms-3)]
-
-    model.bond_min = [ bond.distance(coords,i_idx-1,j_idx-1) for i_idx,j_idx in model.bond_indices ]
-    model.angle_min = [ bond.angle(coords,i_idx-1,j_idx-1,k_idx-1) for i_idx,j_idx,k_idx in model.angle_indices ]
-    model.dihedral_min = [ bond.dihedral(coords,i_idx-1,j_idx-1,k_idx-1,l_idx-1) for i_idx,j_idx,k_idx,l_idx in model.dihedral_indices ]
-
+    for i in range(model.n_residues-1):
+        # First bond all the c-alphas together.
+        model.bond_indices.append([CA_indxs[i],CA_indxs[i+1]])
+        bond_dist = bond.distance(coords,CA_indxs[i]-1,CA_indxs[i+1]-1)
+        model.bond_min.append(bond_dist)
+    sub = 0
+    for i in range(model.n_residues-1):
+        # Then bond all c-alphas to their c-beta.
+        if model.res_types[i] == "GLY":
+            # Skip glycine
+            sub += 1
+        else:
+            model.bond_indices.append([CA_indxs[i],CB_indxs[i-sub]])
+            bond_dist = bond.distance(coords,CA_indxs[i]-1,CB_indxs[i-sub]-1)
+            model.bond_min.append(bond_dist)
     if not hasattr(model,"bond_strengths"):
         model.bond_strengths = [ model.backbone_param_vals["Kb"] for i in range(len(model.bond_min)) ]
+
+    # Set angle terms
+    model.angle_indices = []
+    model.angle_min = []
+    for i in range(model.n_residues-2):
+        # First set angles for c-alphas.
+        model.angle_indices.append([CA_indxs[i],CA_indxs[i+1],CA_indxs[i+2]])
+        angle = bond.angle(coords,CA_indxs[i]-1,CA_indxs[i+1]-1,CA_indxs[i+2]-1)
+        model.angle_min.append(angle)
+    sub = 0
+    for i in range(model.n_residues):
+        # Then set angles between c-alphas and c-betas. 
+        if model.res_types[i] == "GLY":
+            # Skip glycine
+            sub += 1
+        else:
+            if i == 0:
+                # Account for N-terminus
+                model.angle_indices.append([CB_indxs[i],CA_indxs[i],CA_indxs[i+1]])
+                angle = bond.angle(coords,CB_indxs[i]-1,CA_indxs[i]-1,CA_indxs[i+1]-1)
+                model.angle_min.append(angle)
+            elif i == (model.n_residues - 1):
+                # Account for C-terminus
+                model.angle_indices.append([CA_indxs[i-1],CA_indxs[i],CB_indxs[i-sub]])
+                angle = bond.angle(coords,CA_indxs[i-1]-1,CA_indxs[i]-1,CB_indxs[i-sub]-1)
+                model.angle_min.append(angle)
+            else:
+                model.angle_indices.append([CA_indxs[i-1],CA_indxs[i],CB_indxs[i-sub]])
+                model.angle_indices.append([CB_indxs[i-sub],CA_indxs[i],CA_indxs[i+1]])
+                angle1 = bond.angle(coords,CA_indxs[i]-1,CA_indxs[i+1]-1,CA_indxs[i+2]-1)
+                angle2 = bond.angle(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1)
+                model.angle_min.append(angle1)
+                model.angle_min.append(angle2)
+
     if not hasattr(model,"angle_strengths"):
         model.angle_strengths = [ model.backbone_param_vals["Ka"] for i in range(len(model.angle_min)) ]
+
+    print model.angle_indices
+    raise SystemExit
+
+    model.dihedral_indices = [[indices[i],indices[i+1],indices[i+2],indices[i+3]] for i in range(model.n_atoms-3)]
+
+    model.dihedral_min = [ bond.dihedral(coords,i_idx-1,j_idx-1,k_idx-1,l_idx-1) for i_idx,j_idx,k_idx,l_idx in model.dihedral_indices ]
+
     if not hasattr(model,"dihedral_strengths"):
         model.dihedral_strengths = [ model.backbone_param_vals["Kd"] for i in range(len(model.dihedral_min)) ]
 
@@ -163,9 +206,9 @@ def set_CACB_bonded_interactions(model):
     #indexstring += '[ SideChain-H ]\n\n'
     #model.index_ndx = indexstring
 
-#############################################################################
+############################################################################
 # Functions to check that disulfides are reasonable
-#############################################################################
+############################################################################
 def check_disulfides(model):
     """ Check that specified disulfides are between cysteine and that 
         the corresonding pairs are within 0.8 nm. """
@@ -190,7 +233,7 @@ def check_disulfides(model):
                 if model.verbose:
                     print "   %s %s separated by %.4f nm, Good." % \
                 (residues[i_idx-1]+str(i_idx), residues[j_idx-1]+str(j_idx),dist)
-                ## Remove disulfide pair from model.pairs if it is there.
+                # Remove disulfide pair from model.pairs if it is there.
                 new_pairs = []
                 for pair in model.pairs:
                     if (pair[0] == i_idx) and (pair[1] == j_idx):
@@ -201,7 +244,7 @@ def check_disulfides(model):
                 model.n_pairs = len(model.pairs)
 
                 model.exclusions.append([i_idx,j_idx])
-                ## Set cysteine bond distance, angles, and dihedral.
+                # Set cysteine bond distance, angles, and dihedral.
                 model.bond_indices.append([i_idx,j_idx])
                 model.bond_min.append(dist)
                 model.bond_strengths.append(model.backbone_param_vals["Kb"])
@@ -220,9 +263,9 @@ def check_disulfides(model):
         if model.verbose:
             print "  No disulfides to check."
 
-#############################################################################
+############################################################################
 # Functions to create the bonded sections of the topol.top and .gro file
-#############################################################################
+############################################################################
 def get_atoms_string(model):
     """ Generate the [ atoms ] string."""
     atoms_string = " [ atoms ]\n"
