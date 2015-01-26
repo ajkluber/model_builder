@@ -21,6 +21,9 @@ import numpy as np
 global atom_mass
 atom_mass = {"H":1.00,"C":12.01,"N":14.00,"O":16.00,"S":32.07}
 
+global backbone_atoms
+backbone_atoms = ["N","CA","C","O"] 
+
 #############################################################################
 # Helper functions to clean the junk out of PDB files.
 #############################################################################
@@ -183,6 +186,8 @@ def get_coords_atoms_residues(pdb):
         List of residue indices.
     residue_types : array
         List of residue types (GLY,THR,etc.).
+    residue_types_unique : array
+        Nonredundant list of residue types (GLY,THR,etc.).
 
     See Also
     --------
@@ -192,25 +197,31 @@ def get_coords_atoms_residues(pdb):
     atm_types = []
     atm_coords = []
     res_types = []
+    res_types_unique = []
     res_indxs = []
     pdblines = pdb.split("\n")
-    res_indx = 0
+    res_idx = 0
     for line in pdblines:
-        if line.startswith("END"):
+        if (line.startswith("END")) or (line.startswith("TER")):
             break
         else:
             atm_indxs.append(int(line[6:13]))
             atm_types.append(line[11:16].strip())
             atm_coords.append([float(line[31:39]),float(line[39:47]),float(line[47:55])]) 
-            if (int(line[23:26]) == (res_indx + 1)):
-                res_indxs.append(int(line[23:26]))
-                res_types.append(line[17:20])
-                res_indx += 1 
+            res_indxs.append(int(line[23:26]))
+            res_types.append(line[17:20])
+            if int(line[23:26]) == (res_idx + 1):
+                res_types_unique.append(line[17:20])
+                res_idx += 1
 
     # Coordinates in pdb files are Angstroms. Convert to nanometers.
     atm_coords = np.array(atm_coords)/10.
+    atm_indxs = np.array(atm_indxs)
+    atm_types = np.array(atm_types)
+    res_indxs = np.array(res_indxs)
+    res_types = np.array(res_types)
 
-    return atm_coords,atm_indxs,atm_types,res_indxs,res_types
+    return atm_coords,atm_indxs,atm_types,res_indxs,res_types,res_types_unique
 
 def get_pairwise_distances(pdb,pairs):
     """Gets distances between pairs in pdb.
@@ -276,7 +287,6 @@ def get_clean_CA_center_of_mass_CB(pdbname):
     pdb_parser.get_clean_full_noH
     """
 
-    backbone_atoms = ["N","CA","C","O"] 
 
     res_indx = 1
     atm_indx = 1
@@ -335,3 +345,97 @@ def get_clean_CA_center_of_mass_CB(pdbname):
     cacb_string += "END"
 
     return cacb_string
+
+def get_CACB_contacts(pdbname,cutoff=0.45):
+    """Get contact map for C-alpha C-beta model """
+
+    pdb = get_clean_full_noH(pdbname)
+    atm_coords,atm_indxs,atm_types,res_indxs,res_types,res_types_unique = get_coords_atoms_residues(pdb)
+    cacb = get_clean_CA_center_of_mass_CB(pdbname)
+    cacb_info = get_coords_atoms_residues(cacb)
+    n_res = len(np.unique(np.array(res_indxs,copy=True)))
+    pairs = []
+    pairs_mc = []
+    pairs_sc = []
+    pairs_sc_mc = []
+    for i in range(1,n_res+1):
+        res1info = (atm_coords[res_indxs == i],atm_types[res_indxs == i],atm_indxs[res_indxs == i])
+        # Loop over residue pairs that are separated >= 4 in sequence
+        for j in range(i+4,n_res+1):
+            res2info = (atm_coords[res_indxs == j],atm_types[res_indxs == j],atm_indxs[res_indxs == j])
+            crds2 = atm_coords[res_indxs == j]
+            atms2 = atm_types[res_indxs == j]
+            inds2 = atm_indxs[res_indxs == j]
+            determine_contact(pairs,pairs_mc,pairs_sc,pairs_sc_mc,i,j,res1info,res2info,cacb_info,cutoff=cutoff) 
+    return pairs,pairs_mc,pairs_sc,pairs_sc_mc
+
+def determine_contact(pairs,pairs_mc,pairs_sc,pairs_sc_mc,i,j,res1info,res2info,cacb_info,cutoff=0.45):
+    """If two atoms are within a cutoff determine what type of contact they're in."""
+    # Unpack some inputs
+    cacb_atm_indxs = cacb_info[1]
+    cacb_atm_types = cacb_info[2]
+    cacb_res_indxs = cacb_info[3]
+
+    crds1 = res1info[0] ; crds2 = res2info[0]
+    atms1 = res1info[1] ; atms2 = res2info[1]
+    inds1 = res1info[2] ; inds2 = res2info[2]
+    
+    sc_sc = 0 ; mc_mc = 0
+    mc_sc = 0 ; sc_mc = 0
+    
+    # If two residues have an atom within cutoff distance of
+    # each other, assign one of these to the residue pair:
+    for n in range(len(crds1)): 
+        for m in range(len(crds2)): 
+            dist = np.linalg.norm(crds1[n] - crds2[m])
+            if dist <= cutoff:
+                if (atms1[n] in backbone_atoms) and (atms2[m] in backbone_atoms):
+                    # Backbone-backbone contact
+                    mc_mc = 1
+                elif (atms1[n] in backbone_atoms) and (atms2[m] not in backbone_atoms):
+                    # Backbone-sidechain contact
+                    mc_sc = 1
+                elif (atms1[n] not in backbone_atoms) and (atms2[m] in backbone_atoms):
+                    # Backbone-sidechain contact
+                    sc_mc = 1
+                elif (atms1[n] not in backbone_atoms) and (atms2[m] not in backbone_atoms):
+                    # Sidechain-sidechain contact 
+                    sc_sc = 1
+
+    if (sc_sc > 0) or (sc_mc > 0) or (mc_sc > 0) or (mc_mc > 0):
+        res1 = (cacb_res_indxs == i).astype(int)
+        res2 = (cacb_res_indxs == j).astype(int)
+        ca = (cacb_atm_types == "CA").astype(int)
+        cb = (cacb_atm_types == "CB").astype(int)
+        if sc_sc > 0:
+            if [i,j] not in pairs_sc:
+                pairs_sc.append([i,j])
+            cbindx1 = cacb_atm_indxs[(res1*cb).astype(bool)][0]
+            cbindx2 = cacb_atm_indxs[(res2*cb).astype(bool)][0]
+            if [cbindx1,cbindx2] not in pairs:
+                pairs.append([cbindx1,cbindx2])
+
+        if mc_mc > 0:
+            if [i,j] not in pairs_mc:
+                pairs_mc.append([i,j])
+            caindx1 = cacb_atm_indxs[(res1*ca).astype(bool)][0]
+            caindx2 = cacb_atm_indxs[(res2*ca).astype(bool)][0]
+            if [caindx1,caindx2] not in pairs:
+                pairs.append([caindx1,caindx2])
+
+        if sc_mc > 0:
+            if [i,j] not in pairs_sc_mc:
+                pairs_sc_mc.append([i,j])
+            cbindx1 = cacb_atm_indxs[(res1*cb).astype(bool)][0]
+            caindx2 = cacb_atm_indxs[(res2*ca).astype(bool)][0]
+            if [cbindx1,caindx2] not in pairs:
+                pairs.append([cbindx1,caindx2])
+
+        if mc_sc > 0:
+            if [i,j] not in pairs_sc_mc:
+                pairs_sc_mc.append([i,j])
+            caindx1 = cacb_atm_indxs[(res1*ca).astype(bool)][0]
+            cbindx2 = cacb_atm_indxs[(res2*cb).astype(bool)][0]
+            if [caindx1,cbindx2] not in pairs:
+                pairs.append([caindx1,cbindx2])
+

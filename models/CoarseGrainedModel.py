@@ -390,7 +390,6 @@ class CoarseGrainedModel(object):
         self._set_nonbonded_interactions()
 
 if __name__ == "__main__":
-
     import argparse
     parser = argparse.ArgumentParser(description='Build a SMOG model.')
     parser.add_argument('--name', type=str, required=True, help='pdb')

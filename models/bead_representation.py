@@ -41,7 +41,7 @@ def set_CA_bonded_interactions(model):
     indxs = model.atm_indxs
     coords = model.atm_coords
 
-    model.n_residues = len(np.unique(np.array(model.res_indxs)))
+    model.n_residues = len(np.unique(np.array(model.res_indxs,copy=True)))
     model.n_atoms = len(model.atm_types)
 
     # Set bonded force field terms quantities.
@@ -100,14 +100,17 @@ def set_CACB_bonded_interactions(model):
     pdb_info = pdb_parser.get_coords_atoms_residues(model.cleanpdb)
 
     model.atm_coords = pdb_info[0]
-    model.atm_indxs = np.array(pdb_info[1])
-    model.atm_types = np.array(pdb_info[2])
-    model.res_indxs = np.array(pdb_info[3])
-    model.res_types = np.array(pdb_info[4])
+    model.atm_indxs = pdb_info[1]
+    model.atm_types = pdb_info[2]
+    model.res_indxs = pdb_info[3]
+    model.res_types = pdb_info[4]
+    model.res_indxs_unique = np.unique(np.array(model.res_indxs,copy=True))
+    model.res_types_unique = pdb_info[5]
     indxs = model.atm_indxs
     coords = model.atm_coords
 
-    model.n_residues = len(np.unique(np.array(model.res_indxs)))
+
+    model.n_residues = len(model.res_indxs_unique)
     model.n_atoms = len(model.atm_types)
     CA_indxs = model.atm_indxs[model.atm_types == "CA"]
     CB_indxs = model.atm_indxs[model.atm_types == "CB"]
@@ -121,7 +124,7 @@ def set_CACB_bonded_interactions(model):
     # atomtypes category of topol.top. Sets default excluded volume of 0.4nm
     atomtypes_string = " [ atomtypes ]\n"
     atomtypes_string += " ;name  mass     charge   ptype c10       c12\n"
-    atomtypes_string += " CA     1.000    0.000 A    0.000   %10.9e\n\n" % (0.4**12)
+    atomtypes_string += " CA     1.000    0.000 A    0.000   %10.9e\n" % (0.4**12)
     atomtypes_string += " CB     1.000    0.000 A    0.000   %10.9e\n\n" % (0.4**12) 
     model.atomtypes_string = atomtypes_string
 
@@ -140,7 +143,7 @@ def create_CACB_bonds(model,CA_indxs,CB_indxs,coords):
     sub = 0
     for i in range(model.n_residues-1):
         # Then bond all c-alphas to their c-beta.
-        if model.res_types[i] == "GLY":
+        if model.res_types_unique[i] == "GLY":
             # Skip glycine
             sub += 1
         else:
@@ -162,7 +165,7 @@ def create_CACB_angles(model,CA_indxs,CB_indxs,coords):
     sub = 0
     for i in range(model.n_residues):
         # Then set angles between c-alphas and c-betas. 
-        if model.res_types[i] == "GLY":
+        if model.res_types_unique[i] == "GLY":
             # Count how many glycines 
             sub += 1 
         else:
@@ -201,7 +204,7 @@ def create_CACB_dihedrals(model,CA_indxs,CB_indxs,coords):
     sub = 0
     for i in range(model.n_residues-1):
         # Then set dihedrals between c-alphas and c-betas. 
-        if model.res_types[i] == "GLY":
+        if model.res_types_unique[i] == "GLY":
             # Counted skipped glycines to keep C-beta indices correct.
             sub += 1
         else:
@@ -214,7 +217,7 @@ def create_CACB_dihedrals(model,CA_indxs,CB_indxs,coords):
                 model.dihedral_min.append(dih_A)
                 model.dihedral_min.append(dih_B)
                 # Check if glycine is next residue.
-                if model.res_types[i+1] != "GLY":
+                if model.res_types_unique[i+1] != "GLY":
                     model.dihedral_indices.append([CB_indxs[i-sub],CA_indxs[i],CA_indxs[i+1],CB_indxs[i+1-sub]])
                     dih_C = bond.dihedral(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CB_indxs[i+1-sub]-1)
                     model.dihedral_min.append(dih_C)
@@ -226,13 +229,13 @@ def create_CACB_dihedrals(model,CA_indxs,CB_indxs,coords):
                     dih_A = bond.dihedral(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CA_indxs[i+2]-1)
                     model.dihedral_min.append(dih_A)
                     # Check if glycine is next residue.
-                    if model.res_types[i+1] != "GLY":
+                    if model.res_types_unique[i+1] != "GLY":
                         model.dihedral_indices.append([CB_indxs[i-sub],CA_indxs[i],CA_indxs[i+1],CB_indxs[i+1-sub]])
                         dih_C = bond.dihedral(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CB_indxs[i+1-sub]-1)
                         model.dihedral_min.append(dih_C)
                 elif i == (model.n_residues - 2):
                     # Account for C-terminus
-                    if model.res_types[i+1] != "GLY":
+                    if model.res_types_unique[i+1] != "GLY":
                         model.dihedral_indices.append([CB_indxs[i-sub],CA_indxs[i],CA_indxs[i+1],CB_indxs[i+1-sub]])
                         dihedral2 = bond.dihedral(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CB_indxs[i+1-sub]-1)
                         model.dihedral_min.append(dihedral2)
