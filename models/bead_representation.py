@@ -169,13 +169,48 @@ def set_CACB_bonded_interactions(model):
     if not hasattr(model,"angle_strengths"):
         model.angle_strengths = [ model.backbone_param_vals["Ka"] for i in range(len(model.angle_min)) ]
 
-    print model.angle_indices
+    #print model.angle_indices
+    print "STOP! CACB is not done yet!! Why are you running this representation?!"
     raise SystemExit
 
-    model.dihedral_indices = [[indices[i],indices[i+1],indices[i+2],indices[i+3]] for i in range(model.n_atoms-3)]
+    # Set dihedral terms
+    model.dihedral_indices = []
+    model.dihedral_min = []
+    for i in range(model.n_residues-3):
+        # First set dihedrals for c-alphas.
+        model.dihedral_indices.append([CA_indxs[i],CA_indxs[i+1],CA_indxs[i+2],CA_indxs[i+3]])
+        dihedral = bond.dihedral(coords,CA_indxs[i]-1,CA_indxs[i+1]-1,CA_indxs[i+2]-1,CA_indxs[i+3]-1)
+        model.dihedral_min.append(dihedral)
+    sub = 0
+    for i in range(model.n_residues):
+        # Then set dihedrals between c-alphas and c-betas. 
+        if model.res_types[i] == "GLY":
+            # Skip glycine
+            sub += 1
+        else:
+            # NEED TO ACCOUNT FOR NEIGHBORING GLYCINES AS WELL!! TODO!!
+            if i == 0:
+                # Account for N-terminus
+                model.dihedral_indices.append([CB_indxs[i],CA_indxs[i],CA_indxs[i+1],CB_indxs[i+1]])
+                model.dihedral_indices.append([CB_indxs[i],CA_indxs[i],CA_indxs[i+1],CA_indxs[i+2]])
+                dihedral1 = bond.dihedral(coords,CB_indxs[i]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CB_indxs[i+1]-1)
+                dihedral2 = bond.dihedral(coords,CB_indxs[i]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CA_indxs[i+2]-1)
+                model.dihedral_min.append(dihedral1)
+                model.dihedral_min.append(dihedral2)
+            elif i == (model.n_residues - 1):
+                # Account for C-terminus
+                model.dihedral_indices.append([CA_indxs[i-1],CA_indxs[i],CB_indxs[i-sub]])
+                dihedral = bond.dihedral(coords,CA_indxs[i-1]-1,CA_indxs[i]-1,CB_indxs[i-sub]-1)
+                model.dihedral_min.append(dihedral)
+            else:
+                model.dihedral_indices.append([CA_indxs[i-1],CA_indxs[i],CB_indxs[i-sub]])
+                model.dihedral_indices.append([CB_indxs[i-sub],CA_indxs[i],CA_indxs[i+1]])
+                dihedral1 = bond.dihedral(coords,CA_indxs[i]-1,CA_indxs[i+1]-1,CA_indxs[i+2]-1)
+                dihedral2 = bond.dihedral(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1)
+                model.dihedral_min.append(dihedral1)
+                model.dihedral_min.append(dihedral2)
 
-    model.dihedral_min = [ bond.dihedral(coords,i_idx-1,j_idx-1,k_idx-1,l_idx-1) for i_idx,j_idx,k_idx,l_idx in model.dihedral_indices ]
-
+    # Dihedral strength is reduced depending on how many dihedrals go through the central bond.
     if not hasattr(model,"dihedral_strengths"):
         model.dihedral_strengths = [ model.backbone_param_vals["Kd"] for i in range(len(model.dihedral_min)) ]
 
