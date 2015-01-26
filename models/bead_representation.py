@@ -109,9 +109,26 @@ def set_CACB_bonded_interactions(model):
 
     model.n_residues = len(np.unique(np.array(model.res_indxs)))
     model.n_atoms = len(model.atm_types)
-
     CA_indxs = model.atm_indxs[model.atm_types == "CA"]
     CB_indxs = model.atm_indxs[model.atm_types == "CB"]
+
+    # Collect the indices for atoms in bond, angle, and dihedral interactions.
+    create_CACB_bonds(model,CA_indxs,CB_indxs,coords)
+    create_CACB_angles(model,CA_indxs,CB_indxs,coords)
+    create_CACB_dihedrals(model,CA_indxs,CB_indxs,coords)
+    scale_dihedral_strengths(model,CA_indxs)
+
+    # atomtypes category of topol.top. Sets default excluded volume of 0.4nm
+    atomtypes_string = " [ atomtypes ]\n"
+    atomtypes_string += " ;name  mass     charge   ptype c10       c12\n"
+    atomtypes_string += " CA     1.000    0.000 A    0.000   %10.9e\n\n" % (0.4**12)
+    atomtypes_string += " CB     1.000    0.000 A    0.000   %10.9e\n\n" % (0.4**12) 
+    model.atomtypes_string = atomtypes_string
+
+    # Make index.ndx string
+    create_CACB_index_ndx(model,CA_indxs,CB_indxs)
+
+def create_CACB_bonds(model,CA_indxs,CB_indxs,coords):
     # Set bonded force field terms quantities.
     model.bond_min = [] 
     model.bond_indices = []
@@ -133,6 +150,7 @@ def set_CACB_bonded_interactions(model):
     if not hasattr(model,"bond_strengths"):
         model.bond_strengths = [ model.backbone_param_vals["Kb"] for i in range(len(model.bond_min)) ]
 
+def create_CACB_angles(model,CA_indxs,CB_indxs,coords):
     # Set angle terms
     model.angle_indices = []
     model.angle_min = []
@@ -145,8 +163,8 @@ def set_CACB_bonded_interactions(model):
     for i in range(model.n_residues):
         # Then set angles between c-alphas and c-betas. 
         if model.res_types[i] == "GLY":
-            # Skip glycine
-            sub += 1
+            # Count how many glycines 
+            sub += 1 
         else:
             if i == 0:
                 # Account for N-terminus
@@ -159,9 +177,10 @@ def set_CACB_bonded_interactions(model):
                 angle = bond.angle(coords,CA_indxs[i-1]-1,CA_indxs[i]-1,CB_indxs[i-sub]-1)
                 model.angle_min.append(angle)
             else:
+                # Account for the middle.
                 model.angle_indices.append([CA_indxs[i-1],CA_indxs[i],CB_indxs[i-sub]])
                 model.angle_indices.append([CB_indxs[i-sub],CA_indxs[i],CA_indxs[i+1]])
-                angle1 = bond.angle(coords,CA_indxs[i]-1,CA_indxs[i+1]-1,CA_indxs[i+2]-1)
+                angle1 = bond.angle(coords,CA_indxs[i-1]-1,CA_indxs[i]-1,CB_indxs[i-sub]-1)
                 angle2 = bond.angle(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1)
                 model.angle_min.append(angle1)
                 model.angle_min.append(angle2)
@@ -169,9 +188,7 @@ def set_CACB_bonded_interactions(model):
     if not hasattr(model,"angle_strengths"):
         model.angle_strengths = [ model.backbone_param_vals["Ka"] for i in range(len(model.angle_min)) ]
 
-    #print model.angle_indices
-    print "STOP! CACB is not done yet!! Why are you running this representation?!"
-    raise SystemExit
+def create_CACB_dihedrals(model,CA_indxs,CB_indxs,coords):
 
     # Set dihedral terms
     model.dihedral_indices = []
@@ -182,64 +199,106 @@ def set_CACB_bonded_interactions(model):
         dihedral = bond.dihedral(coords,CA_indxs[i]-1,CA_indxs[i+1]-1,CA_indxs[i+2]-1,CA_indxs[i+3]-1)
         model.dihedral_min.append(dihedral)
     sub = 0
-    for i in range(model.n_residues):
+    for i in range(model.n_residues-1):
         # Then set dihedrals between c-alphas and c-betas. 
         if model.res_types[i] == "GLY":
-            # Skip glycine
+            # Counted skipped glycines to keep C-beta indices correct.
             sub += 1
         else:
-            # NEED TO ACCOUNT FOR NEIGHBORING GLYCINES AS WELL!! TODO!!
-            if i == 0:
-                # Account for N-terminus
-                model.dihedral_indices.append([CB_indxs[i],CA_indxs[i],CA_indxs[i+1],CB_indxs[i+1]])
-                model.dihedral_indices.append([CB_indxs[i],CA_indxs[i],CA_indxs[i+1],CA_indxs[i+2]])
-                dihedral1 = bond.dihedral(coords,CB_indxs[i]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CB_indxs[i+1]-1)
-                dihedral2 = bond.dihedral(coords,CB_indxs[i]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CA_indxs[i+2]-1)
-                model.dihedral_min.append(dihedral1)
-                model.dihedral_min.append(dihedral2)
-            elif i == (model.n_residues - 1):
-                # Account for C-terminus
-                model.dihedral_indices.append([CA_indxs[i-1],CA_indxs[i],CB_indxs[i-sub]])
-                dihedral = bond.dihedral(coords,CA_indxs[i-1]-1,CA_indxs[i]-1,CB_indxs[i-sub]-1)
-                model.dihedral_min.append(dihedral)
+            if (i >= 2) and (i <= (model.n_residues - 3)):
+                # Account for the middle
+                model.dihedral_indices.append([CB_indxs[i-sub],CA_indxs[i],CA_indxs[i+1],CA_indxs[i+2]])
+                model.dihedral_indices.append([CA_indxs[i-2],CA_indxs[i-1],CA_indxs[i],CB_indxs[i-sub]])
+                dih_A = bond.dihedral(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CA_indxs[i+2]-1)
+                dih_B = bond.dihedral(coords,CA_indxs[i-2]-1,CA_indxs[i-1]-1,CA_indxs[i]-1,CB_indxs[i-sub]-1)
+                model.dihedral_min.append(dih_A)
+                model.dihedral_min.append(dih_B)
+                # Check if glycine is next residue.
+                if model.res_types[i+1] != "GLY":
+                    model.dihedral_indices.append([CB_indxs[i-sub],CA_indxs[i],CA_indxs[i+1],CB_indxs[i+1-sub]])
+                    dih_C = bond.dihedral(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CB_indxs[i+1-sub]-1)
+                    model.dihedral_min.append(dih_C)
             else:
-                model.dihedral_indices.append([CA_indxs[i-1],CA_indxs[i],CB_indxs[i-sub]])
-                model.dihedral_indices.append([CB_indxs[i-sub],CA_indxs[i],CA_indxs[i+1]])
-                dihedral1 = bond.dihedral(coords,CA_indxs[i]-1,CA_indxs[i+1]-1,CA_indxs[i+2]-1)
-                dihedral2 = bond.dihedral(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1)
-                model.dihedral_min.append(dihedral1)
-                model.dihedral_min.append(dihedral2)
+                # Note: Check if glycine is next residue.
+                if i < 2:
+                    # Account for N-terminus
+                    model.dihedral_indices.append([CB_indxs[i-sub],CA_indxs[i],CA_indxs[i+1],CA_indxs[i+2]])
+                    dih_A = bond.dihedral(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CA_indxs[i+2]-1)
+                    model.dihedral_min.append(dih_A)
+                    # Check if glycine is next residue.
+                    if model.res_types[i+1] != "GLY":
+                        model.dihedral_indices.append([CB_indxs[i-sub],CA_indxs[i],CA_indxs[i+1],CB_indxs[i+1-sub]])
+                        dih_C = bond.dihedral(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CB_indxs[i+1-sub]-1)
+                        model.dihedral_min.append(dih_C)
+                elif i == (model.n_residues - 2):
+                    # Account for C-terminus
+                    if model.res_types[i+1] != "GLY":
+                        model.dihedral_indices.append([CB_indxs[i-sub],CA_indxs[i],CA_indxs[i+1],CB_indxs[i+1-sub]])
+                        dihedral2 = bond.dihedral(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CB_indxs[i+1-sub]-1)
+                        model.dihedral_min.append(dihedral2)
 
-    # Dihedral strength is reduced depending on how many dihedrals go through the central bond.
-    if not hasattr(model,"dihedral_strengths"):
-        model.dihedral_strengths = [ model.backbone_param_vals["Kd"] for i in range(len(model.dihedral_min)) ]
+def scale_dihedral_strengths(model,CA_indxs):
+    """To keep torsional potential in same proportion to nonbonded potential"""
+    model.dihedral_strengths = np.zeros(len(model.dihedral_indices),float)
+    for i in range(model.n_residues-1):
+        # Count the dihedrals that subsequent C-alphas are a part of.
+        ca1 = CA_indxs[i]
+        ca2 = CA_indxs[i+1]
+        dih_count = 0
+        dih_indxs = []
+        for n in range(len(model.dihedral_indices)):
+            if (ca1 == model.dihedral_indices[n][1]) and (ca2 == model.dihedral_indices[n][2]):
+                dih_indxs.append(n)
+                dih_count += 1
+        # Reduce the dihedral strength for those dihedrals by their 
+        # number
+        model.dihedral_strengths[dih_indxs] = model.backbone_param_vals["Kd"]/float(dih_count)
 
-    # atomtypes category of topol.top. Sets default excluded volume of 0.4nm
-    atomtypes_string = " [ atomtypes ]\n"
-    atomtypes_string += " ;name  mass     charge   ptype c10       c12\n"
-    atomtypes_string += " CA     1.000    0.000 A    0.000   %10.9e\n\n" % (0.4**12)
-    atomtypes_string += " CB     1.000    0.000 A    0.000   %10.9e\n\n" % (0.4**12) 
-    model.atomtypes_string = atomtypes_string
+def create_CACB_index_ndx(model,CA_indxs,CB_indxs):
+    """Record the indices for C-alpha, C-beta, and all atoms"""
+    all_string = ''
+    i = 1
+    for ind in model.atm_indxs: 
+        if (i % 15) == 0:
+            all_string += '%4d \n' % ind
+        else:
+            all_string += '%4d ' % ind
+        i += 1
+    all_string += '\n'
 
-    # TODO(Alex): Create index.ndx string for CACB representation.
-    #ca_string = ''
-    #i = 1
-    #for ind in indxs: 
-    #    if (i % 15) == 0:
-    #        ca_string += '%4d \n' % ind
-    #    else:
-    #        ca_string += '%4d ' % ind
-    #    i += 1
-    #ca_string += '\n'
-    #headings = ["System","Protein","Protein-H","C-alpha",\
-    #            "Backbone","MainChain","MainChain+Cb","MainChain+H"]
-    #indexstring = ""
-    #for heading in headings:
-    #    indexstring += "[ "+heading+" ]\n"
-    #    indexstring += ca_string
-    #indexstring += '[ SideChain ]\n\n'
-    #indexstring += '[ SideChain-H ]\n\n'
-    #model.index_ndx = indexstring
+    ca_string = ''
+    i = 1
+    for ind in CA_indxs: 
+        if (i % 15) == 0:
+            ca_string += '%4d \n' % ind
+        else:
+            ca_string += '%4d ' % ind
+        i += 1
+    ca_string += '\n'
+    cb_string = ''
+    i = 1
+    for ind in CB_indxs: 
+        if (i % 15) == 0:
+            cb_string += '%4d \n' % ind
+        else:
+            cb_string += '%4d ' % ind
+        i += 1
+    cb_string += '\n'
+
+    indexstring = "[ System ]\n"
+    indexstring += all_string
+    indexstring += "[ Protein ]\n"
+    indexstring += all_string
+    indexstring += "[ C-alpha ]\n"
+    indexstring += ca_string
+    indexstring += "[ Backbone ]\n"
+    indexstring += ca_string
+    indexstring += "[ C-beta ]\n"
+    indexstring += cb_string
+    indexstring += "[ Sidechain ]\n"
+    indexstring += cb_string
+    
+    model.index_ndx = indexstring
 
 ############################################################################
 # Functions to check that disulfides are reasonable
