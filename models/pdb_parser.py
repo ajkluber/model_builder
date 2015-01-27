@@ -402,6 +402,8 @@ def determine_contact(pairs,pairs_mc,pairs_sc,pairs_sc_mc,i,j,res1info,res2info,
                     # Sidechain-sidechain contact 
                     sc_sc = 1
 
+    # If in contact, add atom indices. Also collect whether these are
+    # sidechain-sidechain, mainchain-mainchain, or mainchain-sidechain.
     if (sc_sc > 0) or (sc_mc > 0) or (mc_sc > 0) or (mc_mc > 0):
         res1 = (cacb_res_indxs == i).astype(int)
         res2 = (cacb_res_indxs == j).astype(int)

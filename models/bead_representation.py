@@ -60,6 +60,9 @@ def set_CA_bonded_interactions(model):
     if not hasattr(model,"dihedral_strengths"):
         model.dihedral_strengths = [ model.backbone_param_vals["Kd"] for i in range(len(model.dihedral_min)) ]
 
+    # Using proper dihedrals for all C-alpha dihedrals.
+    model.dihedral_type = [ 1 for i in range(len(model.dihedral_min)) ]
+
     # atomtypes category of topol.top. Sets default excluded volume of 0.4nm
     atomtypes_string = " [ atomtypes ]\n"
     atomtypes_string += " ;name  mass     charge   ptype c10       c12\n"
@@ -118,8 +121,7 @@ def set_CACB_bonded_interactions(model):
     # Collect the indices for atoms in bond, angle, and dihedral interactions.
     create_CACB_bonds(model,CA_indxs,CB_indxs,coords)
     create_CACB_angles(model,CA_indxs,CB_indxs,coords)
-    create_CACB_dihedrals(model,CA_indxs,CB_indxs,coords)
-    scale_dihedral_strengths(model,CA_indxs)
+    create_CACB_dihedrals_improper(model,CA_indxs,CB_indxs,coords)
 
     # atomtypes category of topol.top. Sets default excluded volume of 0.4nm
     atomtypes_string = " [ atomtypes ]\n"
@@ -191,7 +193,38 @@ def create_CACB_angles(model,CA_indxs,CB_indxs,coords):
     if not hasattr(model,"angle_strengths"):
         model.angle_strengths = [ model.backbone_param_vals["Ka"] for i in range(len(model.angle_min)) ]
 
-def create_CACB_dihedrals(model,CA_indxs,CB_indxs,coords):
+def create_CACB_dihedrals_improper(model,CA_indxs,CB_indxs,coords):
+    """Create chirality enforcing dihedrals using improper dihedrals."""
+    # Set dihedral terms
+    model.dihedral_indices = []
+    model.dihedral_min = []
+    model.dihedral_type = []
+    model.dihedral_strengths = [] 
+    for i in range(model.n_residues-3):
+        # First set dihedrals for c-alphas.
+        # Using proper dihedrals for all C-alpha dihedrals.
+        model.dihedral_indices.append([CA_indxs[i],CA_indxs[i+1],CA_indxs[i+2],CA_indxs[i+3]])
+        dihedral = bond.dihedral(coords,CA_indxs[i]-1,CA_indxs[i+1]-1,CA_indxs[i+2]-1,CA_indxs[i+3]-1)
+        model.dihedral_min.append(dihedral)
+        model.dihedral_type.append(1)
+        model.dihedral_strengths.append(model.backbone_param_vals["Kd"])
+    sub = 0
+    for i in range(model.n_residues):
+        # Then set dihedrals between c-alphas and c-betas. 
+        if model.res_types_unique[i] == "GLY":
+            # Counted skipped glycines to keep C-beta indices correct.
+            sub += 1
+        else:
+            # Using improper (harmonic) dihedrals to enforce chirality on C-betas.
+            if (i > 0) and (i < model.n_residues - 1):
+                model.dihedral_indices.append([CA_indxs[i],CA_indxs[i-1],CA_indxs[i+1],CB_indxs[i-sub]])
+                dih = bond.dihedral(coords,CA_indxs[i]-1,CA_indxs[i-1]-1,CA_indxs[i+1]-1,CB_indxs[i-sub]-1)
+                model.dihedral_min.append(dih)
+                model.dihedral_type.append(2)    
+                model.dihedral_strengths.append(model.backbone_param_vals["Kd"])
+
+def create_CACB_dihedrals_proper(model,CA_indxs,CB_indxs,coords):
+    """Create chirality enforcing dihedrals using proper dihedrals. NEVER USED."""
 
     # Set dihedral terms
     model.dihedral_indices = []
@@ -239,6 +272,8 @@ def create_CACB_dihedrals(model,CA_indxs,CB_indxs,coords):
                         model.dihedral_indices.append([CB_indxs[i-sub],CA_indxs[i],CA_indxs[i+1],CB_indxs[i+1-sub]])
                         dihedral2 = bond.dihedral(coords,CB_indxs[i-sub]-1,CA_indxs[i]-1,CA_indxs[i+1]-1,CB_indxs[i+1-sub]-1)
                         model.dihedral_min.append(dihedral2)
+    # Using proper dihedrals for all C-alpha dihedrals.
+    model.dihedral_type = [ 1 for i in range(len(model.dihedral_min)) ]
 
 def scale_dihedral_strengths(model,CA_indxs):
     """To keep torsional potential in same proportion to nonbonded potential"""
@@ -413,12 +448,17 @@ def get_dihedrals_string(model):
         j_idx = model.dihedral_indices[n][1]
         k_idx = model.dihedral_indices[n][2]
         l_idx = model.dihedral_indices[n][3]
+        dih_type = model.dihedral_type[n]
         phi = model.dihedral_min[n]
         kd = model.dihedral_strengths[n]
-        dihedrals_string += "%6d %6d %6d %6d%2d%18.9e%18.9e%2d\n" %  \
-                      (i_idx,j_idx,k_idx,l_idx,1,phi,kd,1)
-        dihedrals_string += "%6d %6d %6d %6d%2d%18.9e%18.9e%2d\n" %  \
-                      (i_idx,j_idx,k_idx,l_idx,1,3.*phi,kd/2.,3)
+        if dih_type == 1:
+            dihedrals_string += "%6d %6d %6d %6d%2d%18.9e%18.9e%2d\n" %  \
+                          (i_idx,j_idx,k_idx,l_idx,dih_type,phi,kd,1)
+            dihedrals_string += "%6d %6d %6d %6d%2d%18.9e%18.9e%2d\n" %  \
+                          (i_idx,j_idx,k_idx,l_idx,dih_type,3.*phi,kd/2.,3)
+        elif dih_type == 2:
+            dihedrals_string += "%6d %6d %6d %6d%2d%18.9e%18.9e\n" %  \
+                          (i_idx,j_idx,k_idx,l_idx,dih_type,phi,kd)
         dihedrals_ndx += '%4d %4d %4d %4d\n' % \
                             (i_idx,j_idx,k_idx,l_idx)
     model.dihedrals_string = dihedrals_string

@@ -56,7 +56,7 @@ class CoarseGrainedModel(object):
         if not hasattr(self,"backbone_params"):
             self.backbone_params = ["Kb","Ka","Kd"]
         if not hasattr(self,"backbone_param_vals"):
-            self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
+            self.backbone_param_vals = {"Kb":20000.,"Ka":40.,"Kd":1}
         if not hasattr(self,"verbose"):
             self.verbose = True
 
@@ -111,19 +111,20 @@ class CoarseGrainedModel(object):
                 raise IOError(err)
 
         self.give_smaller_excluded_volume = []
-        for i in range(self.n_pairs):
-            # Make sure to exclude any LJ1210 pairs
-            # that would be disrupted by
-            # excluded volume radius of 0.4nm
-            if self.pairwise_type[i] == 2:
-                if self.pairwise_other_parameters[i][0] < 0.85:
+        if not hasattr(self,"exclusions"):
+            for i in range(self.n_pairs):
+                # Make sure to exclude any LJ1210 pairs
+                # that would be disrupted by
+                # excluded volume radius of 0.4nm
+                if self.pairwise_type[i] == 2:
+                    if self.pairwise_other_parameters[i][0] < 0.85:
+                        if not (list(self.pairs[i]) in self.exclusions): 
+                            self.exclusions.append(list(self.pairs[i]))
+                            self.give_smaller_excluded_volume.append(list(self.pairs[i]))
+                # Always exclude any pairs that isn't LJ1210.
+                else:
                     if not (list(self.pairs[i]) in self.exclusions): 
                         self.exclusions.append(list(self.pairs[i]))
-                        self.give_smaller_excluded_volume.append(list(self.pairs[i]))
-            # Always exclude any pairs that isn't LJ1210.
-            else:
-                if not (list(self.pairs[i]) in self.exclusions): 
-                    self.exclusions.append(list(self.pairs[i]))
 
         self.contact_type = "none"
         for i in self.pairwise_type:
