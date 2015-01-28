@@ -7,6 +7,8 @@ import pdb_parser
 # Helper function to get representation
 ############################################################################
 def set_bonded_interactions(model):
+    """Create bonded section of the topol.top file.
+    """
     allowed = "(CA, CACB)"
     if model.bead_repr == "CA":
         set_CA_bonded_interactions(model)
@@ -94,9 +96,8 @@ def set_CA_bonded_interactions(model):
 ############################################################################
 def set_CACB_bonded_interactions(model):
     """Extract info from the Native.pdb for making index and top file. 
-    NOT DONE
     """
-    # Grab coordinates from the pdb file.
+    # Grab useful info from the pdb file.
     model.cleanpdb = pdb_parser.get_clean_CA_center_of_mass_CB(model.pdb)
     model.cleanpdb_full = pdb_parser.get_clean_full(model.pdb)
     model.cleanpdb_full_noH = pdb_parser.get_clean_full_noH(model.pdb)
@@ -127,10 +128,12 @@ def set_CACB_bonded_interactions(model):
     create_CACB_exclusions(model)
 
     # atomtypes category of topol.top. Sets default excluded volume of ???
+    ca_size = 0.2
+    cb_size = 0.27
     atomtypes_string = " [ atomtypes ]\n"
     atomtypes_string += " ;name  mass     charge   ptype c10       c12\n"
-    atomtypes_string += " CA     1.000    0.000 A    0.000   %10.9e\n" % (0.19**12)
-    atomtypes_string += " CB     1.000    0.000 A    0.000   %10.9e\n\n" % (0.1**12) 
+    atomtypes_string += " CA     1.000    0.000 A    0.000   %10.9e\n" % (ca_size**12)
+    atomtypes_string += " CB     1.000    0.000 A    0.000   %10.9e\n\n" % (cb_size**12) 
     model.atomtypes_string = atomtypes_string
 
     # Make index.ndx string
@@ -279,7 +282,7 @@ def create_CACB_dihedrals_proper(model,CA_indxs,CB_indxs,coords):
     model.dihedral_type = [ 1 for i in range(len(model.dihedral_min)) ]
 
 def scale_dihedral_strengths(model,CA_indxs):
-    """To keep torsional potential in same proportion to nonbonded potential"""
+    """To keep torsional potential in same proportion to nonbonded potential. NEVER USED"""
     model.dihedral_strengths = np.zeros(len(model.dihedral_indices),float)
     for i in range(model.n_residues-1):
         # Count the dihedrals that subsequent C-alphas are a part of.
@@ -445,6 +448,7 @@ def check_disulfides(model):
 
                 model.dihedral_indices.append([i_idx-1,i_idx,j_idx,j_idx-1])
                 model.dihedral_min.append(phi)
+                model.dihedral_type.append(1)
                 model.dihedral_strengths.append(model.backbone_param_vals["Kd"])
     else:
         if model.verbose:
