@@ -67,7 +67,8 @@ class CoarseGrainedModel(object):
         self.initial_T_array = None
         self.name = self.pdb.split(".pdb")[0]
         self.subdir = self.name
-        self.exclusions = []
+        if not hasattr(self,"exclusions"):
+            self.exclusions = []
 
         # Create the Set backbone parameters
         bead.set_bonded_interactions(self)
@@ -111,7 +112,7 @@ class CoarseGrainedModel(object):
                 raise IOError(err)
 
         self.give_smaller_excluded_volume = []
-        if not hasattr(self,"exclusions"):
+        if self.exclusions == []:
             for i in range(self.n_pairs):
                 # Make sure to exclude any LJ1210 pairs
                 # that would be disrupted by
@@ -196,7 +197,8 @@ class CoarseGrainedModel(object):
                     self.native_pairs_indices.append(i)
                     self.native_pairs.append(list(self.pairs[i,:]))
                     self.native_pairs_ndx += "%4d %4d\n" % (self.pairs[i,0],self.pairs[i,1])
-                    self.Qref[self.pairs[i,0]-1,self.pairs[i,1]-1] = 1 
+                    if self.bead_repr == "CA":
+                        self.Qref[self.pairs[i,0]-1,self.pairs[i,1]-1] = 1 
             self.n_native_pairs = len(self.native_pairs)
         else:
             if self.verbose:
@@ -206,7 +208,13 @@ class CoarseGrainedModel(object):
                     self.native_pairs_indices.append(i)
                     self.native_pairs.append(list(self.pairs[i,:]))
                     self.native_pairs_ndx += "%4d %4d\n" % (self.pairs[i,0],self.pairs[i,1])
-                    self.Qref[self.pairs[i,0]-1,self.pairs[i,1]-1] = 1 
+                    if self.bead_repr == "CA":
+                        self.Qref[self.pairs[i,0]-1,self.pairs[i,1]-1] = 1 
+    
+        if self.bead_repr == "CACB": 
+            self.Qref = np.zeros((max(self.pairs.ravel())+1,max(self.pairs.ravel())+1))
+            for i in range(self.n_pairs):
+                self.Qref[self.pairs[i,0]-1,self.pairs[i,1]-1] = 1 
         
         self.native_pairs_indices = np.array(self.native_pairs_indices)
 
@@ -408,4 +416,4 @@ if __name__ == "__main__":
         pairs = np.loadtxt(pairsfile,dtype=int)
 
     model = CoarseGrainedModel(pdb=pdb,pairs=pairs,defaults=True,bead_repr="CACB")
-    model.save_simulation_files()
+    #model.save_simulation_files()

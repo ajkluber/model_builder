@@ -117,17 +117,20 @@ def set_CACB_bonded_interactions(model):
     model.n_atoms = len(model.atm_types)
     CA_indxs = model.atm_indxs[model.atm_types == "CA"]
     CB_indxs = model.atm_indxs[model.atm_types == "CB"]
+    model.CA_indxs = CA_indxs
+    model.CB_indxs = CB_indxs
 
     # Collect the indices for atoms in bond, angle, and dihedral interactions.
     create_CACB_bonds(model,CA_indxs,CB_indxs,coords)
     create_CACB_angles(model,CA_indxs,CB_indxs,coords)
     create_CACB_dihedrals_improper(model,CA_indxs,CB_indxs,coords)
+    create_CACB_exclusions(model)
 
-    # atomtypes category of topol.top. Sets default excluded volume of 0.4nm
+    # atomtypes category of topol.top. Sets default excluded volume of ???
     atomtypes_string = " [ atomtypes ]\n"
     atomtypes_string += " ;name  mass     charge   ptype c10       c12\n"
-    atomtypes_string += " CA     1.000    0.000 A    0.000   %10.9e\n" % (0.4**12)
-    atomtypes_string += " CB     1.000    0.000 A    0.000   %10.9e\n\n" % (0.4**12) 
+    atomtypes_string += " CA     1.000    0.000 A    0.000   %10.9e\n" % (0.19**12)
+    atomtypes_string += " CB     1.000    0.000 A    0.000   %10.9e\n\n" % (0.1**12) 
     model.atomtypes_string = atomtypes_string
 
     # Make index.ndx string
@@ -143,7 +146,7 @@ def create_CACB_bonds(model,CA_indxs,CB_indxs,coords):
         bond_dist = bond.distance(coords,CA_indxs[i]-1,CA_indxs[i+1]-1)
         model.bond_min.append(bond_dist)
     sub = 0
-    for i in range(model.n_residues-1):
+    for i in range(model.n_residues):
         # Then bond all c-alphas to their c-beta.
         if model.res_types_unique[i] == "GLY":
             # Skip glycine
@@ -218,10 +221,10 @@ def create_CACB_dihedrals_improper(model,CA_indxs,CB_indxs,coords):
             # Using improper (harmonic) dihedrals to enforce chirality on C-betas.
             if (i > 0) and (i < model.n_residues - 1):
                 model.dihedral_indices.append([CA_indxs[i],CA_indxs[i-1],CA_indxs[i+1],CB_indxs[i-sub]])
-                dih = bond.dihedral(coords,CA_indxs[i]-1,CA_indxs[i-1]-1,CA_indxs[i+1]-1,CB_indxs[i-sub]-1)
+                dih = bond.improper_dihedral(coords,CA_indxs[i]-1,CA_indxs[i-1]-1,CA_indxs[i+1]-1,CB_indxs[i-sub]-1)
                 model.dihedral_min.append(dih)
                 model.dihedral_type.append(2)    
-                model.dihedral_strengths.append(model.backbone_param_vals["Kd"])
+                model.dihedral_strengths.append(model.backbone_param_vals["Ka"])
 
 def create_CACB_dihedrals_proper(model,CA_indxs,CB_indxs,coords):
     """Create chirality enforcing dihedrals using proper dihedrals. NEVER USED."""
@@ -291,6 +294,58 @@ def scale_dihedral_strengths(model,CA_indxs):
         # Reduce the dihedral strength for those dihedrals by their 
         # number
         model.dihedral_strengths[dih_indxs] = model.backbone_param_vals["Kd"]/float(dih_count)
+
+def create_CACB_exclusions(model):
+    """Create list of exclusions for the CACB model
+
+    Rules for exclusions are based off the following reference:
+    Cheung 'Exploring the interplay between topology and secondary structural
+            formation in the protein folding problem'. J.Chem.Phys. B. 2003.
+    """
+
+    if not hasattr(model,"exclusions"):
+        model.exclusions = []
+
+    # Exclude neighbors closer in sequence than:
+    #   |i - j| < 4 for CA_i CA_i pairs
+    #   |i - j| < 2 for CB_i CB_j pairs
+    #   |i - j| < 2 for CA_i CB_j pairs
+    cutAA = 4
+    cutAB = 2
+    cutBB = 2
+
+    # Loop over all possible pairs
+    for i in range(model.n_atoms):
+        resid1 = model.res_indxs[i]
+        indx1 = model.atm_indxs[i]
+        type1 = model.atm_indxs[i]
+        for j in range(model.n_atoms):
+            resid2 = model.res_indxs[j]
+            indx2 = model.atm_indxs[j]
+            type2 = model.atm_indxs[j]
+            excl_pair = [indx1,indx2]
+            excl_pairr = [indx2,indx1]
+            if i == j:
+                continue
+
+            # Add to exclusions if pair is closer in sequence
+            # then allowed by the corresponding cutoff.
+            if (type1 == "CA") and (type2 == "CA"):
+                if abs(resid1 - resid2) < cutAA:
+                    if (excl_pair not in model.exclusions) and \
+                       (excl_pairr not in model.exclusions):
+                        model.exclusions.append(excl_pair)
+            elif (type1 == "CB") and (type2 == "CB"):
+                if abs(resid1 - resid2) < cutBB:
+                    if (excl_pair not in model.exclusions) and \
+                       (excl_pairr not in model.exclusions):
+                        model.exclusions.append(excl_pair)
+            else:
+                if abs(resid1 - resid2) < cutBB:
+                    if (excl_pair not in model.exclusions) and \
+                       (excl_pairr not in model.exclusions):
+                        model.exclusions.append(excl_pair)
+
 
 def create_CACB_index_ndx(model,CA_indxs,CB_indxs):
     """Record the indices for C-alpha, C-beta, and all atoms"""

@@ -21,6 +21,29 @@ import numpy as np
 
 import pdb_parser
 
+def get_Gaussian_pairwise(pdb,pairs,model_param=0):
+    """ """
+    width0 = 0.05
+    pairwise_distances = pdb_parser.get_pairwise_distances(pdb,pairs)
+    model_param_value = 1.
+
+    ## Loop over pairs and create pair
+    pairwise_param_file_string = "#   i   j   param int_type  other_params\n"
+    model_param_file_string = "# model parameters\n"
+    for i in range(len(pairs)):
+        ## Each contact gets the interactions:
+        ##  - Gaussian                    Int.Type = 4
+        i_idx = pairs[i][0]
+        j_idx = pairs[i][1]
+        r0 = pairwise_distances[i] 
+
+        Gaussian_other_params = "%10.5f%10.5f" % (r0,width0)
+        pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,4,Gaussian_other_params) 
+        model_param_file_string += "%10.5f\n" % model_param_value
+        model_param += 1
+
+    return pairwise_param_file_string, model_param_file_string
+
 def get_compound_LJ12_Gaussian_pairwise(pdb,pairs,model_param=0):
     """ """
     rNC = 0.4
