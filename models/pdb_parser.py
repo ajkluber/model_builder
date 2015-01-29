@@ -355,9 +355,9 @@ def get_CACB_contacts(pdbname,cutoff=0.45):
     cacb_info = get_coords_atoms_residues(cacb)
     n_res = len(np.unique(np.array(res_indxs,copy=True)))
     pairs = []
-    pairs_mc = []
-    pairs_sc = []
-    pairs_sc_mc = []
+    pairs_CA = []
+    pairs_CB = []
+    pairs_CB_CA = []
     for i in range(1,n_res+1):
         res1info = (atm_coords[res_indxs == i],atm_types[res_indxs == i],atm_indxs[res_indxs == i])
         # Loop over residue pairs that are separated >= 4 in sequence
@@ -366,10 +366,10 @@ def get_CACB_contacts(pdbname,cutoff=0.45):
             crds2 = atm_coords[res_indxs == j]
             atms2 = atm_types[res_indxs == j]
             inds2 = atm_indxs[res_indxs == j]
-            determine_contact(pairs,pairs_mc,pairs_sc,pairs_sc_mc,i,j,res1info,res2info,cacb_info,cutoff=cutoff) 
-    return pairs,pairs_mc,pairs_sc,pairs_sc_mc
+            determine_contact(pairs,pairs_CA,pairs_CB,pairs_CB_CA,i,j,res1info,res2info,cacb_info,cutoff=cutoff) 
+    return pairs,pairs_CA,pairs_CB,pairs_CB_CA
 
-def determine_contact(pairs,pairs_mc,pairs_sc,pairs_sc_mc,i,j,res1info,res2info,cacb_info,cutoff=0.45):
+def determine_contact(pairs,pairs_CA,pairs_CB,pairs_CB_CA,i,j,res1info,res2info,cacb_info,cutoff=0.45):
     """If two atoms are within a cutoff determine what type of contact they're in."""
     # Unpack some inputs
     cacb_atm_indxs = cacb_info[1]
@@ -380,8 +380,8 @@ def determine_contact(pairs,pairs_mc,pairs_sc,pairs_sc_mc,i,j,res1info,res2info,
     atms1 = res1info[1] ; atms2 = res2info[1]
     inds1 = res1info[2] ; inds2 = res2info[2]
     
-    sc_sc = 0 ; mc_mc = 0
-    mc_sc = 0 ; sc_mc = 0
+    CB_CB = 0 ; CA_CA = 0
+    CA_CB = 0 ; CB_CA = 0
     
     # If two residues have an atom within cutoff distance of
     # each other, assign one of these to the residue pair:
@@ -391,51 +391,51 @@ def determine_contact(pairs,pairs_mc,pairs_sc,pairs_sc_mc,i,j,res1info,res2info,
             if dist <= cutoff:
                 if (atms1[n] in backbone_atoms) and (atms2[m] in backbone_atoms):
                     # Backbone-backbone contact
-                    mc_mc = 1
+                    CA_CA = 1
                 elif (atms1[n] in backbone_atoms) and (atms2[m] not in backbone_atoms):
                     # Backbone-sidechain contact
-                    mc_sc = 1
+                    CA_CB = 1
                 elif (atms1[n] not in backbone_atoms) and (atms2[m] in backbone_atoms):
                     # Backbone-sidechain contact
-                    sc_mc = 1
+                    CB_CA = 1
                 elif (atms1[n] not in backbone_atoms) and (atms2[m] not in backbone_atoms):
                     # Sidechain-sidechain contact 
-                    sc_sc = 1
+                    CB_CB = 1
 
     # If in contact, add atom indices. Also collect whether these are
     # sidechain-sidechain, mainchain-mainchain, or mainchain-sidechain.
-    if (sc_sc > 0) or (sc_mc > 0) or (mc_sc > 0) or (mc_mc > 0):
+    if (CB_CB > 0) or (CB_CA > 0) or (CA_CB > 0) or (CA_CA > 0):
         res1 = (cacb_res_indxs == i).astype(int)
         res2 = (cacb_res_indxs == j).astype(int)
         ca = (cacb_atm_types == "CA").astype(int)
         cb = (cacb_atm_types == "CB").astype(int)
-        if sc_sc > 0:
-            if [i,j] not in pairs_sc:
-                pairs_sc.append([i,j])
+        if CB_CB > 0:
+            if [i,j] not in pairs_CB:
+                pairs_CB.append([i,j])
             cbindx1 = cacb_atm_indxs[(res1*cb).astype(bool)][0]
             cbindx2 = cacb_atm_indxs[(res2*cb).astype(bool)][0]
             if [cbindx1,cbindx2] not in pairs:
                 pairs.append([cbindx1,cbindx2])
 
-        if mc_mc > 0:
-            if [i,j] not in pairs_mc:
-                pairs_mc.append([i,j])
+        if CA_CA > 0:
+            if [i,j] not in pairs_CA:
+                pairs_CA.append([i,j])
             caindx1 = cacb_atm_indxs[(res1*ca).astype(bool)][0]
             caindx2 = cacb_atm_indxs[(res2*ca).astype(bool)][0]
             if [caindx1,caindx2] not in pairs:
                 pairs.append([caindx1,caindx2])
 
-        if sc_mc > 0:
-            if [i,j] not in pairs_sc_mc:
-                pairs_sc_mc.append([i,j])
+        if CB_CA > 0:
+            if [i,j] not in pairs_CB_CA:
+                pairs_CB_CA.append([i,j])
             cbindx1 = cacb_atm_indxs[(res1*cb).astype(bool)][0]
             caindx2 = cacb_atm_indxs[(res2*ca).astype(bool)][0]
             if [cbindx1,caindx2] not in pairs:
                 pairs.append([cbindx1,caindx2])
 
-        if mc_sc > 0:
-            if [i,j] not in pairs_sc_mc:
-                pairs_sc_mc.append([i,j])
+        if CA_CB > 0:
+            if [i,j] not in pairs_CB_CA:
+                pairs_CB_CA.append([i,j])
             caindx1 = cacb_atm_indxs[(res1*ca).astype(bool)][0]
             cbindx2 = cacb_atm_indxs[(res2*cb).astype(bool)][0]
             if [caindx1,cbindx2] not in pairs:
