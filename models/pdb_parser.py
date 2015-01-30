@@ -167,6 +167,7 @@ def get_coords_atoms_residues(pdb):
     Parameters
     ----------
     pdb : str
+        Either the name of a PDB or the contents of a pdb file.
         String in PDB file format that has contents of one protein chain. 
         Assumed to be one chain, numbering starting at 1. (e.g. as returned
         by get_clean_full_noH.
@@ -193,13 +194,16 @@ def get_coords_atoms_residues(pdb):
     --------
     pdb_parser.get_clean_full_noH
     """
+    if pdb.endswith(".pdb"):
+        pdblines = open(pdb,"r").readlines()
+    else:
+        pdblines = pdb.split("\n")
     atm_indxs = []
     atm_types = []
     atm_coords = []
     res_types = []
     res_types_unique = []
     res_indxs = []
-    pdblines = pdb.split("\n")
     res_idx = 0
     for line in pdblines:
         if (line.startswith("END")) or (line.startswith("TER")):
