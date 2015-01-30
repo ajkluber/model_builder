@@ -394,7 +394,6 @@ def get_CACB_contacts_from_AA_contact_map(pdbname,all_atom_map):
         res2 = (cacb_res_indxs == atm2_resindx).astype(int)
         ca = (cacb_atm_types == "CA").astype(int)
         cb = (cacb_atm_types == "CB").astype(int)
-        print "%4d %3s   %4d %3s" % (atm1_resindx, atm1_type, atm2_resindx, atm2_type)
 
         if (atm1_type in backbone_atoms) and (atm2_type in backbone_atoms):
             # Create CA-CA contact.
