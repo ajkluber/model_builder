@@ -384,11 +384,11 @@ def get_CACB_contacts_from_AA_contact_map(pdbname,all_atom_map):
         # Determine which atoms are in contact. Which residues they are.
         atm1 = aa_pairs[n,0]
         atm2 = aa_pairs[n,1]
-        convert_all_atom_contact_to_CACB(pairs,atm1,atm2,atm_types,res_indxs,cacb_res_indxs,cacb_atm_types)
+        convert_all_atom_contact_to_CACB(pairs,atm1,atm2,atm_types,res_indxs,cacb_atm_indxs,cacb_res_indxs,cacb_atm_types)
 
     return pairs[0],pairs[1],pairs[2]
 
-def convert_all_atom_contact_to_CACB(pairs,atm1,atm2,atm_types,res_indxs,cacb_res_indxs,cacb_atm_types):
+def convert_all_atom_contact_to_CACB(pairs,atm1,atm2,atm_types,res_indxs,cacb_atm_indxs,cacb_res_indxs,cacb_atm_types):
     """Takes all-atom indices and determines the corresponding CA and/or CB indices"""
     atm1_type = atm_types[atm1 - 1]
     atm2_type = atm_types[atm2 - 1]
