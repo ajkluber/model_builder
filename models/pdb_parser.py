@@ -347,7 +347,28 @@ def get_clean_CA_center_of_mass_CB(pdbname):
     return cacb_string
 
 def get_CACB_contacts(pdbname,cutoff=0.45):
-    """Get contact map for C-alpha C-beta model """
+    """Get contact map for C-alpha C-beta model 
+
+    Description
+    -----------
+    Determine the contact pairs based on a heavy-atom cutoff. 
+
+    Parameters
+    ----------
+    pdbname : str
+        The filename of a pdb.
+
+    Returns
+    -------
+    pairs : list
+        List of all contact pairs. 
+    pairs_CA : list
+        List of all contact C-alpha pairs. 
+    pairs_CB : list
+        List of all contact C-beta pairs. 
+    pairs_CB_CA : list
+        List of all contact C-alpha C-beta pairs. 
+    """
 
     pdb = get_clean_full_noH(pdbname)
     atm_coords,atm_indxs,atm_types,res_indxs,res_types,res_types_unique = get_coords_atoms_residues(pdb)
@@ -402,8 +423,9 @@ def determine_contact(pairs,pairs_CA,pairs_CB,pairs_CB_CA,i,j,res1info,res2info,
                     # Sidechain-sidechain contact 
                     CB_CB = 1
 
-    # If in contact, add atom indices. Also collect whether these are
-    # sidechain-sidechain, mainchain-mainchain, or mainchain-sidechain.
+    # If in contact, add the corresponding CA,CB atom indices. Also collect
+    # whether these are sidechain-sidechain, mainchain-mainchain, or
+    # mainchain-sidechain.
     if (CB_CB > 0) or (CB_CA > 0) or (CA_CB > 0) or (CA_CA > 0):
         res1 = (cacb_res_indxs == i).astype(int)
         res2 = (cacb_res_indxs == j).astype(int)
