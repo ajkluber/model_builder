@@ -306,7 +306,6 @@ def get_clean_CA_center_of_mass_CB(pdbname):
                 cacb_string += newline
             break
         else:
-            print line
             atom_type = line[11:16].strip()
             xyz = np.array([float(line[31:39]),float(line[39:47]),float(line[47:55])])
             res_num = int(line[23:26])
@@ -418,7 +417,7 @@ def get_CACB_contacts_from_AA_contact_map(pdbname,all_atom_map):
             cbindx1 = cacb_atm_indxs[(res1*cb).astype(bool)][0]
             cbindx2 = cacb_atm_indxs[(res2*cb).astype(bool)][0]
             if [cbindx1,cbindx2] not in CB_CB_pairs:
-                CB_CB_pairs.append([caindx1,caindx2])
+                CB_CB_pairs.append([cbindx1,cbindx2])
 
     return CA_CA_pairs,CB_CB_pairs,CA_CB_pairs
 
