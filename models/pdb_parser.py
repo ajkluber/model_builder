@@ -388,7 +388,7 @@ def get_CACB_contacts_from_AA_contact_map(pdbname,all_atom_map):
 
     return pairs[0],pairs[1],pairs[2]
 
-def convert_all_atom_contact_to_CACB(pairs,atm1,atm2,atm_types,res_indxs,cacb_res_indxs,cacb_atm_types)
+def convert_all_atom_contact_to_CACB(pairs,atm1,atm2,atm_types,res_indxs,cacb_res_indxs,cacb_atm_types):
     """Takes all-atom indices and determines the corresponding CA and/or CB indices"""
     atm1_type = atm_types[atm1 - 1]
     atm2_type = atm_types[atm2 - 1]
