@@ -22,7 +22,7 @@ global atom_mass
 atom_mass = {"H":1.00,"C":12.01,"N":14.00,"O":16.00,"S":32.07}
 
 global backbone_atoms
-backbone_atoms = ["N","CA","C","O"] 
+backbone_atoms = ["N","CA","C","O","OXT"] 
 
 #############################################################################
 # Helper functions to clean the junk out of PDB files.
@@ -301,7 +301,7 @@ def get_clean_CA_center_of_mass_CB(pdbname):
                 # Skip glycines b/c they have no sidechain.
                 com_xyz = calc_center_of_mass(atoms,coords)
                 newline = 'ATOM%7d  %-4s%3s A%4d    %8.3f%8.3f%8.3f\n' % \
-                    (atm_indx,"CB",prev_res_name,res_indx-1,com_xyz[0],com_xyz[1],com_xyz[2])
+                    (atm_indx,"CB",prev_res_name,res_indx,com_xyz[0],com_xyz[1],com_xyz[2])
                 atm_indx += 1
                 cacb_string += newline
             break
