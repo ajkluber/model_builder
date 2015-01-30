@@ -386,10 +386,10 @@ def get_CACB_contacts_from_AA_contact_map(pdbname,all_atom_map):
         # Determine which atoms are in contact. Which residues they are.
         atm1 = aa_pairs[n,0]
         atm2 = aa_pairs[n,1]
-        atm1_type = atm_types[atm1]
-        atm2_type = atm_types[atm2]
-        atm1_resindx = res_indxs[atm1]
-        atm2_resindx = res_indxs[atm2]
+        atm1_type = atm_types[atm1 - 1]
+        atm2_type = atm_types[atm2 - 1]
+        atm1_resindx = res_indxs[atm1 - 1]
+        atm2_resindx = res_indxs[atm2 - 1]
         res1 = (cacb_res_indxs == atm1_resindx).astype(int)
         res2 = (cacb_res_indxs == atm2_resindx).astype(int)
         ca = (cacb_atm_types == "CA").astype(int)
@@ -400,28 +400,28 @@ def get_CACB_contacts_from_AA_contact_map(pdbname,all_atom_map):
             # Create CA-CA contact.
             caindx1 = cacb_atm_indxs[(res1*ca).astype(bool)][0]
             caindx2 = cacb_atm_indxs[(res2*ca).astype(bool)][0]
-            print "%4d CA   %4d CA" % (caindx1,caindx2)
+            print "%4d %3s   %4d %3s" % (caindx1,caindx2,"CA","CA")
             if [caindx1,caindx2] not in CA_CA_pairs:
                 CA_CA_pairs.append([caindx1,caindx2])
         elif (atm1_type in backbone_atoms) and (atm2_type not in backbone_atoms):
             # Create CB-CA contact
             caindx1 = cacb_atm_indxs[(res1*ca).astype(bool)][0]
             cbindx2 = cacb_atm_indxs[(res2*cb).astype(bool)][0]
-            print "%4d CA   %4d CB" % (caindx1,cbindx2)
+            print "%4d %3s   %4d %3s" % (caindx1,cbindx2,"CA","CB")
             if [caindx1,cbindx2] not in CA_CB_pairs:
                 CA_CB_pairs.append([caindx1,cbindx2])
         elif (atm1_type not in backbone_atoms) and (atm2_type in backbone_atoms):
             # Create CA-CB contact
             cbindx1 = cacb_atm_indxs[(res1*cb).astype(bool)][0]
             caindx2 = cacb_atm_indxs[(res2*ca).astype(bool)][0]
-            print "%4d CB   %4d CA" % (cbindx1,caindx2)
+            print "%4d %3s   %4d %3s" % (cbindx1,caindx2,"CB","CA")
             if [cbindx1,caindx2] not in CA_CB_pairs:
                 CA_CB_pairs.append([cbindx1,caindx2])
         else:
             # Create CB-CB contact
             cbindx1 = cacb_atm_indxs[(res1*cb).astype(bool)][0]
             cbindx2 = cacb_atm_indxs[(res2*cb).astype(bool)][0]
-            print "%4d CB   %4d CB" % (cbindx1,cbindx2)
+            print "%4d %3s   %4d %3s" % (cbindx1,cbindx2,"CB","CB")
             if [cbindx1,cbindx2] not in CB_CB_pairs:
                 CB_CB_pairs.append([cbindx1,cbindx2])
 
