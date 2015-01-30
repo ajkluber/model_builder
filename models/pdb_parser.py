@@ -346,7 +346,82 @@ def get_clean_CA_center_of_mass_CB(pdbname):
 
     return cacb_string
 
-def get_CACB_contacts(pdbname,cutoff=0.45):
+def get_CACB_contacts_from_AA_contact_map(pdbname,all_atom_map):
+    """Get contact map for C-alpha C-beta model 
+
+    Description
+    -----------
+    Determine the contact pairs based on a heavy-atom cutoff. 
+
+    Parameters
+    ----------
+    pdbname : str
+        The filename of a pdb.
+    all_atom_map : str
+        Filename of file that contains all-atom contact pairs.
+
+    Returns
+    -------
+    CA_CA_pairs : list
+        List of all contact C-alpha pairs. 
+    CB_CB_pairs : list
+        List of all contact C-beta pairs. 
+    CA_CB_pairs : list
+        List of all contact C-alpha C-beta pairs. 
+    """
+
+    aa_pairs = np.loadtxt(all_atom_map,dtype=int) 
+    if len(aa_pairs[0,:]) == 4:
+        aa_pairs = aa_pairs[:,1::2]
+
+    pdb = get_clean_full_noH(pdbname)
+    atm_coords,atm_indxs,atm_types,res_indxs,res_types,res_types_unique = get_coords_atoms_residues(pdb)
+    cacb = get_clean_CA_center_of_mass_CB(pdbname)
+    cacb_atm_indxs,cacb_atm_types,cacb_res_indxs = get_coords_atoms_residues(cacb)[1:4]
+    n_res = len(np.unique(np.array(res_indxs,copy=True)))
+    CA_CA_pairs = []
+    CB_CB_pairs = []
+    CA_CB_pairs = []
+    for n in range(len(aa_pairs)):
+        # Determine which atoms are in contact. Which residues they are.
+        atm1 = aa_pairs[n,0]
+        atm2 = aa_pairs[n,1]
+        atm1_type = atom_types[atm1]
+        atm2_type = atom_types[atm2]
+        atm1_resindx = res_indxs[atm1]
+        atm2_resindx = res_indxs[atm2]
+        res1 = (cacb_res_indxs == atm1_resindx).astype(int)
+        res2 = (cacb_res_indxs == atm1_resindx).astype(int)
+        ca = (cacb_atm_types == "CA").astype(int)
+        cb = (cacb_atm_types == "CB").astype(int)
+        if (atm1_type in backbone_atoms) and (atm2_type in backbone_atoms):
+            # Create CA-CA contact.
+            caindx1 = cacb_atm_indxs[(res1*ca).astype(bool)][0]
+            caindx2 = cacb_atm_indxs[(res2*ca).astype(bool)][0]
+            if [caindx1,caindx2] not in CA_CA_pairs:
+                CA_CA_pairs.append([caindx1,caindx2])
+        elif (atm1_type in backbone_atoms) and (atm2_type not in backbone_atoms):
+            # Create CB-CA contact
+            caindx1 = cacb_atm_indxs[(res1*ca).astype(bool)][0]
+            cbindx2 = cacb_atm_indxs[(res2*cb).astype(bool)][0]
+            if [caindx1,cbindx2] not in CA_CB_pairs:
+                CA_CB_pairs.append([caindx1,cbindx2])
+        elif (atm1_type not in backbone_atoms) and (atm2_type in backbone_atoms):
+            # Create CA-CB contact
+            cbindx1 = cacb_atm_indxs[(res1*cb).astype(bool)][0]
+            caindx2 = cacb_atm_indxs[(res2*ca).astype(bool)][0]
+            if [cbindx1,caindx2] not in CA_CB_pairs:
+                CA_CB_pairs.append([cbindx1,caindx2])
+        else:
+            # Create CB-CB contact
+            cbindx1 = cacb_atm_indxs[(res1*cb).astype(bool)][0]
+            cbindx2 = cacb_atm_indxs[(res2*cb).astype(bool)][0]
+            if [cbindx1,cbindx2] not in CB_CB_pairs:
+                CB_CB_pairs.append([caindx1,caindx2])
+
+    return CA_CA_pairs,CB_CB_pairs,CA_CB_pairs
+
+def get_CACB_contacts_cutoff(pdbname,cutoff=0.45):
     """Get contact map for C-alpha C-beta model 
 
     Description
