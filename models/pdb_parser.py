@@ -396,8 +396,6 @@ def get_CACB_contacts_from_AA_contact_map(pdbname,all_atom_map):
         cb = (cacb_atm_types == "CB").astype(int)
         print atm1_resindx, atm1_type, atm2_resindx, atm2_type
 
-
-        raise SystemExit
         if (atm1_type in backbone_atoms) and (atm2_type in backbone_atoms):
             # Create CA-CA contact.
             caindx1 = cacb_atm_indxs[(res1*ca).astype(bool)][0]
