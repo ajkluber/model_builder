@@ -391,7 +391,7 @@ def get_CACB_contacts_from_AA_contact_map(pdbname,all_atom_map):
         atm1_resindx = res_indxs[atm1]
         atm2_resindx = res_indxs[atm2]
         res1 = (cacb_res_indxs == atm1_resindx).astype(int)
-        res2 = (cacb_res_indxs == atm1_resindx).astype(int)
+        res2 = (cacb_res_indxs == atm2_resindx).astype(int)
         ca = (cacb_atm_types == "CA").astype(int)
         cb = (cacb_atm_types == "CB").astype(int)
         print "%4d %3s   %4d %3s" % (atm1_resindx, atm1_type, atm2_resindx, atm2_type)
