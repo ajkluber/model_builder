@@ -19,6 +19,7 @@ TODO(alex):
 import numpy as np
 import subprocess as sb
 import os
+import logging
 
 import bead_representation as bead
 import bonded_potentials as bond
@@ -65,7 +66,7 @@ class CoarseGrainedModel(object):
             raise SystemExit
 
         self.initial_T_array = None
-        self.name = self.pdb.split(".pdb")[0]
+        #self.name = self.pdb.split(".pdb")[0]
         self.subdir = self.name
         if not hasattr(self,"exclusions"):
             self.exclusions = []
@@ -353,8 +354,9 @@ class CoarseGrainedModel(object):
     def save_simulation_files(self):
         """ Write all needed simulation files. """
         cwd = os.getcwd()
-        self.pairwise_params_file_location = "%s/pairwise_params" % cwd
-        self.model_params_file_location = "%s/model_params" % cwd
+        relative_path = cwd.split("%s/" % self.path)[1]
+        self.pairwise_params_file_location = "%s/pairwise_params" % relative_path
+        self.model_params_file_location = "%s/model_params" % relative_path
 
         open("Native.pdb","w").write(self.cleanpdb)
         open("index.ndx","w").write(self.index_ndx)
