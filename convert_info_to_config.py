@@ -15,9 +15,21 @@ def convert_info_to_config(name):
     cfg.set("model","name",name)
 
     info_file = open('%s/model.info' % name,'r')
+    lasttime,action,task = open('%s/modelbuilder.log' % name,'r').readlines()[-1].split()
+    last_comp_task = "%s %s" % (action,task)
     info = [ x.rstrip("\n") for x in info_file.readlines() ]
     options = { info[2*i].split()[1]:info[2*i + 1] for i in range(len(info)/2) }
     
+    opts = ["Fitting_Data","Fitting_Includes","Fitting_Solver",
+            "Iteration","Fitting_AllowSwitch","Fitting_Params_File",
+            "Nonnative","Pairs_File","Pairwise_Params_File",
+            "Model_Params_File","Epsilon_Bar",
+            "Defaults","Disulfides",
+            "N_Native_Pairs","Contact_Type","Model_Code"]
+    for opt in opts:
+        if not options.has_key(opt):
+            options[opt] = "None"
+
     # [model] section
     # Required [model] fields are:
     #   1. pdb/name
@@ -35,38 +47,23 @@ def convert_info_to_config(name):
     #   11. epsilon_bar
     cfg.set("model","bead_repr",options["Bead_Model"]) 
 
-    if options["Disulfides"] == "None":
-        cfg.set("model","disulfides",None) 
-    else:
+    if options["Disulfides"] != "None":
         cfg.set("model","disulfides",options["Disulfides"]) 
 
-    if options["Pairwise_Params_File"] == "None":
-        cfg.set("model","pairwise_params_file",None) 
-    else:
+    if options["Pairwise_Params_File"] != "None":
         cfg.set("model","pairwise_params_file",options["Pairwise_Params_File"]) 
 
-    if options["Pairwise_Params_File"] == "None":
-        cfg.set("model","model_params_file",None) 
-        cfg.set("model","default_params","True") 
-    else:
+    if options["Pairwise_Params_File"] != "None":
         cfg.set("model","model_params_file",options["Model_Params_File"]) 
-        cfg.set("model","default_params","False") 
+        cfg.set("model","defaults","False") 
 
-    cfg.set("model","pairs_file",None) 
-
-    if options["Contact_Type"] == "None":
-        cfg.set("model","contact_type",None) 
-    else:
+    if options["Contact_Type"] != "None":
         cfg.set("model","contact_type",options["Contact_Type"]) 
 
-    if options["N_Native_Pairs"] == "None":
-        cfg.set("model","n_native_pairs",None) 
-    else:
+    if options["N_Native_Pairs"] != "None":
         cfg.set("model","n_native_pairs",options["N_Native_Pairs"]) 
 
-    if options["Epsilon_Bar"] == "None":
-        cfg.set("model","epsilon_bar",None) 
-    else:
+    if options["Epsilon_Bar"] != "None":
         cfg.set("model","epsilon_bar",options["Epsilon_Bar"]) 
 
     # [fitting] section
@@ -76,40 +73,28 @@ def convert_info_to_config(name):
     #   3. solver
     #   4. allow_switch
     #   5. params_to_fit
-    if options["Fitting_Data"] == "None":
-        cfg.set("fitting","data_type",None) 
-    else:
+    if options["Fitting_Data"] != "None":
         cfg.set("fitting","data_type",options["Fitting_Data"]) 
 
-    if options["Fitting_Includes"] in ["None",name]:
-        cfg.set("fitting","include_dirs",name) 
-    else:
+    if options["Fitting_Includes"] not in ["None",name]:
         cfg.set("fitting","include_dirs",options["Fitting_Includes"]) 
 
-    if options["Fitting_Solver"] == "None":
-        cfg.set("fitting","solver",None) 
-    else:
+    if options["Fitting_Solver"] != "None":
         cfg.set("fitting","solver",options["Fitting_Solver"]) 
 
-    if options["Iteration"] == "None":
-        cfg.set("fitting","iteration",None) 
-    else:
+    if options["Iteration"] != "None":
         cfg.set("fitting","iteration",options["Iteration"]) 
 
-    if options["Fitting_AllowSwitch"] == "None":
-        cfg.set("fitting","allow_switch",None) 
-    else:
+    if options["Fitting_AllowSwitch"] != "None":
         cfg.set("fitting","allow_switch",options["Fitting_AllowSwitch"]) 
 
-    if options["Fitting_Params_File"] == "None":
-        cfg.set("fitting","parameters_to_fit",None) 
-    else:
+    if options["Fitting_Params_File"] != "None":
         cfg.set("fitting","parameters_to_fit",options["Fitting_Params_File"]) 
 
-    if options["Nonnative"] == "None":
-        cfg.set("fitting","nonnative",None) 
-    else:
+    if options["Nonnative"] != "None":
         cfg.set("fitting","nonnative",options["Nonnative"]) 
+
+    cfg.set("fitting","last_completed_task",last_comp_task) 
 
     with open("%s.ini" % name,"w") as cfgfile:
         cfg.write(cfgfile)

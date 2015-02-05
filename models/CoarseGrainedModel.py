@@ -36,20 +36,20 @@ class CoarseGrainedModel(object):
     """
     def __init__(self,**kwargs):
         self.path = os.getcwd()
-        # Set any keyword argument given as an attribute. Assumes it has what
-        # it needs.
+        # Set any keyword argument given as an attribute. 
         for key in kwargs.iterkeys():
             setattr(self,key.lower(),kwargs[key])
-        need_to_define = ["model_code","epsilon_bar",
-                          "fitting_data","fitting_solver","fitting_allowswitch",
-                          "disulfides","fitting_params_file","fitting_params",
-                          "nonnative","n_native_pairs",
-                          "pairwise_params_file_location","model_params_file_location"]
+        # Set remaining values to None
+        need_to_define = ["model_code","disulfides",
+                          "n_native_pairs","epsilon_bar",
+                          "fitting_params_file","fitting_params",
+                          "pairwise_params_file_location",
+                          "model_params_file_location"]
         for thing in need_to_define:
             if not hasattr(self,thing):
                 setattr(self,thing,None)
-        if not hasattr(self,"fitting_includes"):
-            self.fitting_includes = [self.pdb]
+
+        # Set a couple things specifically.
         if not hasattr(self,"defaults"):
             self.defaults = False
         if not hasattr(self,"bead_repr"):
@@ -59,24 +59,21 @@ class CoarseGrainedModel(object):
         if not hasattr(self,"backbone_param_vals"):
             self.backbone_param_vals = {"Kb":20000.,"Ka":40.,"Kd":1}
         if not hasattr(self,"verbose"):
-            self.verbose = True
+            self.verbose = False
 
         if not os.path.exists(self.pdb):
             IOError("The inputted pdb: %s does not exist" % pdb)
             raise SystemExit
 
-        self.initial_T_array = None
-        #self.name = self.pdb.split(".pdb")[0]
-        self.subdir = self.name
         if not hasattr(self,"exclusions"):
             self.exclusions = []
+        self.initial_T_array = None
 
         # Create the Set backbone parameters
         bead.set_bonded_interactions(self)
 
-        self.n_pairs = len(self.pairs)
-
         # Generate topology file and table files.
+        self.n_pairs = len(self.pairs)
         self._check_pair_opts()
         self._set_nonbonded_interactions()
 

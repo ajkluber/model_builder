@@ -11,10 +11,41 @@ import convert_info_to_config as cvt
 #############################################################################
 # Helper functions to load in models from .ini files
 #############################################################################
+def save_model(model,fitopts):
+    name = model.name
+    config = ConfigParser.SafeConfigParser(allow_no_value=True)
+    config.add_section("model")
+    config.add_section("fitting")
+    modelkeys = ["name","bead_repr","disulfides","pairs_file",
+                "pairwise_params_file","model_params_file",
+                "defaults","epsilon_bar",
+                "n_native_pairs","contact_type",
+                "verbose"]
+
+    # Populate fields
+    for key in fitopts.iterkeys():
+        if fitopts[key] not in [None,""]:
+            if key == "include_dirs":
+                temp = ""
+                for dir in fitopts["include_dirs"]:
+                    temp += "%s " % dir
+                config.set("fitting",key,str(value))
+            else:
+                config.set("fitting",key,str(fitopts[key]))
+    
+    for key in modelkeys:
+        value = getattr(model,key)
+        if value not in [None,""]:
+            config.set("model",key,str(value))
+
+    if os.path.exists("%s.ini" % name):
+        shutil.move("%s.ini" % name,"%s.1.ini" % name)
+
+    with open("%s.ini" % name,"w") as cfgfile:
+        config.write(cfgfile)
 
 def load_model(name,dry_run=False):
-    """ Read model.info files in subdirectories and create models."""
-    if not os.path.exists("%s.ini"):
+    if not os.path.exists("%s.ini" % name):
         cvt.convert_info_to_config(name)
     modelopts, fittingopts = load_config(name)
     modelopts["dry_run"] = dry_run
@@ -22,7 +53,7 @@ def load_model(name,dry_run=False):
     return model,fittingopts
 
 def load_models(names,dry_run=False):
-    """ Create models from saved options in model.info."""
+    """Create models from saved options in <name>.ini"""
     Models = []
     Fittingopts = []
     for name in names:
@@ -89,7 +120,7 @@ def load_config(name):
     print "Creating model according to %s.ini" % name
     print "Options not shown default to None"
     load_model_section(config,modelopts)
-    load_fitting_section(config,fittingopts)
+    load_fitting_section(config,modelopts,fittingopts)
     _add_pair_opts(modelopts) 
     return modelopts,fittingopts
 
@@ -113,7 +144,7 @@ def load_model_section(config,modelopts):
                     raise IOError("%s file does not exist! Check config file inputs" % value)
             modelopts[item] = value
 
-def load_fitting_section(config,fittingopts):
+def load_fitting_section(config,modelopts,fittingopts):
     if config.has_section("fitting"):
         print "\nFitting options:"
         for item,value in config.items("fitting"):
@@ -132,17 +163,17 @@ def load_fitting_section(config,fittingopts):
                 elif item == "parameters_to_fit":
                     if not os.path.exists(value):
                         raise IOError("%s file does not exist! Check config file inputs" % value)
+                    else:
+                        modelopts["fitting_params"] = np.loadtxt(value,dtype=int)
                 fittingopts[item] = value
-
 
 #############################################################################
 # Internal functions to load in models from .ini files
 #############################################################################
-
 def _empty_fitting_opts():
     opts = ["data_type","include_dirs","solver",
             "iteration","allow_switch","parameters_to_fit",
-            "nonnative"]         
+            "nonnative","last_completed_task"]         
     fittingopts = { opt:None for opt in opts }
     return fittingopts
 
