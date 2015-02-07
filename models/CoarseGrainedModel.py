@@ -201,6 +201,8 @@ class CoarseGrainedModel(object):
         else:
             if self.verbose:
                 print "  Considering the first %d unique pairs to be native pairs" % self.n_native_pairs
+            if self.n_native_pairs > self.n_pairs:
+                raise IOError("Warning: %d n_native_pairs specified greater than %d n_pairs. Specify fewer native pairs or remove n_native_pairs from .ini file" % (self.n_native_pairs, self.n_pairs))
             for i in range(self.n_pairs):
                 if (not (list(self.pairs[i,:]) in self.native_pairs)) and (not (self.pairwise_type[i] in SKIP_INTERACTIONS)):
                     self.native_pairs_indices.append(i)
@@ -208,7 +210,7 @@ class CoarseGrainedModel(object):
                     self.native_pairs_ndx += "%4d %4d\n" % (self.pairs[i,0],self.pairs[i,1])
                     if self.bead_repr == "CA":
                         self.Qref[self.pairs[i,0]-1,self.pairs[i,1]-1] = 1 
-    
+            
         if self.bead_repr == "CACB": 
             self.Qref = np.zeros((max(self.pairs.ravel())+1,max(self.pairs.ravel())+1))
             for i in range(self.n_pairs):

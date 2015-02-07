@@ -136,7 +136,7 @@ def load_model_section(config,modelopts):
             elif item == "epsilon_bar":
                 value = float(value)
             elif item == "disulfides":
-                value = [ int(x) for x in value.split() ]
+                value = [ int(x) for x in value.strip("[ | ]").split(",") ]
                 if (len(value) % 2) != 0:
                     raise IOError("len(disulfides) should be even. Invalid input: %s " % value.__repr__())
             elif item.endswith("_file"):
