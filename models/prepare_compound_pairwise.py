@@ -87,7 +87,7 @@ if __name__ == "__main__":
     name = pdbfile.split(".pdb")[0]
 
     pairs = np.loadtxt(pairsfile,dtype=int)
-    if pairs.shape[0] == 4:
+    if pairs.shape[1] == 4:
         pairs = pairs[:,1::2]
 
     pdb = pdb_parser.get_clean_CA(pdbfile)

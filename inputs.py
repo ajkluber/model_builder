@@ -36,7 +36,10 @@ def save_model(model,fitopts):
     for key in modelkeys:
         value = getattr(model,key)
         if value not in [None,""]:
-            config.set("model",key,str(value))
+            if key in ["pairwise_params_file_location","model_params_file_location"]:
+                config.set("model",key.split("_location")[0],str(value))
+            else:
+                config.set("model",key,str(value))
 
     if os.path.exists("%s.ini" % name):
         shutil.move("%s.ini" % name,"%s.1.ini" % name)

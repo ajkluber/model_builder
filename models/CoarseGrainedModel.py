@@ -191,7 +191,7 @@ class CoarseGrainedModel(object):
             if self.verbose:
                 print "  Considering all (nonredundant) pairs to be native pairs"
             for i in range(self.n_pairs):
-                if (not (list(self.pairs[i,:]) in self.native_pairs)) and (not (self.pairwise_type[i] in SKIP_INTERACTIONS)):
+                if (list(self.pairs[i,:]) not in self.native_pairs) and (self.pairwise_type[i] not in SKIP_INTERACTIONS):
                     self.native_pairs_indices.append(i)
                     self.native_pairs.append(list(self.pairs[i,:]))
                     self.native_pairs_ndx += "%4d %4d\n" % (self.pairs[i,0],self.pairs[i,1])
@@ -202,15 +202,16 @@ class CoarseGrainedModel(object):
             if self.verbose:
                 print "  Considering the first %d unique pairs to be native pairs" % self.n_native_pairs
             if self.n_native_pairs > self.n_pairs:
-                raise IOError("Warning: %d n_native_pairs specified greater than %d n_pairs. Specify fewer native pairs or remove n_native_pairs from .ini file" % (self.n_native_pairs, self.n_pairs))
+                raise IOError("%d n_native_pairs specified greater than %d n_pairs." % (self.n_native_pairs, self.n_pairs))
+
             for i in range(self.n_pairs):
-                if (not (list(self.pairs[i,:]) in self.native_pairs)) and (not (self.pairwise_type[i] in SKIP_INTERACTIONS)):
+                if (list(self.pairs[i,:]) not in self.native_pairs) and (self.pairwise_type[i] not in SKIP_INTERACTIONS):
                     self.native_pairs_indices.append(i)
                     self.native_pairs.append(list(self.pairs[i,:]))
                     self.native_pairs_ndx += "%4d %4d\n" % (self.pairs[i,0],self.pairs[i,1])
                     if self.bead_repr == "CA":
                         self.Qref[self.pairs[i,0]-1,self.pairs[i,1]-1] = 1 
-            
+             
         if self.bead_repr == "CACB": 
             self.Qref = np.zeros((max(self.pairs.ravel())+1,max(self.pairs.ravel())+1))
             for i in range(self.n_pairs):
@@ -220,6 +221,7 @@ class CoarseGrainedModel(object):
 
         # Calculate the native stability.
         self.native_stability = 0
+        
         for i in range(self.n_native_pairs):
             idx = self.native_pairs_indices[i]
             self.native_stability += (self.pairwise_strengths[idx]*self.pairwise_potentials[idx](np.array([self.pairwise_other_parameters[idx][0]])))[0]
