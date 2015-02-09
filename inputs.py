@@ -149,6 +149,15 @@ def load_model_section(config,modelopts):
             modelopts[item] = value
 
 def load_fitting_section(config,modelopts,fittingopts):
+    # special fitting checks is for package specific options
+    # assigns based on keys, functions should be at end of file
+    special_fitting_checks = {"FRET":FRET_fitopts_load}
+    if config.get("fitting","data_type") not in special_fitting_checks:
+        check_special = False
+    else:
+        check_special = True
+        checkfunction = special_fitting_checks[config.get("fitting","data_type")]
+        
     if config.has_section("fitting"):
         print "\nFitting options:"
         for item,value in config.items("fitting"):
@@ -169,28 +178,12 @@ def load_fitting_section(config,modelopts,fittingopts):
                         raise IOError("%s file does not exist! Check config file inputs" % value)
                     else:
                         modelopts["fitting_params"] = np.loadtxt(value,dtype=int)
-                ##specific to FRET-package
-                elif item == "t_fit":
-                    value = int(value)
-                elif item == "fret_pairs":
-                    import re
-                    value = [ int(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))]
-                    if (len(value) % 2) != 0:
-                        raise IOError("len(fret_pairs) should be even. Invalid input: %s " % value.__repr__())
-                    temp_value = []
-                    holder = [0,0]
-                    for i in range(len(value)):
-                        if i%2 == 0:
-                            holder[0] = value[i]
-                        else:
-                            holder[1] = value[i]
-                            temp_value.append(holder)
-                    value = temp_value
-                elif item == "spacing":
-                    value = float(value)
+                elif check_special:
+                    checkfunction(item, value)
                     
                 fittingopts[item] = value
-                    
+        
+                        
 #############################################################################
 # Internal functions to load in models from .ini files
 #############################################################################
@@ -258,4 +251,34 @@ def _add_pair_opts(modelopts):
         modelopts["defaults"] = True
     else:
         _add_pairwise_params(modelopts)
+        
+#############################################################################
+# Define Functions specific to a package (i.e. FRET, ddG_MC2004)
+#############################################################################
+
+def FRET_fitopts_load(item, value):
+    ##specific to FRET-package
+    if item == "t_fit":
+        value = int(value)
+    elif item == "fret_pairs":
+        import re
+        value = [ int(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))]
+        if (len(value) % 2) != 0:
+            raise IOError("len(fret_pairs) should be even. Invalid input: %s " % value.__repr__())
+        temp_value = []
+        holder = [0,0]
+        for i in range(len(value)):
+            if i%2 == 0:
+                holder[0] = value[i]
+            else:
+                holder[1] = value[i]
+                temp_value.append(holder)
+        value = temp_value
+    elif item == "spacing":
+        value = float(value)
+    
+    return value
+
+
+
 
