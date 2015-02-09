@@ -17,7 +17,7 @@ def save_model(model,fitopts):
     config.add_section("model")
     config.add_section("fitting")
     modelkeys = ["name","bead_repr","disulfides","pairs_file",
-                "pairwise_params_file","model_params_file",
+                "pairwise_param_file_location","model_param_file_location",
                 "defaults","epsilon_bar",
                 "n_native_pairs","contact_type",
                 "verbose"]
