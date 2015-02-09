@@ -169,8 +169,26 @@ def load_fitting_section(config,modelopts,fittingopts):
                         raise IOError("%s file does not exist! Check config file inputs" % value)
                     else:
                         modelopts["fitting_params"] = np.loadtxt(value,dtype=int)
-                fittingopts[item] = value
-
+                ##specific to FRET-package
+                elif item == "t_fit":
+                    value = int(value)
+                elif item == "fret_pairs":
+                    import re
+                    value = [ int(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))]
+                    if (len(value) % 2) != 0:
+                        raise IOError("len(fret_pairs) should be even. Invalid input: %s " % value.__repr__())
+                    temp_value = []
+                    holder = [0,0]
+                    for i in range(len(value)):
+                        if i%2 == 0:
+                            holder[0] = value[i]
+                        else:
+                            holder[1] = value[i]
+                            temp_value.append(holder)
+                    fittingopts[item] = temp_value
+                elif item == "spacing":
+                    value = float(value)
+                    
 #############################################################################
 # Internal functions to load in models from .ini files
 #############################################################################
