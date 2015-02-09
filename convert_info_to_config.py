@@ -95,7 +95,7 @@ def convert_info_to_config(name):
         cfg.set("fitting","nonnative",options["Nonnative"]) 
 
     cfg.set("fitting","last_completed_task",last_comp_task) 
-
+    
     with open("%s.ini" % name,"w") as cfgfile:
         cfg.write(cfgfile)
 

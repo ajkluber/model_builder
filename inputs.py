@@ -38,6 +38,8 @@ def save_model(model,fitopts):
         if value not in [None,""]:
             if key in ["pairwise_params_file_location","model_params_file_location"]:
                 config.set("model",key.split("_location")[0],str(value))
+            elif:
+                
             else:
                 config.set("model",key,str(value))
 
@@ -51,6 +53,8 @@ def load_model(name,dry_run=False):
     if not os.path.exists("%s.ini" % name):
         cvt.convert_info_to_config(name)
     modelopts, fittingopts = load_config(name)
+    print "load_model fitopts:"
+    print fittingopts
     modelopts["dry_run"] = dry_run
     model = cg.CoarseGrainedModel(**modelopts)
     return model,fittingopts
@@ -185,9 +189,11 @@ def load_fitting_section(config,modelopts,fittingopts):
                         else:
                             holder[1] = value[i]
                             temp_value.append(holder)
-                    fittingopts[item] = temp_value
+                    value = temp_value
                 elif item == "spacing":
                     value = float(value)
+                    
+                fittingopts[item] = value
                     
 #############################################################################
 # Internal functions to load in models from .ini files
