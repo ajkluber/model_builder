@@ -29,7 +29,7 @@ def save_model(model,fitopts):
                 temp = ""
                 for dir in fitopts["include_dirs"]:
                     temp += "%s " % dir
-                config.set("fitting",key,str(value))
+                config.set("fitting",key,temp)
             else:
                 config.set("fitting",key,str(fitopts[key]))
     
