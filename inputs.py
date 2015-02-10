@@ -180,11 +180,7 @@ def load_fitting_section(config,modelopts,fittingopts):
                         modelopts["fitting_params"] = np.loadtxt(value,dtype=int)
                 elif check_special:
                     value = checkfunction(item, value)
-                
                 fittingopts[item] = value
-                
-        print fittingopts 
-        
                         
 #############################################################################
 # Internal functions to load in models from .ini files
