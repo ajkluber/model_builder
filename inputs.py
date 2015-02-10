@@ -179,9 +179,12 @@ def load_fitting_section(config,modelopts,fittingopts):
                     else:
                         modelopts["fitting_params"] = np.loadtxt(value,dtype=int)
                 elif check_special:
-                    checkfunction(item, value)
-                    
+                    value = checkfunction(item, value)
+                
+   
                 fittingopts[item] = value
+                
+        print fittingopts 
         
                         
 #############################################################################
@@ -260,6 +263,9 @@ def FRET_fitopts_load(item, value):
     ##specific to FRET-package
     if item == "t_fit":
         value = int(value)
+        print "Got here"
+        print "Type is:"
+        print type(value)
     elif item == "fret_pairs":
         import re
         value = [ int(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))]
