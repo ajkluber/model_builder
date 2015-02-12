@@ -119,12 +119,12 @@ def load_config(name):
     modelopts = _empty_model_opts()
     fittingopts = _empty_fitting_opts()
 
-    modelopts["pdb"] = "%s.pdb" % name
     print "Creating model according to %s.ini" % name
     print "Options not shown default to None"
     load_model_section(config,modelopts)
     load_fitting_section(config,modelopts,fittingopts)
     _add_pair_opts(modelopts) 
+    modelopts["pdb"] = "%s.pdb" % modelopts["name"]
     return modelopts,fittingopts
 
 def load_model_section(config,modelopts):
