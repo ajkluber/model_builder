@@ -204,7 +204,8 @@ class CoarseGrainedModel(object):
             if self.n_native_pairs > self.n_pairs:
                 raise IOError("%d n_native_pairs specified greater than %d n_pairs." % (self.n_native_pairs, self.n_pairs))
 
-            for i in range(self.n_pairs):
+            #Modified the range from self.n_pairs to self.n_native_pairs, assuming the first n pairs are native
+            for i in range(self.n_native_pairs):
                 if (list(self.pairs[i,:]) not in self.native_pairs) and (self.pairwise_type[i] not in SKIP_INTERACTIONS):
                     self.native_pairs_indices.append(i)
                     self.native_pairs.append(list(self.pairs[i,:]))
@@ -379,7 +380,7 @@ class CoarseGrainedModel(object):
     def update_model_param_values(self,new_model_param_values):
         """ If parameter changed sign, change the pairwise interaction type """
         # Switching between different interaction function types
-        potential_type_switch = {2:3,3:2,4:5,5:4}
+        potential_type_switch = {2:1,3:2,4:5,5:4}
     
         # Loop over fitting_params only 
         for i in range(self.n_fitting_params):
@@ -389,7 +390,7 @@ class CoarseGrainedModel(object):
                 if new_model_param_values[i] < 0.:
                     # If parameter changes sign then the pairwise_type is flipped.
                     if self.pairwise_type[p_pairs[n]] == 1:
-                        self.pairwise_type[p_pairs[n]] = 3
+                        self.pairwise_type[p_pairs[n]] = 2
                     else:
                         self.pairwise_type[p_pairs[n]] = potential_type_switch[self.pairwise_type[p_pairs[n]]]
                 else:
