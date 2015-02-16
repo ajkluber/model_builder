@@ -152,13 +152,14 @@ def load_fitting_section(config,modelopts,fittingopts):
     # special fitting checks is for package specific options
     # assigns based on keys, functions should be at end of file
     special_fitting_checks = {"FRET":FRET_fitopts_load}
-    if config.get("fitting","data_type") not in special_fitting_checks:
-        check_special = False
-    else:
-        check_special = True
-        checkfunction = special_fitting_checks[config.get("fitting","data_type")]
         
     if config.has_section("fitting"):
+        if config.get("fitting","data_type") not in special_fitting_checks:
+            check_special = False
+        else:
+            check_special = True
+            checkfunction = special_fitting_checks[config.get("fitting","data_type")]
+
         print "\nFitting options:"
         for item,value in config.items("fitting"):
             if value in [None,""]:
