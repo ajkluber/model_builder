@@ -154,11 +154,11 @@ def load_fitting_section(config,modelopts,fittingopts):
     special_fitting_checks = {"FRET":FRET_fitopts_load}
         
     if config.has_section("fitting"):
-        if config.get("fitting","data_type") not in special_fitting_checks:
-            check_special = False
-        else:
-            check_special = True
+        if config.has_option("fitting","data_type") and config.get("fitting","data_type") in special_fitting_checks:
             checkfunction = special_fitting_checks[config.get("fitting","data_type")]
+            check_special = True
+        else:
+            check_special = False
 
         print "\nFitting options:"
         for item,value in config.items("fitting"):

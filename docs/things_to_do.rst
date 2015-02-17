@@ -43,4 +43,6 @@ Models
 
 1. Determine a quick way to evaluate the energies of contacts. Cython?
 
-2. Decide on design that allows for multiple chains in the topology.
+2. Allow for multiple chains in the topology.
+
+3. Allow options for sidechain volumes for CACB model. Either all the same or flavored.
