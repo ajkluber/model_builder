@@ -80,17 +80,24 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='.')
     parser.add_argument('--pdb', type=str, required=True, help='PDB file with structure.')
     parser.add_argument('--pairs', type=str, required=True, help='List of pairs.')
+    parser.add_argument('--bead_repr', type=str, required=True, help='Bead representation.')
     args = parser.parse_args()
 
     pdbfile = args.pdb
     pairsfile = args.pairs
+    bead_repr = args.bead_repr
     name = pdbfile.split(".pdb")[0]
 
     pairs = np.loadtxt(pairsfile,dtype=int)
     if pairs.shape[1] == 4:
         pairs = pairs[:,1::2]
 
-    pdb = pdb_parser.get_clean_CA(pdbfile)
+    if bead_repr == "CA":
+        pdb = pdb_parser.get_clean_CA(pdbfile)
+    elif bead_repr == "CACB":
+        pdb = pdb_parser.get_clean_CA_center_of_mass_CB(pdbfile)
+    else:
+        raise IOErorr("--bead_repr must be CA or CACB")
 
     pairwise_param_file_string, model_param_file_string = get_compound_LJ12_Gaussian_pairwise(pdb,pairs)
 
