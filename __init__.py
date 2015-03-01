@@ -21,5 +21,5 @@ Example:
 
 import models
 import inputs
-import info_string
+#import info_string
 import make_model
