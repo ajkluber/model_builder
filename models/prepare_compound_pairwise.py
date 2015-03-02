@@ -20,6 +20,7 @@ import argparse
 import numpy as np
 
 import pdb_parser
+import residue_properties as rp
 
 def get_Gaussian_pairwise(pdb,pairs,model_param=0):
     """ """
@@ -44,12 +45,22 @@ def get_Gaussian_pairwise(pdb,pairs,model_param=0):
 
     return pairwise_param_file_string, model_param_file_string
 
-def get_compound_LJ12_Gaussian_pairwise(pdb,pairs,model_param=0):
+def get_compound_LJ12_Gaussian_pairwise(pdb,pairs,model_param=0,native_sterics=False):
     """ """
-    rNC = 0.4
     width0 = 0.05
     pairwise_distances = pdb_parser.get_pairwise_distances(pdb,pairs)
     model_param_value = 1.
+    if native_sterics:
+        res_types = pdb_parser.get_coords_atoms_residues(pdb)[4]
+        pairs_rNC = np.zeros(len(pairs))
+        for i in range(len(pairs)):
+            i_idx = pairs[i][0]
+            j_idx = pairs[i][1]
+            radii_i = rp.residue_CB_radii(res_types[i_idx - 1])
+            radii_j = rp.residue_CB_radii(res_types[j_idx - 1])
+            pairs_rNC = radii_i + radii_j
+    else:
+        pairs_rNC = 0.4*np.ones(len(pairs))
 
     ## Loop over pairs and create pair
     pairwise_param_file_string = "#   i   j   param int_type  other_params\n"
@@ -61,6 +72,7 @@ def get_compound_LJ12_Gaussian_pairwise(pdb,pairs,model_param=0):
         i_idx = pairs[i][0]
         j_idx = pairs[i][1]
         r0 = pairwise_distances[i] 
+        rNC = pairs_NC[i]
 
         ## compound_LJ12_Gaussian takes rNC, r0, width0
         LJ12_Gaussian_other_params = "%10.5f%10.5f%10.5f" % (rNC,r0,width0)

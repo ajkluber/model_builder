@@ -1,8 +1,8 @@
+# coding=utf-8
 """ Holding properties of residues
 
-
-Currently not being used for anything
 """
+
 
 def residue_mass(code):
     """Masses in atomic mass units."""
@@ -25,3 +25,18 @@ def residue_three_to_one_letter_code(code):
                     'SER': 'S', 'THR': 'T', 'TRP': 'W',
                     'TYR': 'Y', 'VAL': 'V'}[code]
     return residue_code
+
+def residue_CB_radii(code):
+    """Source : Partial molar volumes of proteins: amino acid side-chain
+    contributions derived from the partial molar volumes of some tripeptides
+    over the temperature range 10-90 degrees C. M Häckel, H J Hinz, and G R
+    Hedwig"""
+    """Atomic radii in nanometers"""
+    residue_radii = {'ALA': 0.1844827, 'ARG': 0.3134491, 'ASN': 0.2477519,
+                    'ASP': 0.2334602, 'CYS': 0.2276212, 'GLN': 0.2733978,
+                    'GLU': 0.2639170, 'GLY': 0.0000000, 'HIS': 0.2835556,
+                    'ILE': 0.2889931, 'LEU': 0.2887070, 'LYS': 0.2937731,
+                    'MET': 0.2916368, 'PHE': 0.3140150, 'PRO': 0.2419109,
+                    'SER': 0.1936102, 'THR': 0.2376198, 'TRP': 0.3422321,
+                    'TYR': 0.3168939, 'VAL': 0.2619603, 'AVERAGE': 0.2683678}[code]
+    return residue_radii
