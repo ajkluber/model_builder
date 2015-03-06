@@ -275,6 +275,10 @@ def FRET_fitopts_load(item, value):
         value = temp_value
     elif item == "spacing":
         value = float(value)
+    elif item == "truncate_value":
+        value = float(value)
+    elif item == "y_shift":
+        value = float(value)
     
     return value
 
