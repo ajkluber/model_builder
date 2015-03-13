@@ -2,6 +2,8 @@ import numpy as np
 
 import bonded_potentials as bond
 import pdb_parser
+import residue_properties as rp
+import csv
 
 ############################################################################
 # Helper function to get representation
@@ -65,7 +67,7 @@ def set_CA_bonded_interactions(model):
     # Using proper dihedrals for all C-alpha dihedrals.
     model.dihedral_type = [ 1 for i in range(len(model.dihedral_min)) ]
 
-    # atomtypes category of topol.top. Sets default excluded volume of 0.4nm
+    # atomtypes category of topol.top. Sets default excluded volume of 0.4nm 
     atomtypes_string = " [ atomtypes ]\n"
     atomtypes_string += " ;name  mass     charge   ptype c10       c12\n"
     atomtypes_string += " CA     1.000    0.000 A    0.000   %10.9e\n\n" % (0.4**12)
@@ -129,15 +131,60 @@ def set_CACB_bonded_interactions(model):
 
     # atomtypes category of topol.top. Sets default excluded volume of ???
     ca_size = 0.2
-    cb_size = 0.27
+    model.CB_volume = "flavored" # flavored or average
+    model.CB_define = "custom" # default or custom
+    cb_scale_fact = 1.0 # scales cb radii times this factor
+
+    if model.CB_define == "custom":
+	if model.CB_volume == "flavored":
+		residue_radii = {}
+		for key, val in csv.reader(open("newradii_flav")):
+			residue_radii[key] = val # builds local dictionary residue_radii with values
+	if model.CB_volume == "average":
+		residue_radii = np.loadtxt("newradii_avg")	
+	
+    model.res_types_abbrev = []
+    model.atm_names = []
+    model.atm_radii = []
+    
+    if model.CB_define == "default":
+  	for i in range(len(model.atm_indxs)):
+    		model.res_types_abbrev.append(rp.residue_three_to_one_letter_code(model.res_types[i]))
+		model.atm_names.append(model.atm_types[i] + model.res_types_abbrev[i])
+        	if  model.atm_types[i] == "CB":
+			if model.CB_volume=="flavored":
+ 				model.atm_radii.append(cb_scale_fact * rp.residue_CB_radii(model.res_types[i]))
+			elif model.CB_volume=="average":
+        			model.atm_radii.append(cb_scale_fact * rp.residue_CB_radii("AVERAGE"))
+    			else:
+        			raise IOError('CB_volume must be flavored or average.')
+       		else:
+			model.atm_radii.append(ca_size) # for all CA* variant
+    elif model.CB_define == "custom":
+	for i in range(len(model.atm_indxs)):
+                model.res_types_abbrev.append(rp.residue_three_to_one_letter_code(model.res_types[i]))
+                model.atm_names.append(model.atm_types[i] + model.res_types_abbrev[i])
+        	if  model.atm_types[i] == "CB":
+                	if model.CB_volume=="flavored":
+                        	model.atm_radii.append(cb_scale_fact * float(residue_radii[model.res_types[i]]))
+                	elif model.CB_volume=="average":
+                        	model.atm_radii.append(cb_scale_fact * float(residue_radii))
+                	else:
+                        	raise IOError('CB_volume must be flavored or average.')
+      		else:                 
+	        	model.atm_radii.append(ca_size) # for all CA* variant
+    
+    model.atm_names_dups , model.atm_names_dups_ind = np.unique(model.atm_names,return_index=True)
+
     atomtypes_string = " [ atomtypes ]\n"
     atomtypes_string += " ;name  mass     charge   ptype c10       c12\n"
-    atomtypes_string += " CA     1.000    0.000 A    0.000   %10.9e\n" % (ca_size**12)
-    atomtypes_string += " CB     1.000    0.000 A    0.000   %10.9e\n\n" % (cb_size**12) 
+    for i in model.atm_names_dups_ind[:-1]:
+    	atomtypes_string += (model.atm_names[i] + "     1.000    0.000 A    0.000   %10.9e\n" % (model.atm_radii[i]**12))
+    atomtypes_string += (model.atm_names[model.atm_names_dups_ind[-1]] + "     1.000    0.000 A    0.000   %10.9e\n\n" % (model.atm_radii[model.atm_names_dups_ind[-1]]**12))
     model.atomtypes_string = atomtypes_string
-
     # Make index.ndx string
     create_CACB_index_ndx(model,CA_indxs,CB_indxs)
+    return model.atm_names
 
 def create_CACB_bonds(model,CA_indxs,CB_indxs,coords):
     # Set bonded force field terms quantities.
@@ -463,7 +510,7 @@ def get_atoms_string(model):
     atoms_string += " ;nr  type  resnr residue atom  cgnr charge  mass\n"
     for j in range(len(model.atm_indxs)):
         atmnum = model.atm_indxs[j]
-        atmtype = model.atm_types[j]
+        atmtype = model.atm_names[j] # changed atm_types to atm_names
         resnum = model.res_indxs[j]
         restype = model.res_types[j]
         atoms_string += " %5d%4s%8d%5s%4s%8d%8.3f%8.3f\n" % \
@@ -526,11 +573,11 @@ def get_dihedrals_string(model):
 def get_grofile(model):
     """ Get the .gro string """
     gro_string = " Structure-based Gro file\n"
-    gro_string += "%12d\n" % len(model.atm_types)
+    gro_string += "%12d\n" % len(model.atm_names) # changed atm_types to atm_names
     for i in range(len(model.atm_indxs)):
         gro_string += "%5d%5s%5s%5d%8.3f%8.3f%8.3f\n" % \
             (model.res_indxs[i],model.res_types[i],
-            model.atm_types[i],model.atm_indxs[i],
+            model.atm_names[i],model.atm_indxs[i], # changed atm_types to atm_names
             model.atm_coords[i][0],model.atm_coords[i][1],model.atm_coords[i][2])
     gro_string += "   %-25.16f%-25.16f%-25.16f" % (50.0,50.0,50.0)
 

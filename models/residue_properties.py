@@ -1,6 +1,7 @@
 # coding=utf-8
 """ Holding properties of residues
 
+Currently not being used for anything
 """
 
 
@@ -27,10 +28,7 @@ def residue_three_to_one_letter_code(code):
     return residue_code
 
 def residue_CB_radii(code):
-    """Source : Partial molar volumes of proteins: amino acid side-chain
-    contributions derived from the partial molar volumes of some tripeptides
-    over the temperature range 10-90 degrees C. M Häckel, H J Hinz, and G R
-    Hedwig"""
+    """Source : Partial molar volumes of proteins: amino acid side-chain contributions derived from the partial molar volumes of some tripeptides over the temperature range 10-90 degrees C. M Häckel, H J Hinz, and G R Hedwig"""
     """Atomic radii in nanometers"""
     residue_radii = {'ALA': 0.1844827, 'ARG': 0.3134491, 'ASN': 0.2477519,
                     'ASP': 0.2334602, 'CYS': 0.2276212, 'GLN': 0.2733978,
