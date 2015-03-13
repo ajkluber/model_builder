@@ -42,6 +42,7 @@ def set_CA_bonded_interactions(model):
     model.atm_types = pdb_info[2]
     model.res_indxs = pdb_info[3]
     model.res_types = pdb_info[4]
+    model.atm_names = model.atm_types
     indxs = model.atm_indxs
     coords = model.atm_coords
 
@@ -67,7 +68,7 @@ def set_CA_bonded_interactions(model):
     # Using proper dihedrals for all C-alpha dihedrals.
     model.dihedral_type = [ 1 for i in range(len(model.dihedral_min)) ]
 
-    # atomtypes category of topol.top. Sets default excluded volume of 0.4nm 
+    # atomtypes category of topol.top. Sets default excluded volume of 0.4nm
     atomtypes_string = " [ atomtypes ]\n"
     atomtypes_string += " ;name  mass     charge   ptype c10       c12\n"
     atomtypes_string += " CA     1.000    0.000 A    0.000   %10.9e\n\n" % (0.4**12)
