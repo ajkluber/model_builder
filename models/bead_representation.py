@@ -135,13 +135,6 @@ def set_CACB_bonded_interactions(model):
     model.CB_volume = "flavored" # flavored or average
     residue_custom = {}
 
-#   if model.CB_volume == "flavored":
-#       residue_radii = {}
-#       for key, val in csv.reader(open("newradii_flav")):
-#           residue_radii[key] = val # builds local dictionary residue_radii with values
-#   if model.CB_volume == "average":
-#       residue_radii = np.loadtxt("newradii_avg")  
-    
     if model.CB_volume.endswith(".dat"):
         residue_names, residue_radii = np.loadtxt("%s.dat" % model.CB_volume, unpack=True)
         for i in range(len(residue_radii)):
