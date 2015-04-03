@@ -146,6 +146,13 @@ def load_model_section(config,modelopts):
             elif item.endswith("_file"):
                 if not os.path.exists(value):
                     raise IOError("%s file does not exist! Check config file inputs" % value)
+            elif item == "cb_volume":
+                if value.endswith(".dat"):
+                    if not os.path.exists(value):
+                        raise IOError("%s file does not exist! Check config file inputs" % value)
+                else:
+                    if value not in ["average","flavored"]:
+                        raise IOError("cb_volume value must be: average, flavored, or filename")
             elif item == "backbone_param_vals":
                 value = eval(value)
             modelopts[item] = value

@@ -40,13 +40,13 @@ def set_CACB_bonded_interactions(model):
     create_CACB_dihedrals_improper(model,CA_indxs,CB_indxs,coords)
     create_CACB_exclusions(model)
 
-    # atomtypes category of topol.top. Sets default excluded volume of ???
+    # atomtypes category of topol.top. Sets default excluded volume to 0.2 nm
     ca_size = 0.2
-    model.CB_volume = "flavored" # flavored or average
+    #model.cb_volume = "flavored" # flavored or average
     residue_custom = {}
 
-    if model.CB_volume.endswith(".dat"):
-        residue_names, residue_radii = np.loadtxt("%s.dat" % model.CB_volume, unpack=True)
+    if model.cb_volume.endswith(".dat"):
+        residue_names, residue_radii = np.loadtxt("%s.dat" % model.cb_volume, unpack=True)
         for i in range(len(residue_radii)):
             residue_custom[residue_names[i]] = residue_radii[i] # prepares custom radii dictionary
         
@@ -58,14 +58,14 @@ def set_CACB_bonded_interactions(model):
         model.res_types_abbrev.append(rp.residue_code[model.res_types[i]])
         model.atm_names.append(model.atm_types[i] + model.res_types_abbrev[i])
         if  model.atm_types[i] == "CB":
-            if model.CB_volume=="flavored":
+            if model.cb_volume == "flavored":
                 model.atm_radii.append(rp.residue_radii[model.res_types[i]])
-            elif model.CB_volume=="average":
+            elif model.cb_volume == "average":
                 model.atm_radii.append(rp.residue_radii["AVERAGE"])
-            elif model.CB_volume.endswith(".dat"):
+            elif model.cb_volume.endswith(".dat"):
                 model.atm_radii.append(float(residue_custom[model.res_types[i]]))
             else:
-                raise IOError('CB_volume must be flavored, average, or custom .dat input file')
+                raise IOError('cb_volume must be flavored, average, or custom .dat input file')
         else:
             model.atm_radii.append(ca_size) # for all CA* variant
     
