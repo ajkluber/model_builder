@@ -133,54 +133,45 @@ def set_CACB_bonded_interactions(model):
     # atomtypes category of topol.top. Sets default excluded volume of ???
     ca_size = 0.2
     model.CB_volume = "flavored" # flavored or average
-    model.CB_define = "custom" # default or custom
-    cb_scale_fact = 1.0 # scales cb radii times this factor
+    residue_custom = {}
 
-    if model.CB_define == "custom":
-	if model.CB_volume == "flavored":
-		residue_radii = {}
-		for key, val in csv.reader(open("newradii_flav")):
-			residue_radii[key] = val # builds local dictionary residue_radii with values
-	if model.CB_volume == "average":
-		residue_radii = np.loadtxt("newradii_avg")	
-	
+#   if model.CB_volume == "flavored":
+#       residue_radii = {}
+#       for key, val in csv.reader(open("newradii_flav")):
+#           residue_radii[key] = val # builds local dictionary residue_radii with values
+#   if model.CB_volume == "average":
+#       residue_radii = np.loadtxt("newradii_avg")  
+    
+    if model.CB_volume.endswith(".dat"):
+        residue_names, residue_radii = np.loadtxt("%s.dat" % model.CB_volume, unpack=True)
+        for i in range(len(residue_radii)):
+            residue_custom[residue_names[i]] = residue_radii[i] # prepares custom radii dictionary
+        
     model.res_types_abbrev = []
     model.atm_names = []
     model.atm_radii = []
     
-    if model.CB_define == "default":
-  	for i in range(len(model.atm_indxs)):
-    		model.res_types_abbrev.append(rp.residue_three_to_one_letter_code(model.res_types[i]))
-		model.atm_names.append(model.atm_types[i] + model.res_types_abbrev[i])
-        	if  model.atm_types[i] == "CB":
-			if model.CB_volume=="flavored":
- 				model.atm_radii.append(cb_scale_fact * rp.residue_CB_radii(model.res_types[i]))
-			elif model.CB_volume=="average":
-        			model.atm_radii.append(cb_scale_fact * rp.residue_CB_radii("AVERAGE"))
-    			else:
-        			raise IOError('CB_volume must be flavored or average.')
-       		else:
-			model.atm_radii.append(ca_size) # for all CA* variant
-    elif model.CB_define == "custom":
-	for i in range(len(model.atm_indxs)):
-                model.res_types_abbrev.append(rp.residue_three_to_one_letter_code(model.res_types[i]))
-                model.atm_names.append(model.atm_types[i] + model.res_types_abbrev[i])
-        	if  model.atm_types[i] == "CB":
-                	if model.CB_volume=="flavored":
-                        	model.atm_radii.append(cb_scale_fact * float(residue_radii[model.res_types[i]]))
-                	elif model.CB_volume=="average":
-                        	model.atm_radii.append(cb_scale_fact * float(residue_radii))
-                	else:
-                        	raise IOError('CB_volume must be flavored or average.')
-      		else:                 
-	        	model.atm_radii.append(ca_size) # for all CA* variant
+    for i in range(len(model.atm_indxs)):
+        model.res_types_abbrev.append(rp.residue_code[model.res_types[i]])
+        model.atm_names.append(model.atm_types[i] + model.res_types_abbrev[i])
+        if  model.atm_types[i] == "CB":
+            if model.CB_volume=="flavored":
+                model.atm_radii.append(rp.residue_radii[model.res_types[i]])
+            elif model.CB_volume=="average":
+                model.atm_radii.append(rp.residue_radii["AVERAGE"])
+            elif model.CB_volume.endswith(".dat"):
+                model.atm_radii.append(float(residue_custom[model.res_types[i]]))
+            else:
+                raise IOError('CB_volume must be flavored, average, or custom .dat input file')
+        else:
+            model.atm_radii.append(ca_size) # for all CA* variant
     
     model.atm_names_dups , model.atm_names_dups_ind = np.unique(model.atm_names,return_index=True)
 
     atomtypes_string = " [ atomtypes ]\n"
     atomtypes_string += " ;name  mass     charge   ptype c10       c12\n"
     for i in model.atm_names_dups_ind[:-1]:
-    	atomtypes_string += (model.atm_names[i] + "     1.000    0.000 A    0.000   %10.9e\n" % (model.atm_radii[i]**12))
+        atomtypes_string += (model.atm_names[i] + "     1.000    0.000 A    0.000   %10.9e\n" % (model.atm_radii[i]**12))
     atomtypes_string += (model.atm_names[model.atm_names_dups_ind[-1]] + "     1.000    0.000 A    0.000   %10.9e\n\n" % (model.atm_radii[model.atm_names_dups_ind[-1]]**12))
     model.atomtypes_string = atomtypes_string
     # Make index.ndx string
