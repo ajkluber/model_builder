@@ -19,7 +19,7 @@ def save_model(model,fitopts):
     modelkeys = ["name","bead_repr","disulfides","pairs_file",
                 "pairwise_params_file_location","model_params_file_location",
                 "defaults","epsilon_bar",
-                "n_native_pairs","contact_type",
+                "n_native_pairs","contact_type","backbone_param_vals",
                 "verbose"]
 
     # Populate fields
@@ -146,6 +146,8 @@ def load_model_section(config,modelopts):
             elif item.endswith("_file"):
                 if not os.path.exists(value):
                     raise IOError("%s file does not exist! Check config file inputs" % value)
+            elif item == "backbone_param_vals":
+                value = eval(value)
             modelopts[item] = value
 
 def load_fitting_section(config,modelopts,fittingopts):
