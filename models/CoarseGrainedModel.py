@@ -57,7 +57,7 @@ class CoarseGrainedModel(object):
         if not hasattr(self,"backbone_params"):
             self.backbone_params = ["Kb","Ka","Kd"]
         if not hasattr(self,"backbone_param_vals"):
-            self.backbone_param_vals = {"Kb":20000.,"Ka":40.,"Kd":1}
+            self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
         if not hasattr(self,"verbose"):
             self.verbose = False
 
@@ -398,8 +398,9 @@ class CoarseGrainedModel(object):
                     else:
                         self.pairwise_type[p_pairs[n]] = potential_type_switch[self.pairwise_type[p_pairs[n]]]
                 else:
-                    if self.pairwise_type[p_pairs[n]] == 1:
-                        self.pairwise_type[p_pairs[n]] = 2
+                    pass
+#                    if self.pairwise_type[p_pairs[n]] == 1:
+#                        self.pairwise_type[p_pairs[n]] = 2
                 # Model parameters are always positive
                 self.model_param_values[p_idx] = abs(new_model_param_values[i])   
 
