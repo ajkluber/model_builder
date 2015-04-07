@@ -146,6 +146,13 @@ def load_model_section(config,modelopts):
             elif item.endswith("_file"):
                 if not os.path.exists(value):
                     raise IOError("%s file does not exist! Check config file inputs" % value)
+            elif item == "cb_volume":
+                if value.endswith(".dat"):
+                    if not os.path.exists(value):
+                        raise IOError("%s file does not exist! Check config file inputs" % value)
+                else:
+                    if value not in ["average","flavored"]:
+                        raise IOError("cb_volume value must be: average, flavored, or filename")
             elif item == "backbone_param_vals":
                 value = eval(value)
             modelopts[item] = value
@@ -198,11 +205,11 @@ def _empty_fitting_opts():
 def _empty_model_opts():
     opts = ["pairs_file","pairwise_params_file",
             "model_params_file","epsilon_bar",
-            "defaults","bead_repr","disulfides",
+            "defaults","bead_repr","cb_volume","disulfides",
             "n_native_pairs","contact_type","model_code",
             "pairs","pairwise_other_parameters",
             "pairwise_param_assignment",
-            "pairwise_type","verbose","dry_run"]         
+            "pairwise_type","verbose","dry_run"] 
     modelopts = { opt:None for opt in opts }
     return modelopts
 
