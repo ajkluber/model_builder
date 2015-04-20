@@ -62,7 +62,7 @@ class CoarseGrainedModel(object):
             self.verbose = False
 
         if not os.path.exists(self.pdb):
-            IOError("The inputted pdb: %s does not exist" % pdb)
+            IOError("The inputted pdb: %s does not exist" % self.pdb)
             raise SystemExit
 
         if not hasattr(self,"exclusions"):
