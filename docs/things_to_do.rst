@@ -45,4 +45,6 @@ Models
 
 2. Allow for multiple chains in the topology.
 
-3. Allow options for sidechain volumes for CACB model. Either all the same or flavored.
+3. Allow options for sidechain volumes for CACB model. Either all the same or flavored. DONE
+
+4. Allow for topol format to use with gmx, SBM hack.

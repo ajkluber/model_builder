@@ -18,11 +18,11 @@ def save_model(model,fitopts):
     config.add_section("fitting")
     modelkeys = ["name","bead_repr","disulfides","pairs_file",
                 "pairwise_params_file_location","model_params_file_location",
-                "defaults","epsilon_bar",
+                "defaults","epsilon_bar","n_processors",
                 "n_native_pairs","contact_type","backbone_param_vals",
                 "verbose"]
 
-    # Populate fields
+    # Save fitting options that aren't None.
     for key in fitopts.iterkeys():
         if fitopts[key] not in [None,""]:
             if key == "include_dirs":
@@ -33,6 +33,7 @@ def save_model(model,fitopts):
             else:
                 config.set("fitting",key,str(fitopts[key]))
     
+    # Save model options that aren't None.
     for key in modelkeys:
         value = getattr(model,key)
         if value not in [None,""]:
@@ -111,7 +112,7 @@ def get_pairwise_params(pairwise_params_file,model_params_file):
     return pairs,pairwise_param_assignment,model_param_values,pairwise_type,pairwise_other_params
 
 def load_config(name):
-    """Load options from <name>.ini file"""
+    """Parse options from <name>.ini file"""
     config = ConfigParser.SafeConfigParser(allow_no_value=True)
     config.read("%s.ini" % name)
 
@@ -128,6 +129,7 @@ def load_config(name):
     return modelopts,fittingopts
 
 def load_model_section(config,modelopts):
+    """Parse [model] options from config .ini file"""
     print "Model options:"
     for item,value in config.items("model"):
         if value in [None,""]:
@@ -135,6 +137,8 @@ def load_model_section(config,modelopts):
         else:
             print "  %-20s = %s" % (item,value)
             if item == "n_native_pairs":
+                value = int(value)
+            elif item == "n_processors":
                 value = int(value)
             elif item == "epsilon_bar":
                 value = float(value)
@@ -158,12 +162,13 @@ def load_model_section(config,modelopts):
             modelopts[item] = value
 
 def load_fitting_section(config,modelopts,fittingopts):
+    """Parse [fitting] options from config .ini file"""
     # special fitting checks is for package specific options
     # assigns based on keys, functions should be at end of file
     special_fitting_checks = {"FRET":FRET_fitopts_load}
         
     if config.has_section("fitting"):
-        if config.has_option("fitting","data_type") and config.get("fitting","data_type") in special_fitting_checks:
+        if config.has_option("fitting","data_type") and (config.get("fitting","data_type") in special_fitting_checks):
             checkfunction = special_fitting_checks[config.get("fitting","data_type")]
             check_special = True
         else:
@@ -196,6 +201,7 @@ def load_fitting_section(config,modelopts,fittingopts):
 # Internal functions to load in models from .ini files
 #############################################################################
 def _empty_fitting_opts():
+    """Fitting options to check for"""
     opts = ["data_type","include_dirs","solver",
             "iteration","allow_switch","parameters_to_fit",
             "nonnative","last_completed_task"]         
@@ -203,19 +209,20 @@ def _empty_fitting_opts():
     return fittingopts
 
 def _empty_model_opts():
+    """Model options to check for"""
     opts = ["pairs_file","pairwise_params_file",
             "model_params_file","epsilon_bar",
             "defaults","bead_repr","cb_volume","disulfides",
             "n_native_pairs","contact_type","model_code",
             "pairs","pairwise_other_parameters",
-            "pairwise_param_assignment",
+            "pairwise_param_assignment","n_processors",
             "pairwise_type","verbose","dry_run"] 
     modelopts = { opt:None for opt in opts }
     return modelopts
 
 
 def _add_pairwise_params(modelopts):
-    """Grab pairwise_params from file"""
+    """Parse pairwise_params file"""
 
     model_param_values = np.loadtxt(modelopts["model_params_file"])
     p_lines = [ x.rstrip("\n") for x in open(modelopts["pairwise_params_file"],"r").readlines() ]
@@ -248,11 +255,12 @@ def _add_pairwise_params(modelopts):
     modelopts["defaults"] = False
 
 def _add_pair_opts(modelopts):
+    """Add pairs or pairwise_params info to modelopts"""
     if (modelopts["pairs_file"] == None) and (modelopts["pairwise_params_file"] == None):
         raise IOError("Need to specify either pairs_file or pairwise_params_file")
     elif (modelopts["pairs_file"] != None):
         pairs = np.loadtxt("%s" % modelopts["pairs_file"],dtype=int)
-        ##For removing the unnecessary columns from the smog contact map output
+        # For removing the unnecessary columns from the smog contact map output
         if len(pairs[0,:]) == 4:
             pairs = pairs[:,np.array([1,3])]
         modelopts["pairs"] = pairs
@@ -265,7 +273,7 @@ def _add_pair_opts(modelopts):
 #############################################################################
 
 def FRET_fitopts_load(item, value):
-    ##specific to FRET-package
+    """Check options specific to FRET-package"""
     if item == "t_fit":
         value = int(value)
     elif item == "fret_pairs":
