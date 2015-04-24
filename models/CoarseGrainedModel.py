@@ -97,7 +97,7 @@ class CoarseGrainedModel(object):
             self.model_param_values = np.ones(self.n_pairs,float)
             self.pairwise_type = 2*np.ones(self.n_pairs,int)
             self.pairwise_param_assignment = np.arange(self.n_pairs)     
-            self.pairwise_other_parameters = [ [self.pairwise_distances[x]] for x in range(self.n_pairs) ]
+            self.pairwise_other_parameters = [ tuple({self.pairwise_distances[x]}) for x in range(self.n_pairs) ]
         else:
             needed = [hasattr(self,"model_param_values"),hasattr(self,"pairwise_type"), \
                     hasattr(self,"pairwise_param_assignment"),hasattr(self,"pairwise_other_parameters")]

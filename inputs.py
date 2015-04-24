@@ -105,7 +105,7 @@ def get_pairwise_params(pairwise_params_file,model_params_file):
         temp = []
         for otherparam in data[4:]:
             temp.append(float(otherparam))
-        pairwise_other_params.append(temp)
+        pairwise_other_params.append(tuple(temp))
 
     pairs = np.array(pairs) 
     pairwise_param_assignment = np.array(pairwise_param_assignment)
@@ -160,7 +160,7 @@ def load_model_section(config,modelopts):
             elif item == "backbone_param_vals":
                 value = eval(value)
             modelopts[item] = value
-    if modelopts["bead_repr"] == "CACB" (and modelopts["cb_volume"] not in ["average","flavored"]):
+    if modelopts["bead_repr"] == "CACB" and (modelopts["cb_volume"] not in ["average","flavored"]):
         raise IOError("If bead_repr = CACB, then must set cb_volume to: average or flavored")
 
 def load_fitting_section(config,modelopts,fittingopts):
@@ -246,7 +246,7 @@ def _add_pairwise_params(modelopts):
         temp = []
         for otherparam in data[4:]:
             temp.append(float(otherparam))
-        pairwise_other_params.append(temp)
+        pairwise_other_params.append(tuple(temp))
 
     pairs = np.array(pairs) 
     pairwise_param_assignment = np.array(pairwise_param_assignment)

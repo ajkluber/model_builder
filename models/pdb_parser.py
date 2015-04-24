@@ -235,7 +235,7 @@ def get_pairwise_distances(pdb,pairs):
     pdb : str
         String in PDB file format that has contents of one protein chain. 
         Assumed to be one chain, numbering starting at 1. (e.g. as returned
-        by get_clean_full_noH.
+        by get_clean_full_noH. Can also be a filename that ends in .pdb.
     pairs : array 
         Array of shape (n_pairs,2) that contains the atom indices to calculate
         the distance between.
