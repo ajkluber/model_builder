@@ -244,8 +244,8 @@ def create_CACB_exclusions(model):
     """Create list of exclusions for the CACB model
 
     Rules for exclusions are based off the following reference:
-    Cheung 'Exploring the interplay between topology and secondary structural
-            formation in the protein folding problem'. J.Chem.Phys. B. 2003.
+    Cheung,et.al. 'Exploring the interplay between topology and secondary structural
+        formation in the protein folding problem'. J.Chem.Phys. B. 2003.
     """
 
     if not hasattr(model,"exclusions"):

@@ -1,6 +1,8 @@
 """ Check inputs for making a CoarseGrainedModel """
 
+from re import match as regex_match
 import numpy as np
+import re
 import os
 import shutil
 import ConfigParser
@@ -18,7 +20,7 @@ def save_model(model,fitopts):
     config.add_section("fitting")
     modelkeys = ["name","bead_repr","disulfides","pairs_file",
                 "pairwise_params_file_location","model_params_file_location",
-                "defaults","epsilon_bar","n_processors",
+                "defaults","epsilon_bar",
                 "n_native_pairs","contact_type","backbone_param_vals",
                 "verbose"]
 
@@ -138,8 +140,6 @@ def load_model_section(config,modelopts):
             print "  %-20s = %s" % (item,value)
             if item == "n_native_pairs":
                 value = int(value)
-            elif item == "n_processors":
-                value = int(value)
             elif item == "epsilon_bar":
                 value = float(value)
             elif item == "disulfides":
@@ -160,6 +160,8 @@ def load_model_section(config,modelopts):
             elif item == "backbone_param_vals":
                 value = eval(value)
             modelopts[item] = value
+    if modelopts["bead_repr"] == "CACB" (and modelopts["cb_volume"] not in ["average","flavored"]):
+        raise IOError("If bead_repr = CACB, then must set cb_volume to: average or flavored")
 
 def load_fitting_section(config,modelopts,fittingopts):
     """Parse [fitting] options from config .ini file"""
@@ -188,6 +190,9 @@ def load_fitting_section(config,modelopts,fittingopts):
                     value = bool(value)
                 elif item == "nonnative":
                     value = bool(value)
+                elif item in ["equil_walltime","walltime"]:
+                    if regex_match("\d\d:\d\d:\d\d",value) == None:
+                        raise IOError(" %s must be a time in format HH:MM:SS" % item)
                 elif item == "parameters_to_fit":
                     if not os.path.exists(value):
                         raise IOError("%s file does not exist! Check config file inputs" % value)
@@ -203,7 +208,8 @@ def load_fitting_section(config,modelopts,fittingopts):
 def _empty_fitting_opts():
     """Fitting options to check for"""
     opts = ["data_type","include_dirs","solver",
-            "iteration","allow_switch","parameters_to_fit",
+            "iteration","n_processors","equil_walltime",
+            "allow_switch","parameters_to_fit",
             "nonnative","last_completed_task"]         
     fittingopts = { opt:None for opt in opts }
     return fittingopts

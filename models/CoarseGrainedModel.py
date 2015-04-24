@@ -30,7 +30,7 @@ global SKIP_INTERACTIONS
 SKIP_INTERACTIONS = [1,8,9]
 
 class CoarseGrainedModel(object):
-    """Interface for creating the gromacs needed to run a coarse-grain
+    """Interface for creating the gromacs files needed to run a coarse-grain
     simulation (.top,.gro,.ndx,table files). Also contains each term of the
     potential energy as a function for use in parameter fitting.
     """
@@ -95,7 +95,7 @@ class CoarseGrainedModel(object):
                 print "  Using defaults: LJ1210 interactions, homogeneous strength 1, each param is free."
             self.pairwise_distances = pdb_parser.get_pairwise_distances(self.cleanpdb,self.pairs)
             self.model_param_values = np.ones(self.n_pairs,float)
-            self.pairwise_type = 2*np.ones(self.n_pairs,float)
+            self.pairwise_type = 2*np.ones(self.n_pairs,int)
             self.pairwise_param_assignment = np.arange(self.n_pairs)     
             self.pairwise_other_parameters = [ [self.pairwise_distances[x]] for x in range(self.n_pairs) ]
         else:
@@ -145,6 +145,9 @@ class CoarseGrainedModel(object):
 
     def _set_nonbonded_interactions(self):
         """ Set all interaction functions """
+
+        #TODO(alex):
+        # - BREAKUP THIS MONSTER FUNCTION.
 
         # Determine the number of tabled interactions. Need to table if not LJ1210 or LJ12
         flag = ((self.pairwise_type == 2).astype(int) + (self.pairwise_type == 1).astype(int))
@@ -237,9 +240,9 @@ class CoarseGrainedModel(object):
     def _generate_interaction_tables(self):
         """ Generates tables of user-defined potentials 
 
-        TODO(alex):
-            - Sum all the tabled interactions between given pair? To reduce the # of table files.
         """
+        # TODO(alex):
+        #    - Sum all the tabled interactions between given pair? To reduce the # of table files.
 
         self.tablep = self._get_LJ1210_table()
         self.LJtable = self.tablep
@@ -399,8 +402,6 @@ class CoarseGrainedModel(object):
                         self.pairwise_type[p_pairs[n]] = potential_type_switch[self.pairwise_type[p_pairs[n]]]
                 else:
                     pass
-#                    if self.pairwise_type[p_pairs[n]] == 1:
-#                        self.pairwise_type[p_pairs[n]] = 2
                 # Model parameters are always positive
                 self.model_param_values[p_idx] = abs(new_model_param_values[i])   
 
