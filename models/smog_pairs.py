@@ -2,7 +2,7 @@ import numpy as np
 
 import pdb_parser
 
-def get_smog_pairs(pdb,pairs,pairwise_strengths,distances=None,rNC=0.04,sigma=0.05):
+def get_smog_pairs(pdb,pairs,pairwise_strengths,distances=None,rNC=0.4,sigma=0.05):
     """Get [pairs] section for SBM gmx hack
 
     Parameters
@@ -17,9 +17,15 @@ def get_smog_pairs(pdb,pairs,pairwise_strengths,distances=None,rNC=0.04,sigma=0.
     rNC : array or float
         Array of shape (n_pairs) that contains the non-contact radius for each 
         interaction. If a float is passed it will be used .
-    rNC : array or float
+    sigma : array or float
         Array of shape (n_pairs) that contains the non-contact radius for each 
         interaction. If a float is passed it will be used .
+
+    Returns
+    -------
+    smog_string : string
+        String containing [ pairs ] of gromacs topol.top file for use with the
+        structure-based model hack of gromacs from the Onuchic group.
 
     """
     if isinstance(rNC,float):
@@ -41,10 +47,10 @@ def get_smog_pairs(pdb,pairs,pairwise_strengths,distances=None,rNC=0.04,sigma=0.
             raise IOError("distances argument must be array with the same size as the number of pairs.")
 
     ftype = 6
-    smog_string = "[ pairs ]\n"
+    smog_string = " [ pairs ]\n"
     for i in xrange(len(pairs)):
         smog_string += "%5d%5d%5d %8.5f %8.5f %8.5f %8.5e\n" % \
-                        (pairs[i][0],pairs[i][1],ftype,pairwise_strengths[i],distances[i],sigma[i],rNC[i]**12)
+                (pairs[i][0],pairs[i][1],ftype,pairwise_strengths[i],distances[i],sigma[i],rNC[i]**12)
 
     return smog_string
 

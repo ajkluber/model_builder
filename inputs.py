@@ -1,6 +1,5 @@
 """ Check inputs for making a CoarseGrainedModel """
 
-from re import match as regex_match
 import numpy as np
 import re
 import os
@@ -22,7 +21,7 @@ def save_model(model,fitopts):
                 "pairwise_params_file_location","model_params_file_location",
                 "defaults","epsilon_bar",
                 "n_native_pairs","contact_type","backbone_param_vals",
-                "verbose"]
+                "verbose","using_sbm_gmx"]
 
     # Save fitting options that aren't None.
     for key in fitopts.iterkeys():
@@ -143,7 +142,6 @@ def load_model_section(config,modelopts):
             elif item == "epsilon_bar":
                 value = float(value)
             elif item == "disulfides":
-                import re
                 value = [ int(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))]
                 if (len(value) % 2) != 0:
                     raise IOError("len(disulfides) should be even. Invalid input: %s " % value.__repr__())
@@ -160,8 +158,13 @@ def load_model_section(config,modelopts):
             elif item == "backbone_param_vals":
                 value = eval(value)
             modelopts[item] = value
+
     if modelopts["bead_repr"] == "CACB" and (modelopts["cb_volume"] not in ["average","flavored"]):
         raise IOError("If bead_repr = CACB, then must set cb_volume to: average or flavored")
+
+    if modelopts["using_sbm_gmx"] is None:
+        print " Assuming you're not using SBM Gromacs."
+        modelopts["using_sbm_gmx"] == False
 
 def load_fitting_section(config,modelopts,fittingopts):
     """Parse [fitting] options from config .ini file"""
@@ -191,7 +194,7 @@ def load_fitting_section(config,modelopts,fittingopts):
                 elif item == "nonnative":
                     value = bool(value)
                 elif item in ["equil_walltime","walltime"]:
-                    if regex_match("\d\d:\d\d:\d\d",value) == None:
+                    if re.match("\d\d:\d\d:\d\d",value) == None:
                         raise IOError(" %s must be a time in format HH:MM:SS" % item)
                 elif item == "parameters_to_fit":
                     if not os.path.exists(value):
@@ -222,7 +225,8 @@ def _empty_model_opts():
             "n_native_pairs","contact_type","model_code",
             "pairs","pairwise_other_parameters",
             "pairwise_param_assignment","n_processors",
-            "pairwise_type","verbose","dry_run"] 
+            "pairwise_type","verbose","dry_run",
+            "using_sbm_gmx"] 
     modelopts = { opt:None for opt in opts }
     return modelopts
 
@@ -283,7 +287,6 @@ def FRET_fitopts_load(item, value):
     if item == "t_fit":
         value = int(value)
     elif item == "fret_pairs":
-        import re
         value = [ int(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))]
         if (len(value) % 2) != 0:
             raise IOError("len(fret_pairs) should be even. Invalid input: %s " % value.__repr__())
