@@ -64,6 +64,7 @@ class CoarseGrainedModel(object):
         # Generate topology file and table files.
         self.n_pairs = len(self.pairs)
         self._check_pair_opts()
+        self._determine_native_pairs()
         self._determine_tabled_interactions()
         self._set_nonbonded_interactions()
 
@@ -121,63 +122,14 @@ class CoarseGrainedModel(object):
         self.n_model_param = len(self.model_param_values)
         self.model_param_interactions = [ (np.where(self.pairwise_param_assignment == p))[0] for p in range(self.n_model_param) ]
 
+    def _determine_native_pairs(self):
 
-    def _determine_tabled_interactions(self):
-        """Determine which interactions need to use a table.xvg file"""
-        # Need to table if:
-        # - interaction is not LJ1210/LJ12 in general
-        # - not using_sbm_gmx
-        flag = ((self.pairwise_type == 2).astype(int) + (self.pairwise_type == 1).astype(int))
-        self.tabled_interactions = np.zeros(self.n_pairs,float)
-        for tbl_indx in (np.where(flag != 1))[0]:
-            self.tabled_interactions[tbl_indx] = 1
-        self.tabled_pairs = np.where(self.tabled_interactions == 1)[0]
-        self.n_tables = len(self.tabled_pairs)
-
-    def _set_nonbonded_interactions(self):
-        """ Set all interaction functions """
-
-        #TODO(alex):
-        # - BREAKUP THIS MONSTER FUNCTION.
-        # - Handle using_sbm_gmx tasks.
-
-        ##############
-        # Assign pairwise interaction strength from model parameters
-        self.pairwise_strengths = np.array([  self.model_param_values[x] for x in self.pairwise_param_assignment ])
-
-        # Wrap the pairwise potentials so that only distance needs to be input.
-        self.pairwise_potentials = [ pairwise.wrap_pairwise(pairwise.get_pair_potential(self.pairwise_type[x]),\
-                                                *self.pairwise_other_parameters[x]) for x in range(self.n_pairs) ]
-
-        self.pairwise_potentials_deriv = [ pairwise.wrap_pairwise(pairwise.get_pair_potential_deriv(self.pairwise_type[x]),\
-                                                *self.pairwise_other_parameters[x]) for x in range(self.n_pairs) ]
-
-        # File to save model parameters
-        self.model_param_file_string = "# model parameters\n"
-        for i in range(self.n_model_param):
-            self.model_param_file_string += "%10.5f\n" % self.model_param_values[i]
-
-        # File to save interaction parameters for pairwise potentials. 
-        self.pairwise_param_file_string = "#   i   j   param int_type  other_params\n"
-        for i in range(self.n_pairs):
-            i_idx = self.pairs[i][0]
-            j_idx = self.pairs[i][1]
-            model_param = self.pairwise_param_assignment[i]
-            int_type = self.pairwise_type[i]
-            other_param_string = ""
-            for p in range(len(self.pairwise_other_parameters[i])):
-                other_param_string += " %10.5f " % self.pairwise_other_parameters[i][p] 
-            self.pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
-
-        ##############
-
-        # This code block is gross vvvvvv
         # Need to determine which pairs are native pairs.
         self.native_pairs_ndx = "[ native_contacts ]\n"
         self.native_pairs = []
         self.native_pairs_indices = []
         self.Qref = np.zeros((self.n_residues,self.n_residues))
-        if self.n_native_pairs in [None,'None']:
+        if self.n_native_pairs is None:
             if self.verbose:
                 print "  Considering all (nonredundant) pairs to be native pairs"
             for i in range(self.n_pairs):
@@ -221,6 +173,52 @@ class CoarseGrainedModel(object):
         for i in range(self.n_native_pairs):
             idx = self.native_pairs_indices[i]
             self.native_stability += (self.pairwise_strengths[idx]*self.pairwise_potentials[idx](np.array([self.pairwise_other_parameters[idx][0]])))[0]
+
+    def _determine_tabled_interactions(self):
+        """Determine which interactions need to use a table.xvg file"""
+        # Need to table if:
+        # - interaction is not LJ1210/LJ12 in general
+        # - not using_sbm_gmx
+        flag = ((self.pairwise_type == 2).astype(int) + (self.pairwise_type == 1).astype(int))
+        self.tabled_interactions = np.zeros(self.n_pairs,float)
+        for tbl_indx in (np.where(flag != 1))[0]:
+            self.tabled_interactions[tbl_indx] = 1
+        self.tabled_pairs = np.where(self.tabled_interactions == 1)[0]
+        self.n_tables = len(self.tabled_pairs)
+
+    def _set_nonbonded_interactions(self):
+        """ Set all interaction functions """
+
+        #TODO(alex):
+        # - Handle using_sbm_gmx tasks.
+
+        # Assign pairwise interaction strength from model parameters
+        self.pairwise_strengths = np.array([  self.model_param_values[x] for x in self.pairwise_param_assignment ])
+
+        # Wrap the pairwise potentials so that only distance needs to be input.
+        self.pairwise_potentials = [ pairwise.wrap_pairwise(pairwise.get_pair_potential(self.pairwise_type[x]),\
+                                                *self.pairwise_other_parameters[x]) for x in range(self.n_pairs) ]
+
+        self.pairwise_potentials_deriv = [ pairwise.wrap_pairwise(pairwise.get_pair_potential_deriv(self.pairwise_type[x]),\
+                                                *self.pairwise_other_parameters[x]) for x in range(self.n_pairs) ]
+
+        # File to save model parameters
+        self.model_param_file_string = "# model parameters\n"
+        for i in range(self.n_model_param):
+            self.model_param_file_string += "%10.5f\n" % self.model_param_values[i]
+
+        # File to save interaction parameters for pairwise potentials. 
+        self.pairwise_param_file_string = "#   i   j   param int_type  other_params\n"
+        for i in range(self.n_pairs):
+            i_idx = self.pairs[i][0]
+            j_idx = self.pairs[i][1]
+            model_param = self.pairwise_param_assignment[i]
+            int_type = self.pairwise_type[i]
+            other_param_string = ""
+            for p in range(len(self.pairwise_other_parameters[i])):
+                other_param_string += " %10.5f " % self.pairwise_other_parameters[i][p] 
+            self.pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
+
         
         self._generate_interaction_tables()
         self._generate_topology()
@@ -249,7 +247,7 @@ class CoarseGrainedModel(object):
             self.tables.append(table)
 
     def _get_LJ1210_table(self):
-        """ LJ12-10 interaction potential """ 
+        """ LJ1210 interaction table """ 
         r = np.arange(0.0,100.0,0.002)
         r[0] = 1
         table = np.zeros((len(r),7),float)
@@ -295,7 +293,7 @@ class CoarseGrainedModel(object):
             else:
                 pass
 
-        # Give a smaller hard-wall exclusion for LJ1210 pairs that are closer.
+        # Give a smaller excluded volume for LJ1210 pairs that are closer.
         for i in range(len(self.give_smaller_excluded_volume)):
             res_a = self.give_smaller_excluded_volume[i][0]
             res_b = self.give_smaller_excluded_volume[i][1]
