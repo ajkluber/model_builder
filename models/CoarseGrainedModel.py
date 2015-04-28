@@ -18,13 +18,11 @@ TODO(alex):
 """
 
 import numpy as np
-import subprocess as sb
 import os
-import logging
 
 import bead_representation as bead
 import bonded_potentials as bond
-import pairwise_potentials as pairwise
+import pair_V as pairwise
 import pdb_parser
 
 global SKIP_INTERACTIONS
@@ -123,8 +121,11 @@ class CoarseGrainedModel(object):
         self.model_param_interactions = [ (np.where(self.pairwise_param_assignment == p))[0] for p in range(self.n_model_param) ]
 
     def _determine_native_pairs(self):
+        """ Determine which pairs are native pairs """
 
-        # Need to determine which pairs are native pairs.
+        # TODO(alex):
+        # - Refactor/clean up this function.
+
         self.native_pairs_ndx = "[ native_contacts ]\n"
         self.native_pairs = []
         self.native_pairs_indices = []
@@ -166,13 +167,13 @@ class CoarseGrainedModel(object):
         
         self.native_pairs_indices = np.array(self.native_pairs_indices)
 
-        # Calculate the native stability.
+        # Calculate the native stability. Get rid of
         #self.native_stability = float(n_native_pairs)
         self.native_stability = 0.
         
         for i in range(self.n_native_pairs):
             idx = self.native_pairs_indices[i]
-            self.native_stability += (self.pairwise_strengths[idx]*self.pairwise_potentials[idx](np.array([self.pairwise_other_parameters[idx][0]])))[0]
+            self.native_stability += (self.pair_eps[idx]*self.pair_V[idx](np.array([self.pairwise_other_parameters[idx][0]])))[0]
 
     def _determine_tabled_interactions(self):
         """Determine which interactions need to use a table.xvg file"""
@@ -192,22 +193,15 @@ class CoarseGrainedModel(object):
         #TODO(alex):
         # - Handle using_sbm_gmx tasks.
 
-        # Assign pairwise interaction strength from model parameters
-        self.pairwise_strengths = np.array([  self.model_param_values[x] for x in self.pairwise_param_assignment ])
-
-        # Wrap the pairwise potentials so that only distance needs to be input.
-        self.pairwise_potentials = [ pairwise.wrap_pairwise(pairwise.get_pair_potential(self.pairwise_type[x]),\
-                                                *self.pairwise_other_parameters[x]) for x in range(self.n_pairs) ]
-
-        self.pairwise_potentials_deriv = [ pairwise.wrap_pairwise(pairwise.get_pair_potential_deriv(self.pairwise_type[x]),\
-                                                *self.pairwise_other_parameters[x]) for x in range(self.n_pairs) ]
-
         # File to save model parameters
         self.model_param_file_string = "# model parameters\n"
         for i in range(self.n_model_param):
             self.model_param_file_string += "%10.5f\n" % self.model_param_values[i]
 
         # File to save interaction parameters for pairwise potentials. 
+        pair_eps = []
+        self.pair_V = []
+        self.pair_dV = []
         self.pairwise_param_file_string = "#   i   j   param int_type  other_params\n"
         for i in range(self.n_pairs):
             i_idx = self.pairs[i][0]
@@ -219,6 +213,16 @@ class CoarseGrainedModel(object):
                 other_param_string += " %10.5f " % self.pairwise_other_parameters[i][p] 
             self.pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
 
+            # Wrap the pairwise potentials so that only distance needs to be input.
+            self.pair_V.append(pairwise.wrap_pairwise(pairwise.get_pair_potential(int_type),\
+                                            *self.pairwise_other_parameters[i]))
+            self.pair_dV.append(pairwise.wrap_pairwise(pairwise.get_pair_potential_deriv(int_type),\
+                                            *self.pairwise_other_parameters[i]))
+
+            # Assign pairwise interaction strength from model parameters
+            pair_eps.append(self.model_param_values[self.pairwise_param_assignment[i]])
+
+        self.pair_eps = np.array(pair_eps)
         
         self._generate_interaction_tables()
         self._generate_topology()
@@ -242,8 +246,8 @@ class CoarseGrainedModel(object):
 
             table = np.zeros((len(r),3),float)
             table[1:,0] = r[1:]
-            table[10:,1] = self.pairwise_potentials[pair_indx](r[10:]) 
-            table[10:,2] = -1.*self.pairwise_potentials_deriv[pair_indx](r[10:]) 
+            table[10:,1] = self.pair_V[pair_indx](r[10:]) 
+            table[10:,2] = -1.*self.pair_dV[pair_indx](r[10:]) 
             self.tables.append(table)
 
     def _get_LJ1210_table(self):
@@ -281,7 +285,7 @@ class CoarseGrainedModel(object):
             res_a = self.pairs[i][0]
             res_b = self.pairs[i][1]
             r0 = self.pairwise_other_parameters[i][0]
-            eps = self.pairwise_strengths[i]
+            eps = self.pair_eps[i]
             if self.pairwise_type[i] == 1:     # LJ12
                 c12 = eps*(r0**12)
                 c10 = 0
@@ -318,7 +322,7 @@ class CoarseGrainedModel(object):
             res_a = self.pairs[i][0]
             res_b = self.pairs[i][1]
             r0 = self.pairwise_other_parameters[i][0]
-            eps = self.pairwise_strengths[i]
+            eps = self.pair_eps[i]
             if self.pairwise_type[i] == 1:     # LJ12
                 c12 = eps*(r0**12)
                 c10 = 0
