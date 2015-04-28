@@ -88,7 +88,6 @@ class CoarseGrainedModel(object):
                 err += "     pairwise_other_parameters"
                 raise IOError(err)
 
-        # This block is a pretty gross hack.
         self.give_smaller_excluded_volume = []
         if self.exclusions == []:
             for i in range(self.n_pairs):
@@ -102,7 +101,7 @@ class CoarseGrainedModel(object):
                             self.give_smaller_excluded_volume.append(list(self.pairs[i]))
                 # Always exclude any pairs that isn't LJ1210.
                 else:
-                    if not (list(self.pairs[i]) in self.exclusions): 
+                    if list(self.pairs[i]) not in self.exclusions: 
                         self.exclusions.append(list(self.pairs[i]))
 
         if 4 in self.pairwise_type:
@@ -230,41 +229,42 @@ class CoarseGrainedModel(object):
         # Get unique pairs 
         self.smog_pairs = []
         for p in self.pairs:
-            if list(p) not in unique_pairs:
+            if list(p) not in self.smog_pairs:
                 self.smog_pairs.append(list(p))
 
         self.smog_type = []
         self.smog_strings = []
         for i in range(len(self.smog_pairs)):
             pair = self.smog_pairs[i]
-            
             temp = {}
+            # Collect all interactions between given pair
             for j in range(self.n_pairs):
-                if self.pairs[j] == pair:
+                if list(self.pairs[j]) == pair:
                     int_type = self.pairwise_type[j]  
                     if (int_type == 10) and (int_type in temp):
                         temp[-int_type] = j
                     else:
                         temp[int_type] = j
 
+            # Determine their smog counterpart
             if 4 in temp:
                 if 8 in temp: # Gaussian+LJ12 
                     ftype = 6
                     #r0, width = self.pairwise_other_parameters[temp[4]]
                     eps = self.pair_eps[temp[4]]
                     rNC, r0, width = self.pairwise_other_parameters[temp[8]]
-                    smog_other = "%5d %8.5e %8.5e %8.5e %8.5e" % (ftype,eps,r0,width,rNC**12)
+                    smog_other = "%5d  %10.5e %10.5e %10.5e %10.5e" % (ftype,eps,r0,width,rNC**12)
                 else: # Bare Gaussian
                     ftype = 5
                     r0, width = self.pairwise_other_parameters[temp[4]]
                     eps = self.pair_eps[temp[4]]
-                    smog_other = "%5d %8.5e %8.5e %8.5e" % (ftype,eps,r0,width)
+                    smog_other = "%5d  %10.e %10.5e %10.5e" % (ftype,eps,r0,width)
             else: # 2Gaussians+LJ12
                 ftype = 7
                 rNC, r0, width0, r1, width1 = self.pairwise_other_parameters[temp[9]]
                 eps0 = self.pair_eps[temp[10]]
                 #eps1 = self.pair_eps[temp[-10]]    # SBM only supports double well of equal depths.
-                smog_other = "%5d %8.5e %8.5e %8.5e %8.5e %8.5e %8.5e\n" % (ftype,eps0,r0,width0,r1,width1,rNC**2)
+                smog_other = "%5d  %10.5e %10.5e %10.5e %10.5e %10.5e %10.5e\n" % (ftype,eps0,r0,width0,r1,width1,rNC**2)
 
             self.smog_type.append(ftype)
             self.smog_strings.append(smog_other)
@@ -363,7 +363,7 @@ class CoarseGrainedModel(object):
         for i in range(len(self.smog_pairs)):
             res_a = self.smog_pairs[i][0]
             res_b = self.smog_pairs[i][1]
-            pairs_string += "%5d%5d %s\n" % (res_a,res_b,self.smog_strings[i]) 
+            pairs_string += "%5d%5d%s\n" % (res_a,res_b,self.smog_strings[i]) 
 
         return pairs_string
 
