@@ -7,7 +7,6 @@ import shutil
 import ConfigParser
 
 import models.CoarseGrainedModel as cg
-import convert_info_to_config as cvt
 
 #############################################################################
 # Helper functions to load in models from .ini files
@@ -50,8 +49,6 @@ def save_model(model,fitopts):
         config.write(cfgfile)
 
 def load_model(name,dry_run=False):
-    if not os.path.exists("%s.ini" % name):
-        cvt.convert_info_to_config(name)
     modelopts, fittingopts = load_config(name)
     modelopts["dry_run"] = dry_run
     model = cg.CoarseGrainedModel(**modelopts)
