@@ -141,6 +141,8 @@ def load_model_section(config,modelopts):
                 value = int(value)
             elif item == "epsilon_bar":
                 value = float(value)
+            elif item == "using_sbm_gmx":
+                value = bool(value)
             elif item == "disulfides":
                 value = [ int(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))]
                 if (len(value) % 2) != 0:
@@ -157,14 +159,13 @@ def load_model_section(config,modelopts):
                         raise IOError("cb_volume value must be: average, flavored, or filename")
             elif item == "backbone_param_vals":
                 value = eval(value)
+            elif item == "name":
+                if not os.path.exists("%s.pdb" % value):
+                    raise IOError("%s.pdb file does not exist! Check config file inputs" % value)
             modelopts[item] = value
 
     if modelopts["bead_repr"] == "CACB" and (modelopts["cb_volume"] not in ["average","flavored"]):
         raise IOError("If bead_repr = CACB, then must set cb_volume to: average or flavored")
-
-    if modelopts["using_sbm_gmx"] is None:
-        print " Assuming you're not using SBM Gromacs."
-        modelopts["using_sbm_gmx"] == False
 
 def load_fitting_section(config,modelopts,fittingopts):
     """Parse [fitting] options from config .ini file"""

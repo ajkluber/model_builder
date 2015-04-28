@@ -1,10 +1,12 @@
 """CoarseGrainedModel
 
 Description:
+------------
     Generates topology and grofile needed to run coarse-grained protein model
 in Gromacs.
 
 Example Usage:
+--------------
     See project_tools/examples
 
 References:
@@ -12,8 +14,7 @@ References:
 
 
 TODO(alex):
-    - Delineate between native pairs and all pairs. DONE
-    - Move bead representation into other module.
+    - Move bead representation into other module. DONE
 """
 
 import numpy as np
@@ -39,35 +40,23 @@ class CoarseGrainedModel(object):
         # Set any keyword argument given as an attribute. 
         for key in kwargs.iterkeys():
             setattr(self,key.lower(),kwargs[key])
+
         # Set remaining values to None
-        need_to_define = ["model_code","disulfides",
-                          "n_native_pairs","epsilon_bar",
+        need_to_define = ["disulfides","defaults","n_native_pairs",
+                          "epsilon_bar","exclusions","contact_type",
+                          "backbone_params","initial_T_array",
                           "fitting_params_file","fitting_params",
-                          "pairwise_params_file_location",
-                          "model_params_file_location"]
+                          "pairwise_params_file_location","model_params_file_location"]
+
         for thing in need_to_define:
             if not hasattr(self,thing):
-                setattr(self,thing,None)
-
-        # Set a couple things specifically.
-        if not hasattr(self,"defaults"):
-            self.defaults = False
-        if not hasattr(self,"bead_repr"):
-            self.bead_repr = "CA"
-        if not hasattr(self,"backbone_params"):
-            self.backbone_params = ["Kb","Ka","Kd"]
-        if not hasattr(self,"backbone_param_vals"):
-            self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
-        if not hasattr(self,"verbose"):
-            self.verbose = False
-
-        if not os.path.exists(self.pdb):
-            IOError("The inputted pdb: %s does not exist" % self.pdb)
-            raise SystemExit
-
-        if not hasattr(self,"exclusions"):
-            self.exclusions = []
-        self.initial_T_array = None
+                if thing == "exclusions":
+                    self.exclusions = []
+                elif thing == "backbone_params":
+                    self.backbone_params = ["Kb","Ka","Kd"]
+                    self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
+                else:
+                    setattr(self,thing,None)
 
         # Create the Set backbone parameters
         bead.set_bonded_interactions(self)
@@ -75,17 +64,14 @@ class CoarseGrainedModel(object):
         # Generate topology file and table files.
         self.n_pairs = len(self.pairs)
         self._check_pair_opts()
+        self._determine_tabled_interactions()
         self._set_nonbonded_interactions()
 
     def _check_pair_opts(self):
         """ Set default pairwise interaction terms """
 
-        # Set some defaults for pairwise interaction potential.
-        if not hasattr(self,"epsilon_bar"):
-            self.epsilon_bar = None
-
         # If not specified, allow all parameters to be fit.
-        if (not hasattr(self,"fitting_params")) or (self.fitting_params == None):
+        if self.fitting_params is None:
             self.fitting_params = range(self.n_pairs)
         self.n_fitting_params = len(self.fitting_params)
 
@@ -109,6 +95,7 @@ class CoarseGrainedModel(object):
                 err += "     pairwise_other_parameters"
                 raise IOError(err)
 
+        # This block is a pretty gross hack.
         self.give_smaller_excluded_volume = []
         if self.exclusions == []:
             for i in range(self.n_pairs):
@@ -125,31 +112,21 @@ class CoarseGrainedModel(object):
                     if not (list(self.pairs[i]) in self.exclusions): 
                         self.exclusions.append(list(self.pairs[i]))
 
-        self.contact_type = "none"
-        for i in self.pairwise_type:
-            if i == 4:
-                self.contact_type="Gaussian"
-        
-        if self.contact_type == "none":
+        if 4 in self.pairwise_type:
+            self.contact_type = "Gaussian"
+        else:
             self.contact_type = "LJ1210"
-
-        # TO DO: - How to scale the model parameters to get constant stability? 
-        #          Evaluate energy of native structure?
-        if self.epsilon_bar != None:
-            pass
 
         # List of array indices indicating which interactions have the associated model parameter.
         self.n_model_param = len(self.model_param_values)
         self.model_param_interactions = [ (np.where(self.pairwise_param_assignment == p))[0] for p in range(self.n_model_param) ]
 
 
-    def _set_nonbonded_interactions(self):
-        """ Set all interaction functions """
-
-        #TODO(alex):
-        # - BREAKUP THIS MONSTER FUNCTION.
-
-        # Determine the number of tabled interactions. Need to table if not LJ1210 or LJ12
+    def _determine_tabled_interactions(self):
+        """Determine which interactions need to use a table.xvg file"""
+        # Need to table if:
+        # - interaction is not LJ1210/LJ12 in general
+        # - not using_sbm_gmx
         flag = ((self.pairwise_type == 2).astype(int) + (self.pairwise_type == 1).astype(int))
         self.tabled_interactions = np.zeros(self.n_pairs,float)
         for tbl_indx in (np.where(flag != 1))[0]:
@@ -157,6 +134,14 @@ class CoarseGrainedModel(object):
         self.tabled_pairs = np.where(self.tabled_interactions == 1)[0]
         self.n_tables = len(self.tabled_pairs)
 
+    def _set_nonbonded_interactions(self):
+        """ Set all interaction functions """
+
+        #TODO(alex):
+        # - BREAKUP THIS MONSTER FUNCTION.
+        # - Handle using_sbm_gmx tasks.
+
+        ##############
         # Assign pairwise interaction strength from model parameters
         self.pairwise_strengths = np.array([  self.model_param_values[x] for x in self.pairwise_param_assignment ])
 
@@ -184,7 +169,9 @@ class CoarseGrainedModel(object):
                 other_param_string += " %10.5f " % self.pairwise_other_parameters[i][p] 
             self.pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
 
+        ##############
 
+        # This code block is gross vvvvvv
         # Need to determine which pairs are native pairs.
         self.native_pairs_ndx = "[ native_contacts ]\n"
         self.native_pairs = []
@@ -228,7 +215,8 @@ class CoarseGrainedModel(object):
         self.native_pairs_indices = np.array(self.native_pairs_indices)
 
         # Calculate the native stability.
-        self.native_stability = 0
+        #self.native_stability = float(n_native_pairs)
+        self.native_stability = 0.
         
         for i in range(self.n_native_pairs):
             idx = self.native_pairs_indices[i]
@@ -317,6 +305,36 @@ class CoarseGrainedModel(object):
 
         return pairs_string
 
+    def _get_pairs_string_smog(self):
+        """ Get the [ pairs ] string """
+
+        # How to translate int_types to ftype?
+        # Smog potential types:
+        # Potential            ftype         int_type
+        # Gaussian               5              4
+        # Gaussian+LJ12          6              4+8
+        # 2Gaussians+LJ12        7              9+10+10
+        pairs_string = " [ pairs ]\n"
+        pairs_string += " ; Using smog Guassian interactions\n"
+        for i in range(self.n_pairs):
+            res_a = self.pairs[i][0]
+            res_b = self.pairs[i][1]
+            r0 = self.pairwise_other_parameters[i][0]
+            eps = self.pairwise_strengths[i]
+            if self.pairwise_type[i] == 1:     # LJ12
+                c12 = eps*(r0**12)
+                c10 = 0
+                smog_string += "%5d%5d%5d %8.5f %8.5f %8.5f %8.5e\n" % \
+                    (res_a,res_b,ftype,eps,r0,sigma[i],rNC[i]**12)
+            elif self.pairwise_type[i] == 2:   # LJ1210
+                c12 = eps*5.0*(r0**12)
+                c10 = eps*6.0*(r0**10)
+                pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
+            else:
+                pass
+
+        return pairs_string
+
     def _get_exclusions_string(self):
         """ Get the [ exclusions ] string """
         if len(self.exclusions) > 0: 
@@ -348,7 +366,10 @@ class CoarseGrainedModel(object):
         top_string += self._get_tabled_string() + "\n"
         top_string += self.angles_string + "\n"
         top_string += self.dihedrals_string + "\n"
-        top_string += self._get_pairs_string() + "\n"
+        if self.using_sbm_gmx:
+            top_string += self._get_pairs_string_smog() + "\n"
+        else:
+            top_string += self._get_pairs_string() + "\n"
         top_string += self._get_exclusions_string() + "\n"
 
         top_string += " [ system ]\n"

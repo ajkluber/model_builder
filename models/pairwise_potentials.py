@@ -16,19 +16,30 @@ import numpy as np
 
 def get_pair_potential(code):
     """ Returns pairwise potential function"""
-    potential = {1:LJ12,2:LJ1210,3:LJ1210rep,4:Gaussian,
-                 5:Cheng_rep,6:LJ126,7:LJ126rep,
-                 8:compound_LJ12_Gaussian,9:compound_LJ12_double_Gaussian,
+    potential = {1:LJ12,
+                 2:LJ1210,
+                 3:LJ1210rep,
+                 4:Gaussian,
+                 5:Cheng_rep,
+                 6:LJ126,
+                 7:LJ126rep,
+                 8:compound_LJ12_Gaussian,
+                 9:compound_LJ12_double_Gaussian,
                  10:compound_double_Gaussian,
                  11:FRET_Efficiency}[code]
     return potential
 
 def get_pair_potential_deriv(code):
     """ Returns derivative of pairwise potential function"""
-    potential = {1:LJ12_deriv,2:LJ1210_deriv,3:LJ1210rep_deriv,
-                 4:Gaussian_deriv,5:Cheng_rep_deriv,
-                 6:LJ126_deriv,7:LJ126rep_deriv,
-                 8:compound_LJ12_Gaussian_deriv,9:compound_LJ12_double_Gaussian_deriv,
+    potential = {1:LJ12_deriv,
+                 2:LJ1210_deriv,
+                 3:LJ1210rep_deriv,
+                 4:Gaussian_deriv,
+                 5:Cheng_rep_deriv,
+                 6:LJ126_deriv,
+                 7:LJ126rep_deriv,
+                 8:compound_LJ12_Gaussian_deriv,
+                 9:compound_LJ12_double_Gaussian_deriv,
                  10:compound_double_Gaussian_deriv,
                  11:FRET_Efficiency_deriv}[code]
     return potential
@@ -183,6 +194,7 @@ def compound_LJ12_Gaussian_deriv(r,rNC,r0,width0):
     return LJ12_deriv(r,rNC)*(1. + Gaussian(r,r0,width0)) + LJ12(r,rNC)*Gaussian_deriv(r,r0,width0)
 
 def compound_LJ12_double_Gaussian(r,rNC,r0,width0,r1,width1):
+    # Not tested in simulation
     return LJ12(r,rNC)*(1. + Gaussian(r,r0,width0))*(1. + Gaussian(r,r1,width1))
 
 def compound_LJ12_double_Gaussian_deriv(r,rNC,r0,width0,r1,width1):
