@@ -9,12 +9,6 @@ Example Usage:
 --------------
     See project_tools/examples
 
-References:
-
-
-
-TODO(alex):
-    - Move bead representation into other module. DONE
 """
 
 import numpy as np
@@ -22,7 +16,7 @@ import os
 
 import bead_representation as bead
 import bonded_potentials as bond
-import pair_V as pairwise
+import pairwise_potentials as pairwise
 import pdb_parser
 
 global SKIP_INTERACTIONS
@@ -56,7 +50,7 @@ class CoarseGrainedModel(object):
                 else:
                     setattr(self,thing,None)
 
-        # Create the Set backbone parameters
+        # Set backbone parameters
         bead.set_bonded_interactions(self)
 
         # Generate topology file and table files.
@@ -167,23 +161,24 @@ class CoarseGrainedModel(object):
         
         self.native_pairs_indices = np.array(self.native_pairs_indices)
 
-        # Calculate the native stability. Get rid of
-        #self.native_stability = float(n_native_pairs)
-        self.native_stability = 0.
-        
-        for i in range(self.n_native_pairs):
-            idx = self.native_pairs_indices[i]
-            self.native_stability += (self.pair_eps[idx]*self.pair_V[idx](np.array([self.pairwise_other_parameters[idx][0]])))[0]
+        # Estimate the stability of the native state
+        self.native_stability = float(self.n_native_pairs)
+        #self.native_stability = 0.
+        #for i in range(self.n_native_pairs):
+        #    idx = self.native_pairs_indices[i]
+        #    self.native_stability += (self.pair_eps[idx]*self.pair_V[idx](np.array([self.pairwise_other_parameters[idx][0]])))[0]
 
     def _determine_tabled_interactions(self):
         """Determine which interactions need to use a table.xvg file"""
         # Need to table if:
         # - interaction is not LJ1210/LJ12 in general
         # - not using_sbm_gmx
-        flag = ((self.pairwise_type == 2).astype(int) + (self.pairwise_type == 1).astype(int))
         self.tabled_interactions = np.zeros(self.n_pairs,float)
-        for tbl_indx in (np.where(flag != 1))[0]:
-            self.tabled_interactions[tbl_indx] = 1
+        if not self.using_sbm_gmx:
+            flag = ((self.pairwise_type == 2).astype(int) + (self.pairwise_type == 1).astype(int))
+            for tbl_indx in (np.where(flag != 1))[0]:
+                self.tabled_interactions[tbl_indx] = 1
+
         self.tabled_pairs = np.where(self.tabled_interactions == 1)[0]
         self.n_tables = len(self.tabled_pairs)
 
@@ -192,11 +187,6 @@ class CoarseGrainedModel(object):
 
         #TODO(alex):
         # - Handle using_sbm_gmx tasks.
-
-        # File to save model parameters
-        self.model_param_file_string = "# model parameters\n"
-        for i in range(self.n_model_param):
-            self.model_param_file_string += "%10.5f\n" % self.model_param_values[i]
 
         # File to save interaction parameters for pairwise potentials. 
         pair_eps = []
@@ -223,9 +213,61 @@ class CoarseGrainedModel(object):
             pair_eps.append(self.model_param_values[self.pairwise_param_assignment[i]])
 
         self.pair_eps = np.array(pair_eps)
+
+        # File to save model parameters
+        self.model_param_file_string = "# model parameters\n"
+        for i in range(self.n_model_param):
+            self.model_param_file_string += "%10.5f\n" % self.model_param_values[i]
+
+        if self.using_sbm_gmx:
+            self._set_smog_pairs()
         
         self._generate_interaction_tables()
         self._generate_topology()
+
+    def _set_smog_pairs(self):
+
+        # Get unique pairs 
+        self.smog_pairs = []
+        for p in self.pairs:
+            if list(p) not in unique_pairs:
+                self.smog_pairs.append(list(p))
+
+        self.smog_type = []
+        self.smog_strings = []
+        for i in range(len(self.smog_pairs)):
+            pair = self.smog_pairs[i]
+            
+            temp = {}
+            for j in range(self.n_pairs):
+                if self.pairs[j] == pair:
+                    int_type = self.pairwise_type[j]  
+                    if (int_type == 10) and (int_type in temp):
+                        temp[-int_type] = j
+                    else:
+                        temp[int_type] = j
+
+            if 4 in temp:
+                if 8 in temp: # Gaussian+LJ12 
+                    ftype = 6
+                    #r0, width = self.pairwise_other_parameters[temp[4]]
+                    eps = self.pair_eps[temp[4]]
+                    rNC, r0, width = self.pairwise_other_parameters[temp[8]]
+                    smog_other = "%5d %8.5e %8.5e %8.5e %8.5e" % (ftype,eps,r0,width,rNC**12)
+                else: # Bare Gaussian
+                    ftype = 5
+                    r0, width = self.pairwise_other_parameters[temp[4]]
+                    eps = self.pair_eps[temp[4]]
+                    smog_other = "%5d %8.5e %8.5e %8.5e" % (ftype,eps,r0,width)
+            else: # 2Gaussians+LJ12
+                ftype = 7
+                rNC, r0, width0, r1, width1 = self.pairwise_other_parameters[temp[9]]
+                eps0 = self.pair_eps[temp[10]]
+                #eps1 = self.pair_eps[temp[-10]]    # SBM only supports double well of equal depths.
+                smog_other = "%5d %8.5e %8.5e %8.5e %8.5e %8.5e %8.5e\n" % (ftype,eps0,r0,width0,r1,width1,rNC**2)
+
+            self.smog_type.append(ftype)
+            self.smog_strings.append(smog_other)
 
     def _generate_interaction_tables(self):
         """ Generates tables of user-defined potentials 
@@ -308,7 +350,7 @@ class CoarseGrainedModel(object):
         return pairs_string
 
     def _get_pairs_string_smog(self):
-        """ Get the [ pairs ] string """
+        """ Get the [ pairs ] string for SBM Gromacs """
 
         # How to translate int_types to ftype?
         # Smog potential types:
@@ -318,22 +360,10 @@ class CoarseGrainedModel(object):
         # 2Gaussians+LJ12        7              9+10+10
         pairs_string = " [ pairs ]\n"
         pairs_string += " ; Using smog Guassian interactions\n"
-        for i in range(self.n_pairs):
-            res_a = self.pairs[i][0]
-            res_b = self.pairs[i][1]
-            r0 = self.pairwise_other_parameters[i][0]
-            eps = self.pair_eps[i]
-            if self.pairwise_type[i] == 1:     # LJ12
-                c12 = eps*(r0**12)
-                c10 = 0
-                smog_string += "%5d%5d%5d %8.5f %8.5f %8.5f %8.5e\n" % \
-                    (res_a,res_b,ftype,eps,r0,sigma[i],rNC[i]**12)
-            elif self.pairwise_type[i] == 2:   # LJ1210
-                c12 = eps*5.0*(r0**12)
-                c10 = eps*6.0*(r0**10)
-                pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
-            else:
-                pass
+        for i in range(len(self.smog_pairs)):
+            res_a = self.smog_pairs[i][0]
+            res_b = self.smog_pairs[i][1]
+            pairs_string += "%5d%5d %s\n" % (res_a,res_b,self.smog_strings[i]) 
 
         return pairs_string
 
