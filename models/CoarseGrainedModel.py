@@ -89,20 +89,18 @@ class CoarseGrainedModel(object):
                 raise IOError(err)
 
         self.give_smaller_excluded_volume = []
-        if self.exclusions == []:
-            for i in range(self.n_pairs):
-                # Make sure to exclude any LJ1210 pairs
-                # that would be disrupted by
-                # excluded volume radius of 0.4nm
-                if self.pairwise_type[i] == 2:
-                    if self.pairwise_other_parameters[i][0] < 0.85:
-                        if not (list(self.pairs[i]) in self.exclusions): 
-                            self.exclusions.append(list(self.pairs[i]))
-                            self.give_smaller_excluded_volume.append(list(self.pairs[i]))
-                # Always exclude any pairs that isn't LJ1210.
-                else:
-                    if list(self.pairs[i]) not in self.exclusions: 
+        #if self.exclusions == []:
+        for i in range(self.n_pairs):
+            if self.pairwise_type[i] == 2:
+                # Reduce excluded volume for really close LJ1210 contacts
+                if self.pairwise_other_parameters[i][0] < 0.85:
+                    if not (list(self.pairs[i]) in self.exclusions): 
                         self.exclusions.append(list(self.pairs[i]))
+                        self.give_smaller_excluded_volume.append(list(self.pairs[i]))
+            else: 
+                # Always exclude any pairs that isn't LJ1210.
+                if list(self.pairs[i]) not in self.exclusions: 
+                    self.exclusions.append(list(self.pairs[i]))
 
         if 4 in self.pairwise_type:
             self.contact_type = "Gaussian"

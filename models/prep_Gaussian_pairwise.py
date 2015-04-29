@@ -82,6 +82,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='.')
     parser.add_argument('--pdb', type=str, required=True, help='PDB file with structure.')
     parser.add_argument('--pairs', type=str, required=True, help='List of pairs.')
+    parser.add_argument('--noclean',action='store_true',default=False,help='Do not clean the pdb.')
     args = parser.parse_args()
 
     pdbfile = args.pdb
@@ -92,7 +93,11 @@ if __name__ == "__main__":
     if pairs.shape[1] == 4:
         pairs = pairs[:,1::2]
 
-    pdb = pdb_parser.get_clean_CA(pdbfile)
+    if not args.noclean:
+        pdb = pdb_parser.get_clean_CA(pdbfile)
+    else:
+        pdb = open(pdbfile,"r").read()
+
     pairwise_param_file_string, model_param_file_string = get_compound_LJ12_Gaussian_pairwise(pdb,pairs)
 
     open("%s_pairwise_params" % name,"w").write(pairwise_param_file_string)
