@@ -140,6 +140,8 @@ def load_model_section(config,modelopts):
                 value = float(value)
             elif item == "using_sbm_gmx":
                 value = bool(value)
+            elif item == "simple_disulfides":
+                value = bool(value)
             elif item == "disulfides":
                 value = [ int(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))]
                 if (len(value) % 2) != 0:
@@ -220,7 +222,7 @@ def _empty_model_opts():
     opts = ["pairs_file","pairwise_params_file",
             "model_params_file","epsilon_bar",
             "defaults","bead_repr","cb_volume","disulfides",
-            "n_native_pairs","contact_type","model_code",
+            "simple_disulfides","n_native_pairs","contact_type",
             "pairs","pairwise_other_parameters",
             "pairwise_param_assignment","n_processors",
             "pairwise_type","verbose","dry_run",
