@@ -131,22 +131,25 @@ def check_disulfides(model):
                 model.n_pairs = len(model.pairs)
 
                 model.exclusions.append([i_idx,j_idx])
+
                 # Set cysteine bond distance, angles, and dihedral.
                 model.bond_indices.append([i_idx,j_idx])
                 model.bond_min.append(dist)
                 model.bond_strengths.append(model.backbone_param_vals["Kb"])
 
-                model.angle_indices.append([i_idx-1,i_idx,j_idx])
-                model.angle_indices.append([i_idx,j_idx,j_idx-1])
-                model.angle_min.append(theta1)
-                model.angle_min.append(theta2)
-                model.angle_strengths.append(model.backbone_param_vals["Ka"])
-                model.angle_strengths.append(model.backbone_param_vals["Ka"])
+                if not model.simple_disulfides:
+                    print "not simple disulfides"
+                    model.angle_indices.append([i_idx-1,i_idx,j_idx])
+                    model.angle_indices.append([i_idx,j_idx,j_idx-1])
+                    model.angle_min.append(theta1)
+                    model.angle_min.append(theta2)
+                    model.angle_strengths.append(model.backbone_param_vals["Ka"])
+                    model.angle_strengths.append(model.backbone_param_vals["Ka"])
 
-                model.dihedral_indices.append([i_idx-1,i_idx,j_idx,j_idx-1])
-                model.dihedral_min.append(phi)
-                model.dihedral_type.append(1)
-                model.dihedral_strengths.append(model.backbone_param_vals["Kd"])
+                    model.dihedral_indices.append([i_idx-1,i_idx,j_idx,j_idx-1])
+                    model.dihedral_min.append(phi)
+                    model.dihedral_type.append(1)
+                    model.dihedral_strengths.append(model.backbone_param_vals["Kd"])
     else:
         if model.verbose:
             print "  No disulfides to check."
