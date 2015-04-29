@@ -17,4 +17,4 @@ import CoarseGrainedModel
 import bonded_potentials
 import pairwise_potentials
 import pdb_parser
-import prepare_compound_pairwise
+import prep_Gaussian_pairwise
