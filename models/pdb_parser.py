@@ -374,6 +374,7 @@ def get_CACB_contacts_from_AA_contact_map(pdbname,all_atom_map):
         List of all contact C-alpha C-beta pairs. 
     """
 
+    name = pdbname.split(".pdb")[0]
     aa_pairs = np.loadtxt(all_atom_map,dtype=int) 
     if len(aa_pairs[0,:]) == 4:
         aa_pairs = aa_pairs[:,1::2]
@@ -389,6 +390,12 @@ def get_CACB_contacts_from_AA_contact_map(pdbname,all_atom_map):
         atm1 = aa_pairs[n,0]
         atm2 = aa_pairs[n,1]
         convert_all_atom_contact_to_CACB(pairs,atm1,atm2,atm_types,res_indxs,cacb_atm_indxs,cacb_res_indxs,cacb_atm_types)
+
+    # Save CACB pdb and caca_cbcb contacts
+    with open("%scacb.pdb" % name,"w") as fout:
+        fout.write(cacb)
+    caca_cbcb_pairs = np.array(pairs[0] + pairs[1])
+    np.savetxt("%scaca_cbcb_pairs",caca_cbcb_pairs,fmt="%4d")
 
     return pairs[0],pairs[1],pairs[2]
 
