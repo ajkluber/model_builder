@@ -130,7 +130,7 @@ def check_disulfides(model):
                 model.pairs = np.array(new_pairs)
                 model.n_pairs = len(model.pairs)
 
-                model.exclusions.append([i_idx,j_idx])
+                #model.exclusions.append([i_idx,j_idx])
 
                 # Set cysteine bond distance, angles, and dihedral.
                 model.bond_indices.append([i_idx,j_idx])
