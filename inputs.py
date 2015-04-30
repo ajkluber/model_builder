@@ -161,6 +161,9 @@ def load_model_section(config,modelopts):
             elif item == "name":
                 if not os.path.exists("%s.pdb" % value):
                     raise IOError("%s.pdb file does not exist! Check config file inputs" % value)
+            elif item == "starting_gro":
+                if not os.path.exists("%s" % value):
+                    raise IOError("%s file does not exist! Check config file inputs" % value)
             modelopts[item] = value
 
     if modelopts["bead_repr"] == "CACB" and (modelopts["cb_volume"] not in ["average","flavored"]):
@@ -220,7 +223,7 @@ def _empty_fitting_opts():
 def _empty_model_opts():
     """Model options to check for"""
     opts = ["pairs_file","pairwise_params_file",
-            "model_params_file","epsilon_bar",
+            "model_params_file","epsilon_bar","starting_gro",
             "defaults","bead_repr","cb_volume","disulfides",
             "simple_disulfides","n_native_pairs","contact_type",
             "pairs","pairwise_other_parameters",
