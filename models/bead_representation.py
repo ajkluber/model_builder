@@ -23,7 +23,15 @@ def set_bonded_interactions(model):
     get_bonds_string(model)
     get_angles_string(model)
     get_dihedrals_string(model)
-    get_grofile(model)
+
+    if not model.starting_gro:
+        # Make starting configuration from native coordinates
+        get_grofile(model)
+    else:
+        # Use inputted grofile for starting configuration
+        with open(model.starting_gro,"r") as fin:
+            model.grofile = fin.read()
+        
 
 ############################################################################
 # Calpha representation
@@ -235,4 +243,3 @@ def get_grofile(model):
     gro_string += "   %-25.16f%-25.16f%-25.16f" % (50.0,50.0,50.0)
 
     model.grofile = gro_string
-

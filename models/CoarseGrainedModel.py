@@ -34,7 +34,7 @@ class CoarseGrainedModel(object):
             setattr(self,key.lower(),kwargs[key])
 
         # Set remaining values to None
-        need_to_define = ["disulfides","defaults","n_native_pairs",
+        need_to_define = ["disulfides","defaults","n_native_pairs","starting_gro",
                           "epsilon_bar","exclusions","contact_type",
                           "backbone_params","initial_T_array",
                           "fitting_params_file","fitting_params",
