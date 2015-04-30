@@ -2,7 +2,7 @@
 
 Description:
 ------------
-    Generates topology and grofile needed to run coarse-grained protein model
+    Generates topol.top needed to run coarse-grained protein model
 in Gromacs.
 
 Example Usage:
