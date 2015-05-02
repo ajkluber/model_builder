@@ -18,8 +18,8 @@ def save_model(model,fitopts):
     config.add_section("fitting")
     modelkeys = ["name","bead_repr","disulfides","pairs_file",
                 "pairwise_params_file_location","model_params_file_location",
-                "defaults","epsilon_bar",
-                "n_native_pairs","contact_type","backbone_param_vals",
+                "defaults","cb_volume","n_native_pairs","contact_type",
+                "backbone_param_vals","starting_gro","simple_disulfides",
                 "verbose","using_sbm_gmx"]
 
     # Save fitting options that aren't None.
