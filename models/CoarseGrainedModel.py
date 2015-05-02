@@ -166,24 +166,25 @@ class CoarseGrainedModel(object):
         #    self.native_stability += (self.pair_eps[idx]*self.pair_V[idx](np.array([self.pairwise_other_parameters[idx][0]])))[0]
 
     def _determine_tabled_interactions(self):
-        """Determine which interactions need to use a table.xvg file"""
-        # Need to table if:
-        # - interaction is not LJ1210/LJ12 in general
-        # - not using_sbm_gmx
-        self.tabled_interactions = np.zeros(self.n_pairs,float)
-        if not self.using_sbm_gmx:
-            flag = ((self.pairwise_type == 2).astype(int) + (self.pairwise_type == 1).astype(int))
-            for tbl_indx in (np.where(flag != 1))[0]:
-                self.tabled_interactions[tbl_indx] = 1
+        """Determine which interactions need to use a tableb_##.xvg file"""
+        int_type = self.pairwise_type
+        if self.using_sbm_gmx:
+            dont_table = [1,2,4,8,9,10]
+        else:
+            dont_table = [1,2]
 
+        flag = np.zeros(len(int_type))
+        for i in range(len(dont_table)):
+            flag += (int_type == dont_table[i]).astype(int)
+
+        self.tabled_interactions = np.zeros(self.n_pairs,float)
+        for tbl_indx in (np.where(flag != 1))[0]:
+            self.tabled_interactions[tbl_indx] = 1
         self.tabled_pairs = np.where(self.tabled_interactions == 1)[0]
         self.n_tables = len(self.tabled_pairs)
 
     def _set_nonbonded_interactions(self):
         """ Set all interaction functions """
-
-        #TODO(alex):
-        # - Handle using_sbm_gmx tasks.
 
         # File to save interaction parameters for pairwise potentials. 
         pair_eps = []
@@ -218,17 +219,24 @@ class CoarseGrainedModel(object):
 
         if self.using_sbm_gmx:
             self._set_smog_pairs()
+        else:
+            self.smog_pair_indxs = []
         
         self._generate_interaction_tables()
         self._generate_topology()
 
     def _set_smog_pairs(self):
-
+        """Create smog   """
         # Get unique pairs 
+        smog_int_types = [4,8,9,10]
         self.smog_pairs = []
-        for p in self.pairs:
-            if list(p) not in self.smog_pairs:
-                self.smog_pairs.append(list(p))
+        self.smog_pair_indxs = []
+        for i in range(self.n_pairs):
+            p = self.pairs[i,:]
+            if self.pairwise_type[i] in smog_int_types:
+                self.smog_pair_indxs.append(i)
+                if list(p) not in self.smog_pairs:
+                    self.smog_pairs.append(list(p))
 
         self.smog_type = []
         self.smog_strings = []
@@ -322,20 +330,21 @@ class CoarseGrainedModel(object):
         pairs_string = " [ pairs ]\n"
         pairs_string += " ; %5s  %5s %4s    %8s   %8s\n" % ("i","j","type","c10","c12")
         for i in range(self.n_pairs):
-            res_a = self.pairs[i][0]
-            res_b = self.pairs[i][1]
-            r0 = self.pairwise_other_parameters[i][0]
-            eps = self.pair_eps[i]
-            if self.pairwise_type[i] == 1:     # LJ12
-                c12 = eps*(r0**12)
-                c10 = 0
-                pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
-            elif self.pairwise_type[i] == 2:   # LJ1210
-                c12 = eps*5.0*(r0**12)
-                c10 = eps*6.0*(r0**10)
-                pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
-            else:
-                pass
+            if i not in self.smog_pair_indxs:
+                res_a = self.pairs[i][0]
+                res_b = self.pairs[i][1]
+                r0 = self.pairwise_other_parameters[i][0]
+                eps = self.pair_eps[i]
+                if self.pairwise_type[i] == 1:     # LJ12
+                    c12 = eps*(r0**12)
+                    c10 = 0
+                    pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
+                elif self.pairwise_type[i] == 2:   # LJ1210
+                    c12 = eps*5.0*(r0**12)
+                    c10 = eps*6.0*(r0**10)
+                    pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
+                else:
+                    pass
 
         # Give a smaller excluded volume for LJ1210 pairs that are closer.
         for i in range(len(self.give_smaller_excluded_volume)):
@@ -344,6 +353,13 @@ class CoarseGrainedModel(object):
             c12 = (0.2**12)
             c10 = 0
             pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
+
+        # Smog interactions
+        pairs_string += " ; Smog guassian interactions\n"
+        for i in range(len(self.smog_pairs)):
+            res_a = self.smog_pairs[i][0]
+            res_b = self.smog_pairs[i][1]
+            pairs_string += "%5d%5d%s\n" % (res_a,res_b,self.smog_strings[i]) 
 
         return pairs_string
 
