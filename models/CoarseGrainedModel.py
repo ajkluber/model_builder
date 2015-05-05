@@ -45,8 +45,9 @@ class CoarseGrainedModel(object):
                 if thing == "exclusions":
                     self.exclusions = []
                 elif thing == "backbone_params":
+                    # SMOG values Kb = 2E4; Ka = 40, Kd = 1
                     self.backbone_params = ["Kb","Ka","Kd"]
-                    self.backbone_param_vals = {"Kb":20000.,"Ka":400.,"Kd":1}
+                    self.backbone_param_vals = {"Kb":20000.,"Ka":40.,"Kd":1} 
                 else:
                     setattr(self,thing,None)
 
@@ -98,7 +99,7 @@ class CoarseGrainedModel(object):
                         self.exclusions.append(list(self.pairs[i]))
                         self.give_smaller_excluded_volume.append(list(self.pairs[i]))
             else: 
-                # Always exclude any pairs that isn't LJ1210.
+                # Always exclude pairs that aren't LJ1210.
                 if list(self.pairs[i]) not in self.exclusions: 
                     self.exclusions.append(list(self.pairs[i]))
 
@@ -319,9 +320,11 @@ class CoarseGrainedModel(object):
         # Add special nonbonded table interactions. 
         tabled_string = "; tabled interactions pairs below\n"
         for i in range(self.n_tables):
-            pair = self.pairs[self.tabled_pairs[i]]
+            pair_indx = self.tabled_pairs[i]
+            pair = self.pairs[pair_indx]
+            eps = self.pair_eps[pair_indx]
             tabled_string += "%6d %6d%2d%18d%18.9e\n" %  \
-                      (pair[0],pair[1],9,i+1,1.0)
+                      (pair[0],pair[1],9,i+1,eps)
         return tabled_string
 
     def _get_pairs_string(self):
