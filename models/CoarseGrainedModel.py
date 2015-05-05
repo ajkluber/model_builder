@@ -356,13 +356,14 @@ class CoarseGrainedModel(object):
             c12 = (0.2**12)
             c10 = 0
             pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
-
-        # Smog interactions
-        pairs_string += " ; Smog guassian interactions\n"
-        for i in range(len(self.smog_pairs)):
-            res_a = self.smog_pairs[i][0]
-            res_b = self.smog_pairs[i][1]
-            pairs_string += "%5d%5d%s\n" % (res_a,res_b,self.smog_strings[i]) 
+        
+        if self.using_sbm_gmx:
+            # Smog interactions
+            pairs_string += " ; Smog guassian interactions\n"
+            for i in range(len(self.smog_pairs)):
+                res_a = self.smog_pairs[i][0]
+                res_b = self.smog_pairs[i][1]
+                pairs_string += "%5d%5d%s\n" % (res_a,res_b,self.smog_strings[i]) 
 
         return pairs_string
 
