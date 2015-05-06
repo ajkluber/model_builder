@@ -308,6 +308,8 @@ def FRET_fitopts_load(item, value):
         value = float(value)
     elif item == "y_shift":
         value = float(value)
+    elif item == "fretdata":
+        value = str(value)
     
     return value
 
