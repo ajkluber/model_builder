@@ -228,16 +228,30 @@ class CoarseGrainedModel(object):
 
     def _set_smog_pairs(self):
         """Create smog   """
-        # Get unique pairs 
+        # Get unique pairs.
         smog_int_types = [4,8,9,10]
         self.smog_pairs = []
         self.smog_pair_indxs = []
         for i in range(self.n_pairs):
             p = self.pairs[i,:]
             if self.pairwise_type[i] in smog_int_types:
-                self.smog_pair_indxs.append(i)
-                if list(p) not in self.smog_pairs:
-                    self.smog_pairs.append(list(p))
+                if self.pairwise_type[i] == 8:
+                    not_smog_pair = False
+                    for j in range(i + 1,self.n_pairs):
+                        p2 = self.pairs[j,:]
+                        if np.all(p == p2) and (self.pairwise_type[j] == 5):
+                            not_smog_pair = True
+                            break
+                    if not_smog_pair:
+                        continue
+                    else:
+                        self.smog_pair_indxs.append(i)
+                        if list(p) not in self.smog_pairs:
+                            self.smog_pairs.append(list(p))
+                else:
+                    self.smog_pair_indxs.append(i)
+                    if list(p) not in self.smog_pairs:
+                        self.smog_pairs.append(list(p))
 
         self.smog_type = []
         self.smog_strings = []
@@ -416,10 +430,7 @@ class CoarseGrainedModel(object):
         top_string += self._get_tabled_string() + "\n"
         top_string += self.angles_string + "\n"
         top_string += self.dihedrals_string + "\n"
-        if self.using_sbm_gmx:
-            top_string += self._get_pairs_string_smog() + "\n"
-        else:
-            top_string += self._get_pairs_string() + "\n"
+        top_string += self._get_pairs_string() + "\n"
         top_string += self._get_exclusions_string() + "\n"
 
         top_string += " [ system ]\n"
@@ -477,6 +488,7 @@ class CoarseGrainedModel(object):
                 self.model_param_values[p_idx] = abs(new_model_param_values[i])   
 
         # Refresh everything that depends on model parameters
+        self._determine_tabled_interactions()
         self._set_nonbonded_interactions()
 
 if __name__ == "__main__":

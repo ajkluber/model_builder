@@ -194,6 +194,8 @@ def load_fitting_section(config,modelopts,fittingopts):
                     value = value.split()
                 elif item == "allow_switch":
                     value = bool(value)
+                elif item == "constrain_avg_eps":
+                    value = bool(value)
                 elif item == "nonnative":
                     value = bool(value)
                 elif item in ["equil_walltime","walltime"]:
