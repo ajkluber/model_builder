@@ -313,13 +313,7 @@ def get_clean_CA_center_of_mass_CB(pdbname):
             atom_type = line[11:16].strip()
             xyz = np.array([float(line[31:39]),float(line[39:47]),float(line[47:55])])
             res_num = int(line[23:26])
-            if atom_type == "CA":
-                # We keep CA atoms just as they are.
-                newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
-                        (atm_indx,line[12:16],line[17:20],res_num,line[26:55])
-                atm_indx += 1
-                cacb_string += newline
-
+            
             if res_num == (res_indx + 1):
                 # If we have moved to the next residuec calculate center of
                 # mass of sidechain for previous residue.
@@ -334,9 +328,11 @@ def get_clean_CA_center_of_mass_CB(pdbname):
                     cacb_string += newline
                 # Start collecting the next residue's info.
                 if not atom_type in backbone_atoms: 
+                    prev_res_name = line[17:20]
                     coords = [xyz]
                     atoms = [atom_type]
                 else:
+                    prev_res_name = line[17:20]
                     coords = []
                     atoms = []
             else:
@@ -345,6 +341,14 @@ def get_clean_CA_center_of_mass_CB(pdbname):
                 if not atom_type in backbone_atoms: 
                     coords.append(xyz)
                     atoms.append(atom_type[0])
+            
+            if atom_type == "CA":
+                # We keep CA atoms just as they are.
+                newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
+                        (atm_indx,line[12:16],line[17:20],res_num,line[26:55])
+                atm_indx += 1
+                cacb_string += newline
+
 
     cacb_string += "END"
 
