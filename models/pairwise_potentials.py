@@ -6,6 +6,8 @@ Potentials to add:
 - Compound functions i.e. Heiko's product functions  DONE
 - Compound (product) functions with Gaussian barrier. 
 
+- Add second derivatives
+
 """
 
 import numpy as np
