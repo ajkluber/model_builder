@@ -161,6 +161,10 @@ def get_clean_full_noH(pdbname):
     cleanpdb += 'END\n'
     return cleanpdb
 
+########################################################################
+# Extract residue information, pairwise distances from PDB
+########################################################################
+
 def get_coords_atoms_residues(pdb):
     """Parse lines of a pdb string.
 
@@ -435,7 +439,7 @@ def convert_all_atom_contact_to_CACB(pairs,atm1,atm2,atm_types,res_indxs,cacb_at
         if [cbindx1,cbindx2] not in pairs[2]:
             pairs[2].append([cbindx1,cbindx2])
 
-def get_CACB_contacts_cutoff(pdbname,cutoff=0.45):
+def get_CACB_contacts_cutoff(pdbname,cutoff=0.45,return_more=False):
     """Get contact map for C-alpha C-beta model 
 
     Description
@@ -446,17 +450,25 @@ def get_CACB_contacts_cutoff(pdbname,cutoff=0.45):
     ----------
     pdbname : str
         The filename of a pdb.
+    cutoff : float opt.
+        The cutoff radius in nanometers. Default 0.45nm.
+    return_more : bool opt.
+        Flag to return more lists of contacts.
 
     Returns
     -------
-    pairs : list
-        List of all contact pairs. 
-    pairs_CA : list
-        List of all contact C-alpha pairs. 
-    pairs_CB : list
-        List of all contact C-beta pairs. 
-    pairs_CB_CA : list
-        List of all contact C-alpha C-beta pairs. 
+    if return_more:
+        pairs : list
+            List of all contact pairs. 
+        pairs_CA : list
+            List of all contact C-alpha pairs. 
+        pairs_CB : list
+            List of all contact C-beta pairs. 
+        pairs_CB_CA : list
+            List of all contact C-alpha C-beta pairs. 
+    else:
+        pairs_CACA_CBCB : array
+            Array of all CACA and CBCB contact pairs. 
     """
 
     pdb = get_clean_full_noH(pdbname)
@@ -477,7 +489,10 @@ def get_CACB_contacts_cutoff(pdbname,cutoff=0.45):
             atms2 = atm_types[res_indxs == j]
             inds2 = atm_indxs[res_indxs == j]
             determine_contact(pairs,pairs_CA,pairs_CB,pairs_CB_CA,i,j,res1info,res2info,cacb_info,cutoff=cutoff) 
-    return pairs,pairs_CA,pairs_CB,pairs_CB_CA
+    if return_more:
+        return pairs,pairs_CA,pairs_CB,pairs_CB_CA
+    else:
+        return np.concatenate([np.array(pairs_CA),np.array(pairs_CB)])
 
 def determine_contact(pairs,pairs_CA,pairs_CB,pairs_CB_CA,i,j,res1info,res2info,cacb_info,cutoff=0.45):
     """If two atoms are within a cutoff determine what type of contact they're in."""
