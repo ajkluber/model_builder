@@ -140,6 +140,8 @@ def load_model_section(config,modelopts):
                 value = float(value)
             elif item == "using_sbm_gmx":
                 value = bool(value)
+            elif item == "umbrella":
+                value = bool(value)
             elif item == "simple_disulfides":
                 value = bool(value)
             elif item == "disulfides":
@@ -231,7 +233,7 @@ def _empty_model_opts():
             "pairs","pairwise_other_parameters",
             "pairwise_param_assignment","n_processors",
             "pairwise_type","verbose","dry_run",
-            "using_sbm_gmx"] 
+            "using_sbm_gmx","umbrella"] 
     modelopts = { opt:None for opt in opts }
     return modelopts
 
