@@ -175,7 +175,7 @@ def load_fitting_section(config,modelopts,fittingopts):
     """Parse [fitting] options from config .ini file"""
     # special fitting checks is for package specific options
     # assigns based on keys, functions should be at end of file
-    special_fitting_checks = {"FRET":FRET_fitopts_load}
+    special_fitting_checks = {"FRET":FRET_fitopts_load, "tmatrix":FRET_fitopts_load}
         
     if config.has_section("fitting"):
         if config.has_option("fitting","data_type") and (config.get("fitting","data_type") in special_fitting_checks):
