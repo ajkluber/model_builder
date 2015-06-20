@@ -257,7 +257,7 @@ if __name__ == "__main__":
         plt.savefig("%s_random_%.2f_%.2f.png" % (name,args.mean,args.var),format="png")
         plt.savefig("%s_random_%.2f_%.2f.pdf" % (name,args.mean,args.var),format="pdf")
         plt.savefig("%s_random_%.2f_%.2f.eps" % (name,args.mean,args.var),format="eps")
-        plt.show()
+        #plt.show()
 
     if args.random_native:
         plt.figure()
@@ -273,7 +273,7 @@ if __name__ == "__main__":
         plt.savefig("%s_random_native_%.2f_%.2f.png" % (name,args.avg_native_eps,args.var),format="png")
         plt.savefig("%s_random_native_%.2f_%.2f.pdf" % (name,args.avg_native_eps,args.var),format="pdf")
         plt.savefig("%s_random_native_%.2f_%.2f.eps" % (name,args.avg_native_eps,args.var),format="eps")
-        plt.show()
+        #plt.show()
 
 
     if args.random_nonnative:
