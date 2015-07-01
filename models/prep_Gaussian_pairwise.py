@@ -45,31 +45,34 @@ def add_random_nonnative_interactions(args,pdb,native_pairs,pairwise_param_file_
     pdb_info = pdb_parser.get_coords_atoms_residues(pdb)
     atm_coords = pdb_info[0]
     res_types = pdb_info[4]
-    eps_nn = []
-    # First determine the distribution of non-native contact energies.
-    for i in range(len(res_types)):
-        atm_i = i + 1
-        for j in range(i+1,len(res_types)):
-            atm_j = j + 1
-            flag = sum((native_pairs[:,0] == atm_i).astype(int)*(native_pairs[:,1] == atm_j).astype(int))
-            native_dist = np.linalg.norm(atm_coords[i] - atm_coords[j])
-            if (flag == 0) and (native_dist > nn_cutoff):
-                res_i = res_types[i]
-                res_j = res_types[j]
-                if random:
-                    gamma = np.random.normal(loc=args.mean,scale=np.sqrt(args.var))
-                else:
-                    gamma = rp.get_awsem_direct_contact_gamma(res_i,res_j)
-                eps_nn.append(gamma)
+    if not (args.var == 0.00):
+        eps_nn = []
+        # First determine the distribution of non-native contact energies.
+        for i in range(len(res_types)):
+            atm_i = i + 1
+            for j in range(i+1,len(res_types)):
+                atm_j = j + 1
+                flag = sum((native_pairs[:,0] == atm_i).astype(int)*(native_pairs[:,1] == atm_j).astype(int))
+                native_dist = np.linalg.norm(atm_coords[i] - atm_coords[j])
+                if (flag == 0) and (native_dist > nn_cutoff):
+                    res_i = res_types[i]
+                    res_j = res_types[j]
+                    if random:
+                        gamma = np.random.normal(loc=args.mean,scale=np.sqrt(args.var))
+                    else:
+                        gamma = rp.get_awsem_direct_contact_gamma(res_i,res_j)
+                    eps_nn.append(gamma)
 
-    # Shift and scale the non-native contact energies to control the mean and
-    # variance.
-    eps_nn = np.array(eps_nn)
-    eps_nn_avg = np.mean(eps_nn)
-    eps_nn_var = np.var(eps_nn)
-    eps_nn -= eps_nn_avg
-    eps_nn *= np.sqrt(args.var/eps_nn_var)
-    eps_nn += args.mean
+        # Shift and scale the non-native contact energies to control the mean and
+        # variance.
+        eps_nn = np.array(eps_nn)
+        eps_nn_avg = np.mean(eps_nn)
+        eps_nn_var = np.var(eps_nn)
+        eps_nn -= eps_nn_avg
+        eps_nn *= np.sqrt(args.var/eps_nn_var)
+        eps_nn += args.mean
+    else:
+        eps_nn = [0]*(len(res_types)**2)
 
     rNC_nn = 0.4
     r0_nn = rNC_nn + 0.1
@@ -91,11 +94,14 @@ def add_random_nonnative_interactions(args,pdb,native_pairs,pairwise_param_file_
                 pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (atm_i,atm_j,model_param,8,LJ12_Gaussian_other_params) 
                 model_param += 1
                 model_param_file_string += "%10.5f\n" % 1.
-
-                if gamma < 0.:
-                    interaction_type = 5
-                else:
+                if args.var == 0.00:
+                    gamma = 0
                     interaction_type = 4
+                else:
+                    if gamma < 0.:
+                        interaction_type = 5
+                    else:
+                        interaction_type = 4
                 eps = abs(gamma)
                 Gaussian_other_params = "%10.5f%10.5f" % (r0_nn,width0)
                 pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (atm_i,atm_j,model_param,interaction_type,Gaussian_other_params) 
@@ -257,7 +263,7 @@ if __name__ == "__main__":
         plt.savefig("%s_random_%.2f_%.2f.png" % (name,args.mean,args.var),format="png")
         plt.savefig("%s_random_%.2f_%.2f.pdf" % (name,args.mean,args.var),format="pdf")
         plt.savefig("%s_random_%.2f_%.2f.eps" % (name,args.mean,args.var),format="eps")
-        plt.show()
+        #plt.show()
 
     if args.random_native:
         plt.figure()
@@ -273,7 +279,7 @@ if __name__ == "__main__":
         plt.savefig("%s_random_native_%.2f_%.2f.png" % (name,args.avg_native_eps,args.var),format="png")
         plt.savefig("%s_random_native_%.2f_%.2f.pdf" % (name,args.avg_native_eps,args.var),format="pdf")
         plt.savefig("%s_random_native_%.2f_%.2f.eps" % (name,args.avg_native_eps,args.var),format="eps")
-        plt.show()
+        #plt.show()
 
 
     if args.random_nonnative:
