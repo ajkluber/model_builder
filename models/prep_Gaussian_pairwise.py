@@ -144,7 +144,11 @@ def get_compound_LJ12_Gaussian_pairwise(args,pdb,pairs,model_param=0):
     n_residues = len(pdb_info[4]) 
     C_native = np.zeros((n_residues,n_residues),float)
     if args.random_native:
-        epsilons = np.random.normal(loc=args.avg_native_eps,scale=args.var,size=len(pairs))
+        epsilons = np.random.normal(loc=args.avg_native_eps,scale=np.sqrt(args.var),size=len(pairs))
+        epsilons *= (args.avg_native_eps/np.mean(epsilons))
+        epsilons -= args.avg_native_eps
+        epsilons *= np.sqrt(args.var)/np.std(epsilons)
+        epsilons += args.avg_native_eps
     else:
         epsilons = np.ones(len(pairs),float)
     pairs_rNC = 0.4*np.ones(len(pairs))
@@ -223,7 +227,7 @@ if __name__ == "__main__":
     parser.add_argument('--var',  
                         type=float, 
                         default=None, 
-                        help='Optional. Non-native interaction std dev.')
+                        help='Optional. Non-native interaction variance.')
 
     args = parser.parse_args()
 

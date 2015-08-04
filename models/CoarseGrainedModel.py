@@ -442,7 +442,7 @@ class CoarseGrainedModel(object):
 
         self.topology = top_string
 
-    def save_simulation_files(self):
+    def save_simulation_files(self,savetables=True):
         """ Write all needed simulation files. """
         cwd = os.getcwd()
         relative_path = cwd.split("%s/" % self.path)[1]
@@ -460,7 +460,15 @@ class CoarseGrainedModel(object):
         np.savetxt("Qref_cryst.dat",self.Qref,fmt="%1d",delimiter=" ")
         np.savetxt("pairs.dat",self.pairs,fmt="%4d",delimiter=" ")
 
-        # Save needed table files
+        if savetables: 
+           # Save needed table files
+            np.savetxt("table.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
+            np.savetxt("tablep.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
+            for i in range(self.n_tables):
+                np.savetxt(self.tablenames[i],self.tables[i],fmt="%16.15e",delimiter=" ")
+
+    def save_table_files(self):
+        """Write only table files"""
         np.savetxt("table.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
         np.savetxt("tablep.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
         for i in range(self.n_tables):
