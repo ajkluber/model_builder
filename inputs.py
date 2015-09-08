@@ -208,6 +208,10 @@ def load_fitting_section(config,modelopts,fittingopts):
                         raise IOError("%s file does not exist! Check config file inputs" % value)
                     else:
                         modelopts["fitting_params"] = np.loadtxt(value,dtype=int)
+                elif item == "cutoffs":
+                    value = [ float(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))] 
+                elif item == "simplify_lambdas":
+                    value = bool(value)
                 elif check_special:
                     value = checkfunction(item, value)
                 fittingopts[item] = value
@@ -220,8 +224,9 @@ def _empty_fitting_opts():
     opts = ["data_type","include_dirs","solver",
             "iteration","n_processors","equil_walltime",
             "allow_switch","parameters_to_fit",
-            "nonnative","last_completed_task"]         
+            "nonnative","last_completed_task","cutoffs","simplify_lambdas"]         
     fittingopts = { opt:None for opt in opts }
+    fittingopts["simplify_lambdas"] = False
     return fittingopts
 
 def _empty_model_opts():
