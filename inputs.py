@@ -120,16 +120,16 @@ def load_config(name):
 
     print "Creating model according to %s.ini" % name
     print "Options not shown default to None"
-    load_model_section(config,modelopts)
+    load_model_section(config.items("model"),modelopts)
     load_fitting_section(config,modelopts,fittingopts)
     _add_pair_opts(modelopts) 
     modelopts["pdb"] = "%s.pdb" % modelopts["name"]
     return modelopts,fittingopts
 
-def load_model_section(config,modelopts):
+def load_model_section(modelitems,modelopts):
     """Parse [model] options from config .ini file"""
     print "Model options:"
-    for item,value in config.items("model"):
+    for item,value in modelitems:
         if value in [None,""]:
             pass
         else:
