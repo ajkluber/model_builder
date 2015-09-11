@@ -319,7 +319,8 @@ def FRET_fitopts_load(item, value):
         value = float(value)
     elif item == "fretdata":
         value = str(value)
-    
+    elif item == "prevent_zero":
+        value = bool(value)
     return value
 
 def tmatrix_fitopts_load(item,value):
