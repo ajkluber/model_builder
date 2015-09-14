@@ -129,6 +129,7 @@ def load_config(name):
 def load_model_section(modelitems,modelopts):
     """Parse [model] options from config .ini file"""
     print "Model options:"
+    bool_valid_check = ["true", "True", "1", "T", "t"] #for checking boolean values
     for item,value in modelitems:
         if value in [None,""]:
             pass
@@ -139,11 +140,11 @@ def load_model_section(modelitems,modelopts):
             elif item == "epsilon_bar":
                 value = float(value)
             elif item == "using_sbm_gmx":
-                value = bool(value)
+                value = value in bool_valid_check
             elif item == "umbrella":
-                value = bool(value)
+                value = value in bool_valid_check
             elif item == "simple_disulfides":
-                value = bool(value)
+                value = value in bool_valid_check
             elif item == "disulfides":
                 value = [ int(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))]
                 if (len(value) % 2) != 0:
@@ -176,7 +177,8 @@ def load_fitting_section(config,modelopts,fittingopts):
     # special fitting checks is for package specific options
     # assigns based on keys, functions should be at end of file
     special_fitting_checks = {"FRET":FRET_fitopts_load, "tmatrix":tmatrix_fitopts_load}
-        
+    bool_valid_check = ["true", "True", "1", "T", "t"]
+    
     if config.has_section("fitting"):
         if config.has_option("fitting","data_type") and (config.get("fitting","data_type") in special_fitting_checks):
             checkfunction = special_fitting_checks[config.get("fitting","data_type")]
@@ -195,11 +197,11 @@ def load_fitting_section(config,modelopts,fittingopts):
                 elif item == "include_dirs":
                     value = value.split()
                 elif item == "allow_switch":
-                    value = bool(value)
+                    value = value in bool_valid_check
                 elif item == "constrain_avg_eps":
-                    value = bool(value)
+                    value = value in bool_valid_check
                 elif item == "nonnative":
-                    value = bool(value)
+                    value = value in bool_valid_check
                 elif item in ["equil_walltime","walltime"]:
                     if re.match("\d\d:\d\d:\d\d",value) == None:
                         raise IOError(" %s must be a time in format HH:MM:SS" % item)
@@ -211,7 +213,7 @@ def load_fitting_section(config,modelopts,fittingopts):
                 elif item == "cutoffs":
                     value = [ float(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))] 
                 elif item == "simplify_lambdas":
-                    value = bool(value)
+                    value = value in bool_valid_check
                 elif check_special:
                     value = checkfunction(item, value)
                 fittingopts[item] = value
@@ -296,6 +298,7 @@ def _add_pair_opts(modelopts):
 
 def FRET_fitopts_load(item, value):
     """Check options specific to FRET-package"""
+    bool_valid_check = ["true", "True", "1", "T", "t"]
     if item == "t_fit":
         value = int(value)
     elif item == "fret_pairs":
@@ -320,7 +323,7 @@ def FRET_fitopts_load(item, value):
     elif item == "fretdata":
         value = str(value)
     elif item == "prevent_zero":
-        value = bool(value)
+        value = value in bool_valid_check
     return value
 
 def tmatrix_fitopts_load(item,value):
