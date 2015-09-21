@@ -111,6 +111,8 @@ def get_pairwise_params(pairwise_params_file,model_params_file):
 
 def load_config(name):
     """Parse options from <name>.ini file"""
+    if not os.path.exists("%s.ini" % name):
+        raise IOError("%s.ini doesn't exist!" % name)
     config = ConfigParser.SafeConfigParser(allow_no_value=True)
     config.read("%s.ini" % name)
 
