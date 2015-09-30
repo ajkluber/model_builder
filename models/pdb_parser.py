@@ -16,10 +16,10 @@ To Do:
 """
 
 import numpy as np
-
+import os
 
 global atom_mass
-atom_mass = {"H":1.00,"C":12.01,"N":14.00,"O":16.00,"S":32.07}
+atom_mass = {"H":1.00,"C":12.01,"N":14.00,"O":16.00,"S":32.07,"D":1.00}
 
 global backbone_atoms
 backbone_atoms = ["N","CA","C","O","OXT"] 
@@ -142,7 +142,7 @@ def get_clean_full_noH(pdbname):
                     # Ignore alternative sidechain conformations.
                     if (line[16] in ["A"," "]) and (line[13] not in ["E","D"]):
                         # strip Hydrogens
-                        if not line[12:16].strip().startswith("H"):
+                        if not (line[12:16].strip().startswith("H") or line[12:16].strip().startswith("D")):
                             newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                     (atomid,line[12:16],line[17:20],1,line[26:55])
                             atomid += 1
@@ -152,7 +152,7 @@ def get_clean_full_noH(pdbname):
                 else:
                     # Ignore alternative sidechain conformations.
                     if (line[16] in ["A"," "]) and line[13] not in ["E","D"]:
-                        if not line[12:16].strip().startswith("H"):
+                        if not (line[12:16].strip().startswith("H") or line[12:16].strip().startswith("D")):
                             newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                                     (atomid,line[12:16],line[17:20],int(line[22:26])-first_index,line[26:55])
                             atomid += 1
@@ -295,7 +295,7 @@ def get_clean_CA_center_of_mass_CB(pdbname):
     pdb_parser.get_clean_full_noH
     """
 
-
+    
     res_indx = 1
     atm_indx = 1
     coords = []
@@ -317,7 +317,6 @@ def get_clean_CA_center_of_mass_CB(pdbname):
             atom_type = line[11:16].strip()
             xyz = np.array([float(line[31:39]),float(line[39:47]),float(line[47:55])])
             res_num = int(line[23:26])
-            
             if res_num == (res_indx + 1):
                 # If we have moved to the next residuec calculate center of
                 # mass of sidechain for previous residue.
@@ -350,6 +349,7 @@ def get_clean_CA_center_of_mass_CB(pdbname):
                 # We keep CA atoms just as they are.
                 newline = 'ATOM%7s %-5s%3s A%4d%s\n' % \
                         (atm_indx,line[12:16],line[17:20],res_num,line[26:55])
+
                 atm_indx += 1
                 cacb_string += newline
 
@@ -388,8 +388,16 @@ def get_CACB_contacts_from_AA_contact_map(pdbname,all_atom_map):
         aa_pairs = aa_pairs[:,1::2]
 
     pdb = get_clean_full_noH(pdbname)
+    noH_str = name
+    while True:
+        noH_str = "%s_noH" % noH_str
+        if not os.path.isfile("%s.pdb" % noH_str):
+            break
+    f = open("%s.pdb"%noH_str, "w")
+    f.write(pdb)
+    f.close()    
     atm_coords,atm_indxs,atm_types,res_indxs,res_types,res_types_unique = get_coords_atoms_residues(pdb)
-    cacb = get_clean_CA_center_of_mass_CB(pdbname)
+    cacb = get_clean_CA_center_of_mass_CB("%s.pdb"%noH_str)
     cacb_atm_indxs,cacb_atm_types,cacb_res_indxs = get_coords_atoms_residues(cacb)[1:4]
     n_res = len(np.unique(np.array(res_indxs,copy=True)))
     pairs = [[],[],[]]
