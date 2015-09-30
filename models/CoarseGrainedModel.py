@@ -200,7 +200,7 @@ class CoarseGrainedModel(object):
             other_param_string = ""
             for p in range(len(self.pairwise_other_parameters[i])):
                 other_param_string += " %10.5f " % self.pairwise_other_parameters[i][p] 
-            self.pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
+            self.pairwise_param_file_string += "%5d%5d%7d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
 
             # Wrap the pairwise potentials so that only distance needs to be input.
             self.pair_V.append(pairwise.wrap_pairwise(pairwise.get_pair_potential(int_type),\
