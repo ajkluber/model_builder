@@ -410,8 +410,8 @@ def get_CACB_contacts_from_AA_contact_map(pdbname,all_atom_map):
     # Save CACB pdb and caca_cbcb contacts
     with open("%scacb.pdb" % name,"w") as fout:
         fout.write(cacb)
-    caca_cbcb_pairs = np.array(pairs[0] + pairs[1])
-    np.savetxt("%scaca_cbcb_pairs",caca_cbcb_pairs,fmt="%4d")
+    caca_cbcb_pairs = np.array(pairs[0] + pairs[2])
+    np.savetxt("%scaca_cbcb_pairs" % name,caca_cbcb_pairs,fmt="%4d")
 
     return pairs[0],pairs[1],pairs[2]
 
