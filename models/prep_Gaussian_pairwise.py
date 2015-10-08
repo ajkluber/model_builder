@@ -135,7 +135,7 @@ def get_Gaussian_pairwise(pdb,pairs,model_param=0):
 
     return pairwise_param_file_string, model_param_file_string
 
-def get_compound_LJ12_Gaussian_pairwise(args,pdb,pairs,model_param=0):
+def get_compound_LJ12_Gaussian_pairwise(args,pdb,pairs,model_param=0,cacb=False,flavored=False ):
     """ """
 
     width0 = 0.05
@@ -143,6 +143,9 @@ def get_compound_LJ12_Gaussian_pairwise(args,pdb,pairs,model_param=0):
     pdb_info = pdb_parser.get_coords_atoms_residues(pdb)
     n_residues = len(pdb_info[4]) 
     C_native = np.zeros((n_residues,n_residues),float)
+    stuff = pdb_parser.get_coords_atoms_residues(pdb)
+    atomtype = stuff[2]
+    residuetype = stuff[4]
     if args.random_native:
         epsilons = np.random.normal(loc=args.avg_native_eps,scale=np.sqrt(args.var),size=len(pairs))
         epsilons *= (args.avg_native_eps/np.mean(epsilons))
@@ -151,7 +154,28 @@ def get_compound_LJ12_Gaussian_pairwise(args,pdb,pairs,model_param=0):
         epsilons += args.avg_native_eps
     else:
         epsilons = np.ones(len(pairs),float)
+        
     pairs_rNC = 0.4*np.ones(len(pairs))
+    if cacb == True: #if cacb, set excluded volumne for flavored interactions or average interactions according to selection rule
+        for i in range(len(pairs)):
+            ith_idx = pairs[i][0] - 1
+            jth_idx = pairs[i][1] - 1
+            #set params for calpha
+            ith_param = 0.28
+            jth_param = 0.28 
+            #if cb, change
+            if atomtype[ith_idx] == "CB":
+                if flavored == True:
+                    ith_param = rp.residue_cacb_effective_interaction[residuetype[ith_idx]]
+                else:
+                    ith_param = rp.residue_cacb_effective_interaction["AVERAGE"]
+            if atomtype[jth_idx] == "CB":
+                if flavored == True:
+                    jth_param = rp.residue_cacb_effective_interaction[residuetype[jth_idx]]
+                else:
+                    jth_param = rp.residue_cacb_effective_interaction["AVERAGE"]
+
+            pairs_rNC[i] = (ith_param * jth_param) ** 0.5
 
     # Loop over pairs and create pair
     pairwise_param_file_string = "#   i   j   param int_type  other_params\n"
@@ -170,7 +194,7 @@ def get_compound_LJ12_Gaussian_pairwise(args,pdb,pairs,model_param=0):
 
         # compound_LJ12_Gaussian takes rNC, r0, width0
         LJ12_Gaussian_other_params = "%10.5f%10.5f%10.5f" % (rNC,r0,width0)
-        pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,8,LJ12_Gaussian_other_params) 
+        pairwise_param_file_string += "%5d%5d%7d%5d%s\n" % (i_idx,j_idx,model_param,8,LJ12_Gaussian_other_params) 
         model_param += 1
         model_param_file_string += "%10.5f\n" % 1.
 
@@ -181,7 +205,7 @@ def get_compound_LJ12_Gaussian_pairwise(args,pdb,pairs,model_param=0):
         model_param_value = abs(gamma)
 
         Gaussian_other_params = "%10.5f%10.5f" % (r0,width0)
-        pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,interaction_type,Gaussian_other_params) 
+        pairwise_param_file_string += "%5d%5d%7d%5d%s\n" % (i_idx,j_idx,model_param,interaction_type,Gaussian_other_params) 
         model_param_file_string += "%10.5f\n" % model_param_value
         model_param += 1
 
@@ -228,7 +252,17 @@ if __name__ == "__main__":
                         type=float, 
                         default=None, 
                         help='Optional. Non-native interaction variance.')
-
+    
+    parser.add_argument('--cacb',
+                        action='store_true',
+                        default=False,
+                        help='Making a CACB model')
+                        
+    parser.add_argument('--flavored',
+                        action='store_true',
+                        default=False,
+                        help='Use flavored radii for CA-CB model')
+    
     args = parser.parse_args()
 
     pdbfile = args.pdb
@@ -244,7 +278,7 @@ if __name__ == "__main__":
     else:
         pdb = open(pdbfile,"r").read()
 
-    pairwise_param_file_string, model_param_file_string, model_param, C_native = get_compound_LJ12_Gaussian_pairwise(args,pdb,pairs)
+    pairwise_param_file_string, model_param_file_string, model_param, C_native = get_compound_LJ12_Gaussian_pairwise(args,pdb,pairs, cacb=args.cacb, flavored=args.flavored)
 
     cmap = plt.get_cmap("jet")
     cmap.set_bad(color="gray",alpha=1.)
