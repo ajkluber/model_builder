@@ -41,7 +41,7 @@ def set_CACB_bonded_interactions(model):
     create_CACB_exclusions(model)
 
     # atomtypes category of topol.top. Sets default excluded volume to 0.2 nm
-    ca_size = 0.2
+    ca_size = 0.28
     #model.cb_volume = "flavored" # flavored or average
     residue_custom = {}
 
@@ -59,9 +59,9 @@ def set_CACB_bonded_interactions(model):
         model.atm_names.append(model.atm_types[i] + model.res_types_abbrev[i])
         if  model.atm_types[i] == "CB":
             if model.cb_volume == "flavored":
-                model.atm_radii.append(rp.residue_radii[model.res_types[i]])
+                model.atm_radii.append(rp.residue_cacb_effective_interaction[model.res_types[i]])
             elif model.cb_volume == "average":
-                model.atm_radii.append(rp.residue_radii["AVERAGE"])
+                model.atm_radii.append(rp.residue_cacb_effective_interaction["AVERAGE"])
             elif model.cb_volume.endswith(".dat"):
                 model.atm_radii.append(float(residue_custom[model.res_types[i]]))
             else:

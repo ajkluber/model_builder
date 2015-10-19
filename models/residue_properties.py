@@ -32,6 +32,10 @@ residue_radii = {'ALA': 0.1844827, 'ARG': 0.3134491, 'ASN': 0.2477519,
                 'SER': 0.1936102, 'THR': 0.2376198, 'TRP': 0.3422321,
                 'TYR': 0.3168939, 'VAL': 0.2619603, 'AVERAGE': 0.2683678}
 
+"""use this effective interaction distance to be in line with the sizes 
+from the Cheung, Finke, Callahan, Onuchic, JPhysChemB 2003 paper"""
+residue_cacb_effective_interaction = {key:residue_radii[key]*1.4 for key in residue_radii} 
+
 residues_alpha = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN',
                   'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS',
                   'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP',
