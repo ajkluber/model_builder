@@ -307,14 +307,9 @@ def FRET_fitopts_load(item, value):
         value = [ int(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))]
         if (len(value) % 2) != 0:
             raise IOError("len(fret_pairs) should be even. Invalid input: %s " % value.__repr__())
-        temp_value = []
-        holder = [0,0]
+        temp_value = np.zeros((len(value)/2,2)).astype(int)
         for i in range(len(value)):
-            if i%2 == 0:
-                holder[0] = value[i]
-            else:
-                holder[1] = value[i]
-                temp_value.append(holder)
+            temp_value[i/2, i%2] = value[i]
         value = temp_value
     elif item == "spacing":
         value = float(value)
