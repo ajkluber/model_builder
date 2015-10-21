@@ -318,7 +318,7 @@ def FRET_fitopts_load(item, value):
     elif item == "y_shift":
         value = float(value)
     elif item == "fretdata":
-        value = re.split(",\s+|\s+", value.strip("[ | ]")) 
+        value = re.split(",\s+|\s+", value.strip("[ | ] | '")) 
     elif item == "prevent_zero":
         value = value in bool_valid_check
     return value
