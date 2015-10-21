@@ -28,7 +28,7 @@ def save_model(model,fitopts):
     check_special=False
     if "data_type" in fitopts:
         if fitopts["data_type"] in possible_formats:
-            check_function = special_fitting_checks[fitops["data_type"]] 
+            check_function = special_fitting_checks[fitopts["data_type"]] 
             check_special = True
             
     # Save fitting options that aren't None.
@@ -39,11 +39,11 @@ def save_model(model,fitopts):
                 for dir in fitopts["include_dirs"]:
                     temp += "%s " % dir
                 config.set("fitting",key,temp)
-            elif check_special:
-                check_function(key, fitopts, config)
+            
             else:
                 config.set("fitting",key,str(fitopts[key]))
-    
+            if check_special:
+                check_function(key, fitopts[key], config)    
     # Save model options that aren't None.
     for key in modelkeys:
         value = getattr(model,key)
@@ -337,6 +337,7 @@ def FRET_fitopts_load(item, value):
 def FRET_fitopts_save(key, option, config):
     if key == "fret_pairs":
         collection = ""
+        print option
         for i in range(np.shape(option)[0]):
             for j in range(np.shape(option)[1]):
                 collection += "%d " % option[i,j]
