@@ -21,7 +21,16 @@ def save_model(model,fitopts):
                 "defaults","cb_volume","n_native_pairs","contact_type",
                 "backbone_param_vals","starting_gro","simple_disulfides",
                 "verbose","using_sbm_gmx"]
-
+    
+    #special formatting options
+    possible_formats = ["FRET"]
+    special_fitting_checks = {"FRET":FRET_fitopts_save}
+    check_special=False
+    if "data_type" in fitopts:
+        if fitopts["data_type"] in possible_formats:
+            check_function = special_fitting_checks[fitopts["data_type"]] 
+            check_special = True
+            
     # Save fitting options that aren't None.
     for key in fitopts.iterkeys():
         if fitopts[key] not in [None,""]:
@@ -30,9 +39,11 @@ def save_model(model,fitopts):
                 for dir in fitopts["include_dirs"]:
                     temp += "%s " % dir
                 config.set("fitting",key,temp)
+            
             else:
                 config.set("fitting",key,str(fitopts[key]))
-    
+            if check_special:
+                check_function(key, fitopts[key], config)    
     # Save model options that aren't None.
     for key in modelkeys:
         value = getattr(model,key)
@@ -111,6 +122,8 @@ def get_pairwise_params(pairwise_params_file,model_params_file):
 
 def load_config(name):
     """Parse options from <name>.ini file"""
+    if not os.path.exists("%s.ini" % name):
+        raise IOError("%s.ini doesn't exist!" % name)
     config = ConfigParser.SafeConfigParser(allow_no_value=True)
     config.read("%s.ini" % name)
 
@@ -129,6 +142,7 @@ def load_config(name):
 def load_model_section(modelitems,modelopts):
     """Parse [model] options from config .ini file"""
     print "Model options:"
+    bool_valid_check = ["true", "True", "1", "T", "t"] #for checking boolean values
     for item,value in modelitems:
         if value in [None,""]:
             pass
@@ -139,11 +153,11 @@ def load_model_section(modelitems,modelopts):
             elif item == "epsilon_bar":
                 value = float(value)
             elif item == "using_sbm_gmx":
-                value = bool(value)
+                value = value in bool_valid_check
             elif item == "umbrella":
-                value = bool(value)
+                value = value in bool_valid_check
             elif item == "simple_disulfides":
-                value = bool(value)
+                value = value in bool_valid_check
             elif item == "disulfides":
                 value = [ int(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))]
                 if (len(value) % 2) != 0:
@@ -176,7 +190,8 @@ def load_fitting_section(config,modelopts,fittingopts):
     # special fitting checks is for package specific options
     # assigns based on keys, functions should be at end of file
     special_fitting_checks = {"FRET":FRET_fitopts_load, "tmatrix":tmatrix_fitopts_load}
-        
+    bool_valid_check = ["true", "True", "1", "T", "t"]
+    
     if config.has_section("fitting"):
         if config.has_option("fitting","data_type") and (config.get("fitting","data_type") in special_fitting_checks):
             checkfunction = special_fitting_checks[config.get("fitting","data_type")]
@@ -195,11 +210,11 @@ def load_fitting_section(config,modelopts,fittingopts):
                 elif item == "include_dirs":
                     value = value.split()
                 elif item == "allow_switch":
-                    value = bool(value)
+                    value = value in bool_valid_check
                 elif item == "constrain_avg_eps":
-                    value = bool(value)
+                    value = value in bool_valid_check
                 elif item == "nonnative":
-                    value = bool(value)
+                    value = value in bool_valid_check
                 elif item in ["equil_walltime","walltime"]:
                     if re.match("\d\d:\d\d:\d\d",value) == None:
                         raise IOError(" %s must be a time in format HH:MM:SS" % item)
@@ -208,6 +223,10 @@ def load_fitting_section(config,modelopts,fittingopts):
                         raise IOError("%s file does not exist! Check config file inputs" % value)
                     else:
                         modelopts["fitting_params"] = np.loadtxt(value,dtype=int)
+                elif item == "cutoffs":
+                    value = [ float(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))] 
+                elif item == "simplify_lambdas":
+                    value = value in bool_valid_check
                 elif check_special:
                     value = checkfunction(item, value)
                 fittingopts[item] = value
@@ -220,8 +239,9 @@ def _empty_fitting_opts():
     opts = ["data_type","include_dirs","solver",
             "iteration","n_processors","equil_walltime",
             "allow_switch","parameters_to_fit",
-            "nonnative","last_completed_task"]         
+            "nonnative","last_completed_task","cutoffs","simplify_lambdas"]         
     fittingopts = { opt:None for opt in opts }
+    fittingopts["simplify_lambdas"] = False
     return fittingopts
 
 def _empty_model_opts():
@@ -291,20 +311,16 @@ def _add_pair_opts(modelopts):
 
 def FRET_fitopts_load(item, value):
     """Check options specific to FRET-package"""
+    bool_valid_check = ["true", "True", "1", "T", "t"]
     if item == "t_fit":
         value = int(value)
     elif item == "fret_pairs":
         value = [ int(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))]
         if (len(value) % 2) != 0:
             raise IOError("len(fret_pairs) should be even. Invalid input: %s " % value.__repr__())
-        temp_value = []
-        holder = [0,0]
+        temp_value = np.zeros((len(value)/2,2)).astype(int)
         for i in range(len(value)):
-            if i%2 == 0:
-                holder[0] = value[i]
-            else:
-                holder[1] = value[i]
-                temp_value.append(holder)
+            temp_value[i/2, i%2] = value[i]
         value = temp_value
     elif item == "spacing":
         value = float(value)
@@ -313,10 +329,25 @@ def FRET_fitopts_load(item, value):
     elif item == "y_shift":
         value = float(value)
     elif item == "fretdata":
-        value = str(value)
-    
+        value = re.split(",\s+|\s+", value.strip("[ | ] | '")) 
+    elif item == "prevent_zero":
+        value = value in bool_valid_check
     return value
 
+def FRET_fitopts_save(key, option, config):
+    if key == "fret_pairs":
+        collection = ""
+        print option
+        for i in range(np.shape(option)[0]):
+            for j in range(np.shape(option)[1]):
+                collection += "%d " % option[i,j]
+        config.set("fitting",key,collection)
+    if key == "fretdata":
+        collection = ""
+        for string in option:
+            collection += "%s " % string
+        config.set("fitting",key,collection)
+    
 def tmatrix_fitopts_load(item,value):
     """check option for transition matrix"""
     if item == "lag_step": ##number of frames per a lag time step

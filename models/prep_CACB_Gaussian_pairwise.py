@@ -185,12 +185,12 @@ if __name__ == "__main__":
 
         # compound_LJ12_Gaussian takes rNC, r0, width0
         LJ12_Gaussian_other_params = "%10.5f%10.5f%10.5f" % (rNC,r0,width0)
-        pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,8,LJ12_Gaussian_other_params) 
+        pairwise_param_file_string += "%5d%5d%7d%5d%s\n" % (i_idx,j_idx,model_param,8,LJ12_Gaussian_other_params) 
         model_param += 1
         model_param_file_string += "%10.5f\n" % 1.
 
         Gaussian_other_params = "%10.5f%10.5f" % (r0,width0)
-        pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,4,Gaussian_other_params) 
+        pairwise_param_file_string += "%5d%5d%7d%5d%s\n" % (i_idx,j_idx,model_param,4,Gaussian_other_params) 
         model_param_file_string += "%10.5f\n" % model_param_value
         model_param += 1
 
