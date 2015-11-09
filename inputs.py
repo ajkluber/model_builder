@@ -21,7 +21,16 @@ def save_model(model,fitopts):
                 "defaults","cb_volume","n_native_pairs","contact_type",
                 "backbone_param_vals","starting_gro","simple_disulfides",
                 "verbose","using_sbm_gmx"]
-
+    
+    #special formatting options
+    possible_formats = ["FRET"]
+    special_fitting_checks = {"FRET":FRET_fitopts_save}
+    check_special=False
+    if "data_type" in fitopts:
+        if fitopts["data_type"] in possible_formats:
+            check_function = special_fitting_checks[fitopts["data_type"]] 
+            check_special = True
+            
     # Save fitting options that aren't None.
     for key in fitopts.iterkeys():
         if fitopts[key] not in [None,""]:
@@ -30,9 +39,11 @@ def save_model(model,fitopts):
                 for dir in fitopts["include_dirs"]:
                     temp += "%s " % dir
                 config.set("fitting",key,temp)
+            
             else:
                 config.set("fitting",key,str(fitopts[key]))
-    
+            if check_special:
+                check_function(key, fitopts[key], config)    
     # Save model options that aren't None.
     for key in modelkeys:
         value = getattr(model,key)
@@ -307,14 +318,9 @@ def FRET_fitopts_load(item, value):
         value = [ int(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))]
         if (len(value) % 2) != 0:
             raise IOError("len(fret_pairs) should be even. Invalid input: %s " % value.__repr__())
-        temp_value = []
-        holder = [0,0]
+        temp_value = np.zeros((len(value)/2,2)).astype(int)
         for i in range(len(value)):
-            if i%2 == 0:
-                holder[0] = value[i]
-            else:
-                holder[1] = value[i]
-                temp_value.append(holder)
+            temp_value[i/2, i%2] = value[i]
         value = temp_value
     elif item == "spacing":
         value = float(value)
@@ -323,11 +329,25 @@ def FRET_fitopts_load(item, value):
     elif item == "y_shift":
         value = float(value)
     elif item == "fretdata":
-        value = str(value)
+        value = re.split(",\s+|\s+", value.strip("[ | ] | '")) 
     elif item == "prevent_zero":
         value = value in bool_valid_check
     return value
 
+def FRET_fitopts_save(key, option, config):
+    if key == "fret_pairs":
+        collection = ""
+        print option
+        for i in range(np.shape(option)[0]):
+            for j in range(np.shape(option)[1]):
+                collection += "%d " % option[i,j]
+        config.set("fitting",key,collection)
+    if key == "fretdata":
+        collection = ""
+        for string in option:
+            collection += "%s " % string
+        config.set("fitting",key,collection)
+    
 def tmatrix_fitopts_load(item,value):
     """check option for transition matrix"""
     if item == "lag_step": ##number of frames per a lag time step
