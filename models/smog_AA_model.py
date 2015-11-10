@@ -181,7 +181,7 @@ class smog_AA_model(object):
     def _determine_tabled_interactions(self):
         """Determine which interactions need to use a tableb_##.xvg file"""
         int_type = self.long_pairwise_type
-        dont_table = [4]
+        dont_table = [6]
 
         flag = np.zeros(len(int_type))
         for i in range(len(dont_table)):

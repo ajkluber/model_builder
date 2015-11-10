@@ -203,7 +203,7 @@ def compound_LJ12_double_Gaussian_deriv(r,rNC,r0,width0,r1,width1):
     return LJ12_deriv(r,rNC)*(1. + Gaussian(r,r0,width0))*(1. + Gaussian(r,r1,width1)) + \
            LJ12(r,rNC)*Gaussian_deriv(r,r0,width0)*(1. + Gaussian(r,r1,width1)) + \
            LJ12(r,rNC)*(1. + Gaussian(r,r0,width0))*Gaussian_deriv(r,r1,width1)
-
+v
 def compound_double_Gaussian(r,rNC,r0,width0,r1,width1):
     return Gaussian(r,r0,width0)*(1. + Gaussian(r,r1,width1))
 

@@ -4,7 +4,42 @@ import os
 import shutil
 
 # I don't know yet if using arguments other than the standard, we'll see
+def divide():
+    top_file=open('smog.top')
+    top_main=open('smog_main.top','w+')
+    temp_top=open('temp.top','w+')
+    for line in top_file:
+        if len(line)>1 and line[0]<>';':
+            if '[' in line and ']' in line:
+                temp_top.close()
+                section=line.strip().split(' ')[1]            
+                temp_top=open('smog_%s.top'%section,'w+')
+                top_main.write('[ %s ]\n'%section)
+                top_main.write('#include "smog_%s.top"\n'%section)
+                continue
+            else:
+            temp_top.write(line)
+    temp_top.close()
+    top_main.close()
+    top_file.close()
 
+def separate_dihedrals():
+    original_dihedrals = open('smog_dihedrals.top')
+    proper_dihedrals = open('smog_dihedrals_proper.top','w+')
+    improper_dihedrals = open('smog_dihedrals_improper.top','w+')
+
+    for line in original_dihedrals:
+        if len(line.split())==7:
+            proper_dihedrals.write('{0}'.format(line))
+        elif len(line.split())==8:
+            improper_dihedrals.write('{0}'.format(line))
+        else:
+            pass
+        
+    proper_dihedrals.close()
+    improper_dihedrals.close()
+    
+    
 def get_args():
     parser = argparse.ArgumentParser(description='.')
     parser.add_argument('--name', type=str, required=True, help='Name of protein')
@@ -103,6 +138,8 @@ def trim_residues(residue_contacts):
     long_contacts = np.array(long_contacts)
     short_contacts = np.array(short_contacts)
     accumulated_pairs = np.array(accumulated_pairs)
+
+    np.savetxt("long_residue_contacts.dat",long_contacts)
 
     return long_contacts, short_contacts, long_short_list, accumulated_pairs, repeat_long_list
 
@@ -206,6 +243,8 @@ def modify_pairs_exclusions(residue_contacts, long_short_list, repeat_long_list,
     new_exclusions_file.close()
     
 def main():
+
+    divide()
     
     atom_list = read_ndx()
 
