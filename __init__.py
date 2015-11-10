@@ -23,3 +23,4 @@ import models
 import inputs
 #import info_string
 import make_model
+import smog_AA_inputs

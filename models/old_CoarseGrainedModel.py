@@ -20,7 +20,7 @@ import pairwise_potentials as pairwise
 import pdb_parser
 
 global SKIP_INTERACTIONS
-SKIP_INTERACTIONS = [1,8,9]
+SKIP_INTERACTIONS = [8,9]
 
 class CoarseGrainedModel(object):
     """Interface for creating the gromacs files needed to run a coarse-grain
@@ -122,7 +122,6 @@ class CoarseGrainedModel(object):
         self.native_pairs = []
         self.native_pairs_indices = []
         self.Qref = np.zeros((self.n_residues,self.n_residues))
-        
         if self.n_native_pairs is None:
             if self.verbose:
                 print "  Considering all (nonredundant) pairs to be native pairs"
@@ -137,8 +136,8 @@ class CoarseGrainedModel(object):
         else:
             if self.verbose:
                 print "  Considering the first %d unique pairs to be native pairs" % self.n_native_pairs
-            if int(self.n_native_pairs) > self.n_pairs:
-                raise IOError("%d n_native_pairs specified greater than %d n_pairs." % (int(self.n_native_pairs), self.n_pairs))
+            if self.n_native_pairs > self.n_pairs:
+                raise IOError("%d n_native_pairs specified greater than %d n_pairs." % (self.n_native_pairs, self.n_pairs))
 
             # Takes first unique n_native_pairs as native.
             count = 0
@@ -201,7 +200,7 @@ class CoarseGrainedModel(object):
             other_param_string = ""
             for p in range(len(self.pairwise_other_parameters[i])):
                 other_param_string += " %10.5f " % self.pairwise_other_parameters[i][p] 
-            self.pairwise_param_file_string += "%5d%5d%7d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
+            self.pairwise_param_file_string += "%5d%5d%5d%5d%s\n" % (i_idx,j_idx,model_param,int_type,other_param_string)
 
             # Wrap the pairwise potentials so that only distance needs to be input.
             self.pair_V.append(pairwise.wrap_pairwise(pairwise.get_pair_potential(int_type),\
@@ -250,9 +249,9 @@ class CoarseGrainedModel(object):
                         if list(p) not in self.smog_pairs:
                             self.smog_pairs.append(list(p))
                 else:
-                      self.smog_pair_indxs.append(i)
-                      if list(p) not in self.smog_pairs:
-                          self.smog_pairs.append(list(p))
+                    self.smog_pair_indxs.append(i)
+                    if list(p) not in self.smog_pairs:
+                        self.smog_pairs.append(list(p))
 
         self.smog_type = []
         self.smog_strings = []

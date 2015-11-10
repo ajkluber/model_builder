@@ -18,3 +18,5 @@ import bonded_potentials
 import pairwise_potentials
 import pdb_parser
 import prep_Gaussian_pairwise
+import smog_AA_model
+import smog_AA_pairwise_potentials
