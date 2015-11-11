@@ -51,7 +51,8 @@ class smog_AA_model(object):
                     
         bonds_file = np.loadtxt('smog_bonds.top')
         angles_file = np.loadtxt('smog_angles.top')
-#        dihedrals_file = np.loadtxt('smog_dihedrals.top')
+        dihedrals_proper_file = np.loadtxt('smog_dihedrals_proper.top')
+        dihedrals_improper_file = np.loadtxt('smog_dihedrals_improper.top')
         short_pairs_file = np.loadtxt('smog_pairs_s.top') #short-range pairs |i-j|<=8                                          
         long_pairs_file = np.loadtxt('smog_pairs_l.top') #long-range pairs, |i-j|>8                                                                                  
 
@@ -75,9 +76,11 @@ class smog_AA_model(object):
 
        #Dihedrals parameters:                                                                                                                                    
        #func   Phi_0   K_d   Mult.(propers)                                                                                             # ON HOLD FOR THE TIME BEING                                  
-       # self.dihedrals = dihedrals_file[:,:4]
-       # self.dihedrals_params = dihedrals_file[:,4:]
+        self.dihedrals_proper = dihedrals_proper_file[:,:4]
+        self.dihedrals_proper_params = dihedrals_proper_file[:,4:]
 
+        self.dihedrals_improper = dihedrals_improper_file[:,:4]
+        self.dihedrals_improper_params = dihedrals_improper_file[:,4:]
         # Pairs parameters:                                                                                                                                      
         # func                                                                                                                                                   
         # eps_c = intensity of contact (depth of well)                                                                                                           

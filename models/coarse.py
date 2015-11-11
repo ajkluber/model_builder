@@ -2,6 +2,7 @@ import numpy as np
 import argparse
 import os
 import shutil
+import sys
 
 # I don't know yet if using arguments other than the standard, we'll see
 def divide():
@@ -18,8 +19,10 @@ def divide():
                 top_main.write('#include "smog_%s.top"\n'%section)
                 continue
             else:
-            temp_top.write(line)
+                temp_top.write(line)
+    
     temp_top.close()
+    os.remove('temp.top')
     top_main.close()
     top_file.close()
 
@@ -35,14 +38,15 @@ def separate_dihedrals():
             improper_dihedrals.write('{0}'.format(line))
         else:
             pass
-        
+    
+    original_dihedrals.close()
     proper_dihedrals.close()
     improper_dihedrals.close()
     
     
-def get_args():
+def get_coarse_args():
     parser = argparse.ArgumentParser(description='.')
-    parser.add_argument('--name', type=str, required=True, help='Name of protein')
+    parser.add_argument('--name',type=str, required=True, help='Name of protein')
 
     args = parser.parse_args()
 
@@ -242,9 +246,27 @@ def modify_pairs_exclusions(residue_contacts, long_short_list, repeat_long_list,
     long_pairs_file.close()
     new_exclusions_file.close()
     
-def main():
+    main_file = open('smog_main.top','r')
+    new_main_file = open('smog_main_n.top','w')
+    for line in main_file:
+        if line.split()[1] == '"smog_pairs.top"':
+            new_main_file.write('#include "smog_pairs_s.top"\n')
+            new_main_file.write('#include "smog_pairs_l.top"\n')
+        else:
+            new_main_file.write(line)
+
+    new_main_file.close()
+            
+    os.remove('smog_main.top')
+    shutil.move('smog_main_n.top','smog_main.top')
+        
+    
+    
+def generate_files(directory):
 
     divide()
+
+    separate_dihedrals()
     
     atom_list = read_ndx()
 
@@ -263,4 +285,6 @@ def main():
 
 if __name__ == "__main__":
     
-    main()
+    directory = get_coarse_args()
+
+    generate_files(directory)
