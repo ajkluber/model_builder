@@ -172,7 +172,7 @@ class smog_AA_model(object):
             shutil.copy(item,cwd)   
        
         open("smog_pairs_l.top","w").write(self.long_pairs_file_string)
-        #### TODO:  copy files from sub/smog_files to each dir
+      
         if savetables:
             # Save needed table files                                               
             np.savetxt("table.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
