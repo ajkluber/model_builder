@@ -19,7 +19,7 @@ from glob import glob
 #import bead_representation as bead
 #import bonded_potentials as bond
 import smog_AA_pairwise_potentials as pairwise
-#import pdb_parser
+import pdb_parser
 
 #global SKIP_INTERACTIONS
 #SKIP_INTERACTIONS = [1,8,9]
@@ -104,14 +104,14 @@ class smog_AA_model(object):
 
         n_res = int(open('smog_atoms.top','r').readlines()[-1].split()[2])
         self.n_residues = n_res
-
+    
         self.qref = np.zeros((self.n_residues,self.n_residues))
         
         residue_pairs_file = np.loadtxt('long_residue_contacts.dat')
         # Load model param interactions (
         for i in range(len(self.long_pairs)):
-            a = int(residue_pairs_file[i][0])
-            b = int(residue_pairs_file[i][1])
+            a = int(residue_pairs_file[i][0])-1
+            b = int(residue_pairs_file[i][1])-1
             
             if a > b:
                 self.qref[a][b] = 1
@@ -140,8 +140,11 @@ class smog_AA_model(object):
         self.n_long_model_param = len(self.long_model_param_values)
       
         self.update_model_param_values(self.long_model_param_values)
-
-
+        
+        # Clean pdb for mutations
+        self.pdb = self.name +'.pdb'
+        self.cleanpdb_full = pdb_parser.get_clean_full(self.pdb)
+        
     def update_model_param_values(self,new_model_param_values):
         """ If parameter changed sign, change the pairwise interaction type """
         # Switching between different interaction function types

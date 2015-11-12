@@ -143,7 +143,7 @@ def trim_residues(residue_contacts):
     short_contacts = np.array(short_contacts)
     accumulated_pairs = np.array(accumulated_pairs)
 
-    np.savetxt("long_residue_contacts.dat",long_contacts, fmt='%5d')
+    np.savetxt("long_residue_contacts.dat",accumulated_pairs, fmt='%5d')
 
     return long_contacts, short_contacts, long_short_list, accumulated_pairs, repeat_long_list
 
