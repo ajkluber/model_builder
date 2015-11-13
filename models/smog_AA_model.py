@@ -173,7 +173,7 @@ class smog_AA_model(object):
         smog_files = glob('{0}/{1}/smog_files/*'.format(self.path,self.name))                                              
         for item in smog_files:                                                                                                 
             shutil.copy(item,cwd)   
-       
+        os.remove("smog_pairs_l.top")
         open("smog_pairs_l.top","w").write(self.long_pairs_file_string)
       
         if savetables:
