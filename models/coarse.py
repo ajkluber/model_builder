@@ -270,11 +270,11 @@ def generate_long_short_index():
     short_pairs = short_pairs[:,:2]
 
     long_file = open('smog_long.ndx','w')
-    long_file.write('  [pairs]\n')
+    long_file.write('[pairs]\n')
     short_file = open('smog_short.ndx','w')
-    short_file.write('  [pairs]\n')
+    short_file.write('[pairs]\n')
     all_file = open('smog_long_and_short.ndx','w')
-    all_file.write('  [pairs]\n')
+    all_file.write('[pairs]\n')
 
     for i in range(len(long_pairs)):
         long_file.write('{0:5d}   {1:5d}\n'.format(int(long_pairs[i,0]),int(long_pairs[i,1])))
