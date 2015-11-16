@@ -136,6 +136,7 @@ def load_fitting_section(config,modelopts,fittingopts):
     # special fitting checks is for package specific options
     # assigns based on keys, functions should be at end of file
     bool_valid_check = ["true", "True", "1", "T", "t"]
+    queue_check = ["serial","commons","parallel","bigmem"]
     
     if config.has_section("fitting"):
         print "\nFitting options:"
@@ -157,6 +158,8 @@ def load_fitting_section(config,modelopts,fittingopts):
                 elif item in ["equil_walltime","walltime"]:
                     if re.match("\d\d:\d\d:\d\d",value) == None:
                         raise IOError(" %s must be a time in format HH:MM:SS" % item)
+                elif item == "queue":
+                    value = value in queue_check
                 elif item == "parameters_to_fit":
                     if not os.path.exists(value):
                         raise IOError("%s file does not exist! Check config file inputs" % value)
@@ -175,7 +178,7 @@ def load_fitting_section(config,modelopts,fittingopts):
 def _empty_fitting_opts():
     """Fitting options to check for"""
     opts = ["data_type","include_dirs","solver",
-            "iteration","n_processors",
+            "iteration","n_processors","queue"
             "allow_switch","parameters_to_fit",
             "nonnative","last_completed_task","cutoffs","simplify_lambdas"]         
     fittingopts = { opt:None for opt in opts }

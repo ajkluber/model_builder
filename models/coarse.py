@@ -261,7 +261,33 @@ def modify_pairs_exclusions(residue_contacts, long_short_list, repeat_long_list,
     shutil.move('smog_main_n.top','smog_main.top')
         
     
+def generate_long_short_index():
     
+    long_pairs = np.loadtxt('smog_pairs_l.top')
+    short_pairs = np.loadtxt('smog_pairs_s.top')
+    
+    long_pairs = long_pairs[:,:2]
+    short_pairs = short_pairs[:,:2]
+
+    long_file = open('smog_long.ndx','w')
+    long_file.write('  [pairs]\n')
+    short_file = open('smog_short.ndx','w')
+    short_file.write('  [pairs]\n')
+    all_file = open('smog_long_and_short.ndx','w')
+    all_file.write('  [pairs]\n')
+
+    for i in range(len(long_pairs)):
+        long_file.write('{0:5d}   {1:5d}\n'.format(int(long_pairs[i,0]),int(long_pairs[i,1])))
+        all_file.write('{0:5d}   {1:5d}\n'.format(int(long_pairs[i,0]),int(long_pairs[i,1])))
+   
+    for i in range(len(short_pairs)):
+        short_file.write('{0:5d}   {1:5d}\n'.format(int(short_pairs[i,0]),int(short_pairs[i,1])))
+        all_file.write('{0:5d}   {1:5d}\n'.format(int(short_pairs[i,0]),int(short_pairs[i,1])))
+    
+    long_file.close()
+    short_file.close()
+    all_file.close()
+
 def generate_files(directory):
 
     divide()
@@ -282,6 +308,7 @@ def generate_files(directory):
     
     modify_pairs_exclusions(residue_contacts, long_short_list, repeat_long_list, c_beta_list)
 
+    generate_long_short_index()
 
 if __name__ == "__main__":
     
