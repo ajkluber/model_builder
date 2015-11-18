@@ -148,6 +148,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     name = args.name
+    pairsfile = args.pairsfile
 
     #cushion = args.cushion
 
@@ -159,7 +160,7 @@ if __name__ == "__main__":
     if args.pairsfile is not None:
         # User defined CACA CBCB contact file
         #pairs = np.loadtxt("%scaca_cbcb_pairs" % name,dtype=int)
-        pairs = np.loadtxt("%s" % name,dtype=int)
+        pairs = np.loadtxt("%s" % pairsfile,dtype=int)
     else:
         # Determine contacts by cutoff map
         pairs = pdb_parser.get_CACB_contacts_cutoff(pdb)

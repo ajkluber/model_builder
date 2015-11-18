@@ -36,7 +36,7 @@ class CoarseGrainedModel(object):
         # Set remaining values to None
         need_to_define = ["disulfides","defaults","n_native_pairs","starting_gro",
                           "epsilon_bar","exclusions","contact_type",
-                          "backbone_params","initial_T_array",
+                          "backbone_param_vals","initial_T_array",
                           "fitting_params_file","fitting_params",
                           "pairwise_params_file_location","model_params_file_location"]
 
@@ -44,7 +44,7 @@ class CoarseGrainedModel(object):
             if not hasattr(self,thing):
                 if thing == "exclusions":
                     self.exclusions = []
-                elif thing == "backbone_params":
+                elif thing == "backbone_param_vals":
                     # SMOG values Kb = 2E4; Ka = 40, Kd = 1
                     self.backbone_params = ["Kb","Ka","Kd"]
                     self.backbone_param_vals = {"Kb":20000.,"Ka":40.,"Kd":1} 
