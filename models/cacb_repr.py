@@ -40,8 +40,8 @@ def set_CACB_bonded_interactions(model):
     create_CACB_dihedrals_improper(model,CA_indxs,CB_indxs,coords)
     create_CACB_exclusions(model)
 
-    # atomtypes category of topol.top. Sets default excluded volume to 0.2 nm
-    ca_size = 0.28
+    # atomtypes category of topol.top. Sets default excluded volume to 0.266 nm
+    ca_size = 0.266
     #model.cb_volume = "flavored" # flavored or average
     residue_custom = {}
 

@@ -161,8 +161,8 @@ def get_compound_LJ12_Gaussian_pairwise(args,pdb,pairs,model_param=0,cacb=False,
             ith_idx = pairs[i][0] - 1
             jth_idx = pairs[i][1] - 1
             #set params for calpha
-            ith_param = 0.28
-            jth_param = 0.28 
+            ith_param = 0.266
+            jth_param = 0.266 
             #if cb, change
             if atomtype[ith_idx] == "CB":
                 if flavored == True:
