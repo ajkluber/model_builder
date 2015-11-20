@@ -192,14 +192,18 @@ def modify_pairs_exclusions(residue_contacts, long_short_list, repeat_long_list,
     #Differentiate between long and short contact pairs
 
     short_pairs_file = open('smog_pairs_s.top','w')
-    long_pairs_file = open('smog_pairs_l.top','w')
+    fixed_long_pairs_file_1 = open('smog_pairs_f1.top','w')
+    fixed_long_pairs_file_2 = open('smog_pairs_f2.top','w')
+    long_pairs_file = open('smog_pairs_long','w')
+    long_pairs_top = open('smog_pairs_l.top','w')
+    long_bonds_rep = open('smog_bonds_rep.top','w')
     new_exclusions_file = open('smog_exclusions.top','w')
 
     residue_list = np.array([row[0] for row in c_beta_list])
     print residue_list
 
     # Minimum of well for Gaussian contacts (sigma) is column 4
-
+    bond_rep = 0
     for i in range(len(long_short_list)):
 
         if repeat_long_list[i]==1:
@@ -237,14 +241,25 @@ def modify_pairs_exclusions(residue_contacts, long_short_list, repeat_long_list,
                     atom_1 = c_beta_list[a]
                     atom_2 = c_beta_list[b]
                 
-                    new_sigma = determine_c_beta_distances(atom_1,atom_2)
-
-                    long_pairs_file.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}   {6:2.12e}\n'.format(int(atom_1[1]),int(atom_2[1]),int(pair[2]),pair[3],new_sigma,pair[5],pair[6]))
+                    new_r0 = determine_c_beta_distances(atom_1,atom_2)
+                    new_sigma = new_r0/np.sqrt(50*np.log(2))
+                    
+                    long_pairs_top.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}\n'.format(int(atom_1[1]),int(atom_2[1]),int(5),pair[3],new_r0,new_sigma))
+                    
                     new_exclusions_file.write('{0:4d}   {1:4d}\n'.format(int(atom_1[1]),int(atom_2[1])))
-            
+
+                    long_pairs_file.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}\n'.format(int(atom_1[1]),int(atom_2[1]),int(5),pair[3],new_r0,new_sigma))
+
+                    fixed_long_pairs_file_1.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}   {6:2.12e}\n'.format(int(atom_1[1]),int(atom_2[1]),int(6),pair[3],new_r0,new_sigma,pair[6]))
+
+                    fixed_long_pairs_file_2.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}\n'.format(int(atom_1[1]),int(atom_2[1]),int(5),-pair[3],new_r0,new_sigma))
+
     short_pairs_file.close()
     long_pairs_file.close()
+    long_pairs_top.close()
+    long_bonds_rep.close()
     new_exclusions_file.close()
+                                                  
     
     main_file = open('smog_main.top','r')
     new_main_file = open('smog_main_n.top','w')
@@ -252,6 +267,12 @@ def modify_pairs_exclusions(residue_contacts, long_short_list, repeat_long_list,
         if line.split()[1] == '"smog_pairs.top"':
             new_main_file.write('#include "smog_pairs_s.top"\n')
             new_main_file.write('#include "smog_pairs_l.top"\n')
+            new_main_file.write('#include "smog_pairs_f1.top"\n')
+            new_main_file.write('#include "smog_pairs_f2.top"\n')
+                                                
+        elif line.split()[1] == '"smog_bonds.top"':
+            new_main_file.write('#include "smog_bonds.top"\n')
+            new_main_file.write('#include "smog_bonds_rep.top"\n')
         else:
             new_main_file.write(line)
 
@@ -263,7 +284,7 @@ def modify_pairs_exclusions(residue_contacts, long_short_list, repeat_long_list,
     
 def generate_long_short_index():
     
-    long_pairs = np.loadtxt('smog_pairs_l.top')
+    long_pairs = np.loadtxt('smog_pairs_long')
     short_pairs = np.loadtxt('smog_pairs_s.top')
     
     long_pairs = long_pairs[:,:2]

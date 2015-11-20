@@ -46,15 +46,17 @@ class smog_AA_model(object):
             if not hasattr(self,thing):
                 if thing == "exclusions":
                     self.exclusions = []
-            else:
-                setattr(self,thing,None)
+                else:
+                    setattr(self,thing,None)
                     
-        bonds_file = np.loadtxt('smog_bonds.top')
-        angles_file = np.loadtxt('smog_angles.top')
-        dihedrals_proper_file = np.loadtxt('smog_dihedrals_proper.top')
-        dihedrals_improper_file = np.loadtxt('smog_dihedrals_improper.top')
-        short_pairs_file = np.loadtxt('smog_pairs_s.top') #short-range pairs |i-j|<=8                                          
-        long_pairs_file = np.loadtxt('smog_pairs_l.top') #long-range pairs, |i-j|>8                                                                                  
+        bonds_file = np.loadtxt(self.name+'/smog_files/smog_bonds.top')
+        angles_file = np.loadtxt(self.name+'/smog_files/smog_angles.top')
+        dihedrals_proper_file = np.loadtxt(self.name+'/smog_files/smog_dihedrals_proper.top')
+        dihedrals_improper_file = np.loadtxt(self.name+'/smog_files/smog_dihedrals_improper.top')
+        short_pairs_file = np.loadtxt(self.name+'/smog_files/smog_pairs_s.top') #short range pairs |i-j|<=8                  
+        fixed_long_pairs_file_1 = np.loadtxt(self.name+'/smog_files/smog_pairs_f1.top') #fixed part of long range pairs type 6
+        fixed_long_pairs_file_2 = np.loadtxt(self.name+'/smog_files/smog_pairs_f2.top') #removal of Gaussian part from above file (type 5)
+        long_pairs_file = np.loadtxt(self.long_pairs_file) #variable (Gaussian) part of long-range pairs, |i-j|>8                                                                                  
 
 ############################                                                                                                                                     
 # Here we make a decision not to optimize local contacts, and to just optimize long range ones.                                                                 
@@ -102,7 +104,7 @@ class smog_AA_model(object):
         # Get pairwise_params (for long range contacts)
         self.n_long_fitting_params = len(self.long_pairs)
 
-        n_res = int(open('smog_atoms.top','r').readlines()[-1].split()[2])
+        n_res = int(open(self.name+'/smog_files/smog_atoms.top','r').readlines()[-1].split()[2])
         self.n_residues = n_res
     
         self.qref = np.zeros((self.n_residues,self.n_residues))
@@ -118,7 +120,7 @@ class smog_AA_model(object):
             else:
                 self.qref[b][a] = 1
 
-        np.savetxt("Qref_cryst.dat",self.qref,fmt="%4d",delimiter=" ")
+        np.savetxt(self.name+"/smog_files/Qref_cryst.dat",self.qref,fmt="%4d",delimiter=" ")
 #        np.savetxt(self.name+"/Qref_cryst.dat",self.qref,fmt="%4d",delimiter=" ")
         # Starting .gro file
         self.starting_gro = "smog.gro"
@@ -127,7 +129,7 @@ class smog_AA_model(object):
         self.long_fitting_params = range(self.n_long_pairs)
         self.long_pairwise_param_assignment = np.arange(self.n_long_pairs)
         
-        # Generate list of epsilons (model_param_values)
+        # Generate list of pairwise_type (model_param_values)
         self.long_pairwise_type = self.long_pairs_params[:,0]
         # Epsilon
         self.long_model_param_values = self.long_pairs_params[:,1]
@@ -135,7 +137,7 @@ class smog_AA_model(object):
         self.long_pairwise_other_params = self.long_pairs_params[:,2]
         # Other Gaussian parameters
         self.long_pairwise_well_width = self.long_pairs_params[:,3]
-        self.long_pairwise_excluded_vol = self.long_pairs_params[:,4]
+        self.long_pairwise_excluded_vol = fixed_long_pairs_file_1[:,-1]
         
         self.n_long_model_param = len(self.long_model_param_values)
       
@@ -148,7 +150,7 @@ class smog_AA_model(object):
     def update_model_param_values(self,new_model_param_values):
         """ If parameter changed sign, change the pairwise interaction type """
         # Switching between different interaction function types
-        potential_type_switch = {4:9,9:4}
+        potential_type_switch = {2:3,3:2,5:9,9:5}
     
         # Loop over fitting_params only 
         for i in range(self.n_long_fitting_params):
@@ -169,13 +171,17 @@ class smog_AA_model(object):
         """ Write all needed simulation files. """
         cwd = os.getcwd()
         relative_path = cwd.split("%s/" % self.path)[1]
-        self.topology_file_location = "%s/smog_pairs_l.top" % relative_path
+        self.topology_file_location = "%s/smog_pairs_long" % relative_path
         smog_files = glob('{0}/{1}/smog_files/*'.format(self.path,self.name))                                              
         for item in smog_files:                                                                                                 
             shutil.copy(item,cwd)   
         os.remove("smog_pairs_l.top")
-        open("smog_pairs_l.top","w").write(self.long_pairs_file_string)
-      
+        os.remove("smog_pairs_long")
+        os.remove("smog_bonds_rep.top")
+        open("smog_pairs_long","w").write(self.long_pairs_file_string)
+        open("smog_pairs_l.top","w").write(self.long_pairs_top_string)
+        open("smog_bonds_rep.top","w").write(self.long_bonds_rep_string)
+
         if savetables:
             # Save needed table files                                               
             np.savetxt("table.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
@@ -187,7 +193,7 @@ class smog_AA_model(object):
     def _determine_tabled_interactions(self):
         """Determine which interactions need to use a tableb_##.xvg file"""
         int_type = self.long_pairwise_type
-        dont_table = [6]
+        dont_table = [1,2,4,6,8,5,10]
 
         flag = np.zeros(len(int_type))
         for i in range(len(dont_table)):
@@ -204,9 +210,14 @@ class smog_AA_model(object):
 
         # File to save interaction parameters for pairwise potentials.                                                                                       
             pair_eps = []
+            rep_pair_counter = 0
+
             self.long_pair_V = []
             self.long_pair_dV = []
             self.long_pairs_file_string = ""
+            self.long_pairs_top_string = ""
+            self.long_bonds_rep_string = ""
+
             for i in range(self.n_long_pairs):
                 i_idx = int(self.long_pairs[i][0])
                 j_idx = int(self.long_pairs[i][1])
@@ -215,10 +226,16 @@ class smog_AA_model(object):
                 eps = self.long_model_param_values[i]
                 sigma = self.long_pairwise_other_params[i]
                 well_width = self.long_pairwise_well_width[i]
-                excluded_vol = self.long_pairwise_excluded_vol[i]
+#                excluded_vol = self.long_pairwise_excluded_vol[i]
+                    
+                self.long_pairs_file_string += '{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}\n'.format(i_idx,j_idx,int_type,eps,sigma,well_width)
+            # Wrap the pairwise potentials so that only distance needs to be input.                         
+                if int_type == 9:
+                    rep_pair_counter+=1
+                    self.long_bonds_rep_string = '     {0:>4d}     {1:>4d}     {2:1d}            {3:4d} {4:2.9e}\n'.format(i_idx,j_idx,int_type,rep_pair_counter,eps)
+                else:
+                    self.long_pairs_top_string += '{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}\n'.format(i_idx,j_idx,int_type,eps,sigma,well_width)
 
-                self.long_pairs_file_string += '{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}   {6:2.12e}\n'.format(i_idx,j_idx,int_type,eps,sigma,well_width,excluded_vol)
-            # Wrap the pairwise potentials so that only distance needs to be input.                                                                          
                 self.long_pair_V.append(pairwise.wrap_pairwise(pairwise.get_pair_potential(int_type),\
                                                                sigma,well_width))
                 self.long_pair_dV.append(pairwise.wrap_pairwise(pairwise.get_pair_potential_deriv(int_type),\

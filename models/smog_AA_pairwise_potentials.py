@@ -21,14 +21,15 @@ def get_pair_potential(code):
     potential = {1:LJ12,
                  2:LJ1210,
                  3:LJ1210rep,
-                 6:Gaussian,
+                 5:Gaussian,
                  9:Cheng_rep,
                  4:LJ126,
                  7:LJ126rep,
-                 8:compound_LJ12_Gaussian,
-                 5:compound_LJ12_double_Gaussian,
+                 6:compound_LJ12_Gaussian,
+                 8:compound_LJ12_double_Gaussian,
                  10:compound_double_Gaussian,
-                 11:FRET_Efficiency}[code]
+                 11:FRET_Efficiency,
+                 12:compound_LJ12_Cheng_rep}[code]
     return potential
 
 def get_pair_potential_deriv(code):
@@ -36,14 +37,15 @@ def get_pair_potential_deriv(code):
     potential = {1:LJ12_deriv,
                  2:LJ1210_deriv,
                  3:LJ1210rep_deriv,
-                 6:Gaussian_deriv,
+                 5:Gaussian_deriv,
                  9:Cheng_rep_deriv,
                  4:LJ126_deriv,
                  7:LJ126rep_deriv,
-                 8:compound_LJ12_Gaussian_deriv,
-                 5:compound_LJ12_double_Gaussian_deriv,
+                 6:compound_LJ12_Gaussian_deriv,
+                 8:compound_LJ12_double_Gaussian_deriv,
                  10:compound_double_Gaussian_deriv,
-                 11:FRET_Efficiency_deriv}[code]
+                 11:FRET_Efficiency_deriv,
+                 12:compound_LJ12_Cheng_rep_deriv}[code]
     return potential
 
 #def get_switched_pair_potential(code):
@@ -232,3 +234,9 @@ def FRET_Efficiency_moment(r,r0,eff_mean,moment):
 def FRET_Efficiency_moment_deriv(r,r0,eff_mean,moment):
     V = moment*((FRET_Efficiency(r,r0) - eff_mean)**(moment - 1))*FRET_Efficiency_deriv(r,r0)
     return V
+
+def compound_LJ12_Cheng_rep(r,rNC,r0,width0):
+    return LJ12(r,rNC)+ Cheng_rep(r,r0,width0)
+
+def compound_LJ12_Cheng_rep_deriv(r,rNC,r0,width0):
+    return LJ12_deriv(r,rNC)+ Cheng_rep_deriv(r,r0,width0)

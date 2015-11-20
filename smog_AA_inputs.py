@@ -129,8 +129,12 @@ def load_model_section(modelitems,modelopts):
             elif item == "starting_gro":
                 if not os.path.exists("%s" % value):
                     raise IOError("%s file does not exist! Check config file inputs" % value)
+            elif item == "initial_t_array":
+                value = list(value.split())
+                value = [int(i) for i in value]
+        
             modelopts[item] = value
-
+    
 def load_fitting_section(config,modelopts,fittingopts):
     """Parse [fitting] options from config .ini file"""
     # special fitting checks is for package specific options
