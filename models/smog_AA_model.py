@@ -178,6 +178,9 @@ class smog_AA_model(object):
         os.remove("smog_pairs_l.top")
         os.remove("smog_pairs_long")
         os.remove("smog_bonds_rep.top")
+        if os.path.isfile('frame.gro'):
+            shutil.move('smog.gro','crystal.gro')
+            shutil.move('frame.gro','smog.gro')
         open("smog_pairs_long","w").write(self.long_pairs_file_string)
         open("smog_pairs_l.top","w").write(self.long_pairs_top_string)
         open("smog_bonds_rep.top","w").write(self.long_bonds_rep_string)
