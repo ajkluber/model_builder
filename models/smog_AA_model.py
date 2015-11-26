@@ -54,8 +54,8 @@ class smog_AA_model(object):
         dihedrals_proper_file = np.loadtxt(self.name+'/smog_files/smog_dihedrals_proper.top')
         dihedrals_improper_file = np.loadtxt(self.name+'/smog_files/smog_dihedrals_improper.top')
         short_pairs_file = np.loadtxt(self.name+'/smog_files/smog_pairs_s.top') #short range pairs |i-j|<=8                  
-        fixed_long_pairs_file_1 = np.loadtxt(self.name+'/smog_files/smog_pairs_f1.top') #fixed part of long range pairs type 6
-        fixed_long_pairs_file_2 = np.loadtxt(self.name+'/smog_files/smog_pairs_f2.top') #removal of Gaussian part from above file (type 5)
+#        fixed_long_pairs_file_1 = np.loadtxt(self.name+'/smog_files/smog_pairs_f1.top') #fixed part of long range pairs type 6
+#        fixed_long_pairs_file_2 = np.loadtxt(self.name+'/smog_files/smog_pairs_f2.top') #removal of Gaussian part from above file (type 5)
         long_pairs_file = np.loadtxt(self.long_pairs_file) #variable (Gaussian) part of long-range pairs, |i-j|>8                                                                                  
 
 ############################                                                                                                                                     
@@ -137,7 +137,7 @@ class smog_AA_model(object):
         self.long_pairwise_other_params = self.long_pairs_params[:,2]
         # Other Gaussian parameters
         self.long_pairwise_well_width = self.long_pairs_params[:,3]
-        self.long_pairwise_excluded_vol = fixed_long_pairs_file_1[:,-1]
+#        self.long_pairwise_excluded_vol = fixed_long_pairs_file_1[:,-1]
         
         self.n_long_model_param = len(self.long_model_param_values)
       

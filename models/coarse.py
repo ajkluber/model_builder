@@ -192,8 +192,8 @@ def modify_pairs_exclusions(residue_contacts, long_short_list, repeat_long_list,
     #Differentiate between long and short contact pairs
 
     short_pairs_file = open('smog_pairs_s.top','w')
-    fixed_long_pairs_file_1 = open('smog_pairs_f1.top','w')
-    fixed_long_pairs_file_2 = open('smog_pairs_f2.top','w')
+#    fixed_long_pairs_file_1 = open('smog_pairs_f1.top','w')
+#    fixed_long_pairs_file_2 = open('smog_pairs_f2.top','w')
     long_pairs_file = open('smog_pairs_long','w')
     long_pairs_top = open('smog_pairs_l.top','w')
     long_bonds_rep = open('smog_bonds_rep.top','w')
@@ -204,6 +204,30 @@ def modify_pairs_exclusions(residue_contacts, long_short_list, repeat_long_list,
 
     # Minimum of well for Gaussian contacts (sigma) is column 4
     bond_rep = 0
+    # Multiplicity factor is the factor by which all long range coarse epsilons are calculated in the vanilla model so as to preserve the energy balance given by smog2
+
+    all_long_bonds = np.sum(np.array(long_short_list))
+    coarse_long_bonds = 0
+    for i in range(len(long_short_list)):
+        if repeat_long_list[i]==1:
+            pass
+        else:
+            if long_short_list[i]==1:
+                res_1 = residue_contacts[i,0]
+                res_2 = residue_contacts[i,1]
+
+                lookup_a = np.where(residue_list == res_1)[0]
+                lookup_b = np.where(residue_list == res_2)[0]
+
+                if lookup_a.size == 0:
+                    pass
+                elif lookup_b.size == 0:
+                    pass
+                else:
+                    coarse_long_bonds+=1
+                    
+    multiplicity_factor = float(all_long_bonds)/float(coarse_long_bonds)
+ 
     for i in range(len(long_short_list)):
 
         if repeat_long_list[i]==1:
@@ -243,16 +267,20 @@ def modify_pairs_exclusions(residue_contacts, long_short_list, repeat_long_list,
                 
                     new_r0 = determine_c_beta_distances(atom_1,atom_2)
                     new_sigma = new_r0/np.sqrt(50*np.log(2))
+                    new_epsilon = pair[3]*multiplicity_factor
+                    long_pairs_top.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}\n'.format(int(atom_1[1]),int(atom_2[1]),int(5),new_epsilon,new_r0,new_sigma))
                     
-                    long_pairs_top.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}\n'.format(int(atom_1[1]),int(atom_2[1]),int(5),pair[3],new_r0,new_sigma))
-                    
-                    new_exclusions_file.write('{0:4d}   {1:4d}\n'.format(int(atom_1[1]),int(atom_2[1])))
+                    #Eliminating the exclusions for the long range contacts. Will use the standard LJ12 repulsive wall
+                   # new_exclusions_file.write('{0:4d}   {1:4d}\n'.format(int(atom_1[1]),int(atom_2[1])))
 
-                    long_pairs_file.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}\n'.format(int(atom_1[1]),int(atom_2[1]),int(5),pair[3],new_r0,new_sigma))
+                    # This file will keep the original list of pairs.
+                    long_pairs_file.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}\n'.format(int(atom_1[1]),int(atom_2[1]),int(5),new_epsilon,new_r0,new_sigma))
 
-                    fixed_long_pairs_file_1.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}   {6:2.12e}\n'.format(int(atom_1[1]),int(atom_2[1]),int(6),pair[3],new_r0,new_sigma,pair[6]))
+                    # I will consider that the third term of the Lammert et al. model is negligible since the excluded radius is much smaller than the equilibrium contact radius for the long range interactions.
 
-                    fixed_long_pairs_file_2.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}\n'.format(int(atom_1[1]),int(atom_2[1]),int(5),-pair[3],new_r0,new_sigma))
+#                    fixed_long_pairs_file_1.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}   {6:2.12e}\n'.format(int(atom_1[1]),int(atom_2[1]),int(6),new_epsilon,new_r0,new_sigma,pair[6]))
+
+#                    fixed_long_pairs_file_2.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}\n'.format(int(atom_1[1]),int(atom_2[1]),int(5),-pair[3],new_r0,new_sigma))
 
     short_pairs_file.close()
     long_pairs_file.close()
@@ -267,8 +295,8 @@ def modify_pairs_exclusions(residue_contacts, long_short_list, repeat_long_list,
         if line.split()[1] == '"smog_pairs.top"':
             new_main_file.write('#include "smog_pairs_s.top"\n')
             new_main_file.write('#include "smog_pairs_l.top"\n')
-            new_main_file.write('#include "smog_pairs_f1.top"\n')
-            new_main_file.write('#include "smog_pairs_f2.top"\n')
+#            new_main_file.write('#include "smog_pairs_f1.top"\n')
+#            new_main_file.write('#include "smog_pairs_f2.top"\n')
                                                 
         elif line.split()[1] == '"smog_bonds.top"':
             new_main_file.write('#include "smog_bonds.top"\n')
