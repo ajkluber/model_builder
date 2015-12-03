@@ -107,7 +107,7 @@ class smog_AA_model(object):
         n_res = int(open(self.name+'/smog_files/smog_atoms.top','r').readlines()[-1].split()[2])
         self.n_residues = n_res
     
-        self.qref = np.zeros((self.n_residues,self.n_residues))
+        self.Qref = np.zeros((self.n_residues,self.n_residues))
         
         residue_pairs_file = np.loadtxt('long_residue_contacts.dat')
         # Load model param interactions (
@@ -116,11 +116,11 @@ class smog_AA_model(object):
             b = int(residue_pairs_file[i][1])-1
             
             if a > b:
-                self.qref[a][b] = 1
+                self.Qref[a][b] = 1
             else:
-                self.qref[b][a] = 1
+                self.Qref[b][a] = 1
 
-        np.savetxt(self.name+"/smog_files/Qref_cryst.dat",self.qref,fmt="%4d",delimiter=" ")
+        np.savetxt(self.name+"/smog_files/Qref_cryst.dat",self.Qref,fmt="%4d",delimiter=" ")
 #        np.savetxt(self.name+"/Qref_cryst.dat",self.qref,fmt="%4d",delimiter=" ")
         # Starting .gro file
         self.starting_gro = "smog.gro"
