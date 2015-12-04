@@ -54,6 +54,7 @@ class smog_AA_model(object):
         dihedrals_proper_file = np.loadtxt(self.name+'/smog_files/smog_dihedrals_proper.top')
         dihedrals_improper_file = np.loadtxt(self.name+'/smog_files/smog_dihedrals_improper.top')
         short_pairs_file = np.loadtxt(self.name+'/smog_files/smog_pairs_s.top') #short range pairs |i-j|<=8                  
+        
 #        fixed_long_pairs_file_1 = np.loadtxt(self.name+'/smog_files/smog_pairs_f1.top') #fixed part of long range pairs type 6
 #        fixed_long_pairs_file_2 = np.loadtxt(self.name+'/smog_files/smog_pairs_f2.top') #removal of Gaussian part from above file (type 5)
         long_pairs_file = np.loadtxt(self.long_pairs_file) #variable (Gaussian) part of long-range pairs, |i-j|>8                                                                                  
@@ -65,7 +66,6 @@ class smog_AA_model(object):
 # Finally, long range contacts will be allowed to become repulsive (or the well diminished??)                                                                   
 ###########################                                                                                                                         
         self.using_sbm_gmx = True
-
         #Bonds parameters:                                                                                                                                      
         #func  r0(nm)  K_b                                                                                                                                                
         self.bonds = bonds_file[:,:2]
@@ -109,7 +109,9 @@ class smog_AA_model(object):
     
         self.Qref = np.zeros((self.n_residues,self.n_residues))
         
-        residue_pairs_file = np.loadtxt('long_residue_contacts.dat')
+        residue_pairs_file = np.loadtxt(self.name+'/smog_files/long_residue_contacts.dat')
+        self.long_residues_pairs = residue_pairs_file
+
         # Load model param interactions (
         for i in range(len(self.long_pairs)):
             a = int(residue_pairs_file[i][0])-1

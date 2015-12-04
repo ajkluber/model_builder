@@ -206,7 +206,7 @@ def _empty_model_opts():
             "long_pair_eps","long_pair_V",
             "n_fitting_params","model_param_values",
             "long_model_param_values","qref",
-            "n_fitting_params","initial_t_array"
+            "initial_t_array"
             ] 
     modelopts = { opt:None for opt in opts }
     return modelopts
