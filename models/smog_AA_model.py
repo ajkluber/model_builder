@@ -117,7 +117,7 @@ class smog_AA_model(object):
             a = int(residue_pairs_file[i][0])-1
             b = int(residue_pairs_file[i][1])-1
             
-            if a > b:
+            if a < b:
                 self.Qref[a][b] = 1
             else:
                 self.Qref[b][a] = 1
