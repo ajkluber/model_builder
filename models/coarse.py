@@ -3,6 +3,7 @@ import argparse
 import os
 import shutil
 import sys
+import subprocess as sb
 
 # I don't know yet if using arguments other than the standard, we'll see
 def divide():
@@ -338,6 +339,9 @@ def generate_long_short_index():
     all_file.close()
 
 def generate_files(directory):
+    
+    pdb_line = 'editconf -f smog.gro -n smog.ndx -o smog.pdb'
+    sb.call(pdb_line.split())
 
     divide()
 
