@@ -237,7 +237,7 @@ class smog_AA_model(object):
             # Wrap the pairwise potentials so that only distance needs to be input.                         
                 if int_type == 9:
                     rep_pair_counter+=1
-                    self.long_bonds_rep_string = '     {0:>4d}     {1:>4d}     {2:1d}            {3:4d} {4:2.9e}\n'.format(i_idx,j_idx,int_type,rep_pair_counter,eps)
+                    self.long_bonds_rep_string += '     {0:>4d}     {1:>4d}     {2:1d}            {3:4d} {4:2.9e}\n'.format(i_idx,j_idx,int_type,rep_pair_counter,eps)
                 else:
                     self.long_pairs_top_string += '{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}\n'.format(i_idx,j_idx,int_type,eps,sigma,well_width)
 
