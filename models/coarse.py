@@ -340,7 +340,7 @@ def generate_long_short_index():
 
 def generate_files(directory):
     
-    pdb_line = 'editconf -f smog.gro -n smog.ndx -o smog.pdb'
+    pdb_line = 'editconf_sbm -f smog.gro -n smog.ndx -o smog.pdb'
     sb.call(pdb_line.split())
 
     divide()
