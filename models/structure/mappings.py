@@ -5,46 +5,53 @@ import mdtraj as md
 from mdtraj.core.topology import Topology
 from mdtraj.core.element import get_by_symbol
 
-"""
-Needs to work with multiple chains
-
-"""
-
-class ResidueMapping(object):
-
-    def __init__(self, top, res_idx):
-        res = top.residue(res_idx)
-        self.name = res.name
-        self.atoms = [ atm for atm in res.atoms ]
-
-        self.backbone = [ atm for atm in res.atoms if atm.is_backbone ]
-        self.sidechain = [ atm for atm in res.atoms if atm.is_sidechain ]
-
 class CalphaMapping(object):
     """Calpha representation mapping"""
-    def __init__(self, traj):
-        self.ca_idxs = np.array([ atm.index for atm in traj.top.atoms if atm.name == "CA" ])
-        
-        # Topology with only Calpha's
-        self.ca_top = traj[0].atom_slice(self.ca_idxs).top
-        for ichain in self.ca_top.chains:
-            for i in range(ichain.n_atoms - 1): 
-                self.ca_top.add_bond(ichain.atom(i), ichain.atom(i + 1))
+    def __init__(self, topology):
+        self._source_topology = topology.copy()
+
+        # Build new topology
+        newTopology = Topology()
+        new_atm_idx = 0 
+        prev_ca = None
+        ca_idxs = []
+        for chain in topology._chains:
+            newChain = newTopology.add_chain()
+            for residue in chain._residues:
+                resSeq = getattr(residue, 'resSeq', None) or residue.index
+                newResidue = newTopology.add_residue(residue.name, newChain,
+                                                     resSeq, residue.segment_id)
+                # map CA
+                new_ca = newTopology.add_atom('CA', get_by_symbol('C'), 
+                                    newResidue, serial=new_atm_idx)
+
+                ca_idxs.append([[ atm.index for atm in residue.atoms if \
+                            (atm.name == "CA") ][0], new_atm_idx ])
+                if prev_ca is None:
+                    prev_ca = new_ca
+                else:
+                    newTopology.add_bond(prev_ca, new_ca)
+                    prev_ca = new_ca
+                new_atm_idx += 1
+
+        self._ca_idxs = np.array(ca_idxs)
+        self.topology = newTopology
 
     def map_traj(self, traj):
         """Create new trajectory"""
-        xyz = traj.xyz[:, self.ca_idxs, :]
-        return md.Trajectory(xyz, self.ca_top)
+        ca_xyz = traj.xyz[:,self._ca_idxs[:,0],:]
+        return md.Trajectory(ca_xyz, self.topology)
 
 class CalphaCbetaMapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""
 
-    def __init__(self, topology, com=True):
-        newTopology = Topology()
+    def __init__(self, topology):
+        self._source_topology = topology.copy()
 
-        prev_ca = None
+        newTopology = Topology()
         new_atm_idx = 0 
-        self._ca_idxs = []
+        prev_ca = None
+        ca_idxs = []
         self._sidechain_idxs = []
         self._sidechain_mass = []
         for chain in topology._chains:
@@ -62,7 +69,7 @@ class CalphaCbetaMapping(object):
                     newTopology.add_bond(prev_ca, new_ca)
                     prev_ca = new_ca
 
-                self._ca_idxs.append([[ atm.index for atm in residue.atoms if \
+                ca_idxs.append([[ atm.index for atm in residue.atoms if \
                             (atm.name == "CA") ][0], new_atm_idx ])
                 new_atm_idx += 1
 
@@ -82,6 +89,7 @@ class CalphaCbetaMapping(object):
                                 (atm.is_sidechain) and (atm.element.symbol != "H") ]))
                     new_atm_idx += 1
 
+        self._ca_idxs = np.array(ca_idxs)
         self.topology = newTopology
 
     def map_traj(self, traj):
@@ -89,8 +97,8 @@ class CalphaCbetaMapping(object):
         cacb_xyz = np.zeros((traj.n_frames, self.topology.n_atoms, 3))
 
         for res in self.topology.residues:
-            cacb_xyz[:,self._ca_idxs[res.index][1],:] = \
-                    traj.xyz[:,self._ca_idxs[res.index][0],:]
+            cacb_xyz[:,self._ca_idxs[res.index,1],:] = \
+                    traj.xyz[:,self._ca_idxs[res.index,0],:]
             # Map sidechain atoms to their center of mass
             if res.name != 'GLY': 
                 old_idxs = self._sidechain_idxs[res.index][0]
@@ -132,13 +140,21 @@ $sel delete'''.format(molid, idx1, idx2)
 
 if __name__ == "__main__":
 
-    #name = "1JDP.pdb"
-    name = "2KJV.pdb"
+    #name = "1JDP"
+    name = "2KJV"
+    traj = md.load(name+'.pdb')
 
-    traj = md.load(name)
-    #mapping = CalphaMapping(traj)
-    #ca_traj = mapping.map_traj(traj)
-    mapping = CalphaCbetaMapping(traj.top)
-    cacb_traj = mapping.map_traj(traj)
+    # test CA
+    mapping = CalphaMapping(traj.top)
+    ca_traj = mapping.map_traj(traj)
+    ca_traj[0].save_pdb('ca_{}.pdb'.format(name))
+    ca_traj.save_xtc('ca_{}.xtc'.format(name))
 
-    write_bonds_tcl(mapping.topology, tcl_out="{}_bonds.tcl".format(name[:-4]))
+    # test CACB
+    #mapping = CalphaCbetaMapping(traj.top)
+    #cacb_traj = mapping.map_traj(traj)
+    #cacb_traj[0].save_pdb('cacb_{}.pdb'.format(name))
+    #cacb_traj.save_xtc('cacb_{}.xtc'.format(name))
+
+    write_bonds_tcl(mapping.topology, tcl_out="{}_cabonds.tcl".format(name))
+
