@@ -1,3 +1,4 @@
+import itertools
 import numpy as np
 
 import mdtraj as md
@@ -8,7 +9,7 @@ from mdtraj.core.element import get_by_symbol
 class CalphaMapping(object):
     """Calpha representation mapping"""
     def __init__(self, topology):
-        self._source_topology = topology.copy()
+        self._ref_topology = topology.copy()
 
         # Build new topology
         newTopology = Topology()
@@ -46,7 +47,7 @@ class CalphaCbetaMapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""
 
     def __init__(self, topology):
-        self._source_topology = topology.copy()
+        self._ref_topology = topology.copy()
 
         newTopology = Topology()
         new_atm_idx = 0 
@@ -138,6 +139,56 @@ $sel delete'''.format(molid, idx1, idx2)
     with open(tcl_out, 'w') as fout:
         fout.write(tclstring)
 
+def get_CA_contacts(mapping, ref_traj, cutoff=0.5, exclude_neighbors=4):
+
+    # print warning that only 
+    if ref_traj.n_frames > 1:
+        print "warning: only using first frame of as reference"
+
+    ref_xyz = ref_traj[0].xyz[0] 
+    
+    top = mapping._ref_topology
+    # find all contacts between two chains
+    contacts = []
+    for i in range(top.n_chains): 
+        ichain = top.chain(i)
+        # included self-contacts for chain i
+        for j in range(i, top.n_chains):
+            jchain = top.chain(j)
+
+            # find all contacts between pairs of residues
+            for n in range(ichain.n_residues):
+                # skip local in sequence residues
+                if i == j:
+                    start = n + exclude_neighbors
+                else:
+                    start = 0
+
+                nres = ichain.residue(n)
+                nheavy_idxs = [ atm.index for atm in nres.atoms \
+                                if atm.element.symbol != 'H' ]
+                nheavy_xyz = ref_xyz[nheavy_idxs,:]
+
+                for k in range(start, jchain.n_residues):
+                    # is there a contact between residues n and k?
+                    kres = ichain.residue(k)
+                    kheavy_idxs = [ atm.index for atm in kres.atoms \
+                                    if atm.element.symbol != 'H' ]
+                    kheavy_xyz = ref_xyz[kheavy_idxs,:]
+
+                    min_dist = np.min([ np.linalg.norm(n_xyz - k_xyz) \
+                                        for n_xyz in nheavy_xyz \
+                                        for k_xyz in kheavy_xyz ])
+
+                    if min_dist <= cutoff:
+                        print "contact: ", i, n, j, k
+                        contacts.append([i, n, j, k]) 
+                        # add contact between corresponding Calpha atoms
+                        #mapping.topology.
+
+    contacts = np.array(contacts)
+    return contacts
+
 if __name__ == "__main__":
 
     #name = "1JDP"
@@ -149,6 +200,8 @@ if __name__ == "__main__":
     ca_traj = mapping.map_traj(traj)
     ca_traj[0].save_pdb('ca_{}.pdb'.format(name))
     ca_traj.save_xtc('ca_{}.xtc'.format(name))
+
+    contacts = get_CA_contacts(mapping, traj)
 
     # test CACB
     #mapping = CalphaCbetaMapping(traj.top)
