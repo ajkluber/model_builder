@@ -160,7 +160,7 @@ class CosineDihedralPotential(DihedralPotential):
 
     def __init__(self, atmi, atmj, atmk, atml, kd, phi0, mult):
         DihedralPotential.__init__(self, atmi, atmj, atmk, atml)
-        self.prefix_label = "COS_DIHEDRAL"
+        self.prefix_label = "COSINE_DIHEDRAL"
         self.kd = kd
         self.phi0 = phi0
         self.mult = mult
@@ -186,9 +186,9 @@ class CosineDihedralPotential(DihedralPotential):
         return hash_value
 
 
-BOND_POTENTIALS = {1:HarmonicBondPotential}
+BOND_POTENTIALS = {"HARMONIC_BOND":HarmonicBondPotential}
 
-ANGLE_POTENTIALS = {1:HarmonicAnglePotential}
+ANGLE_POTENTIALS = {"HARMONIC_ANGLE":HarmonicAnglePotential}
 
-DIHEDRAL_POTENTIALS = {1:HarmonicDihedralPotential,
-                    2:CosineDihedralPotential}
+DIHEDRAL_POTENTIALS = {"HARMONIC_DIHEDRAL":HarmonicDihedralPotential,
+                        "COSINE_DIHEDRAL":CosineDihedralPotential}
