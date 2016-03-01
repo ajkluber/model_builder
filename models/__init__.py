@@ -25,8 +25,6 @@ import structure
 import potentials
 import output
 
-#import Model
-
 from model_builder.models.structure import mappings as mpg
 from model_builder.models.structure import contacts as cts
 from model_builder.models import potentials as ptl
