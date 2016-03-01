@@ -89,6 +89,20 @@ class Hamiltonian(object):
         else:
             print "Warning: pair already has this interaction {}. skipping.".format(p.describe())
 
+    def _add_angle(self, code, atm1, atm2, atm3, *args):
+        ang = ANGLE_POTENTIALS[code](atm1, atm2, atm3, *args)
+        if ang not in self._angles:
+            self._angles.append(ang)
+        else:
+            print "Warning: pair already has this interaction {}. skipping.".format(p.describe())
+
+    def _add_dihedral(self, code, atm1, atm2, atm3, atm4, *args):
+        dih = DIHEDRAL_POTENTIALS[code](atm1, atm2, atm3, atm4, *args)
+        if dih not in self._dihedrals:
+            self._dihedrals.append(dih)
+        else:
+            print "Warning: pair already has this interaction {}. skipping.".format(p.describe())
+
     def _add_pair(self, code, atm1, atm2, *args):
         p = PAIR_POTENTIALS[code](atm1, atm2, *args)
         if p not in self._pairs:
@@ -116,7 +130,6 @@ class Hamiltonian(object):
                 r0 = np.linalg.norm(xyz[atm1.index,:] - xyz[atm2.index,:])
                 self._add_pair(code, atm1, atm2, eps, r0)
         else:
-            #raise AttributeError("Model.ref_traj needs to be set before SBM contacts can be added")
             print "Warning: Need to set reference structure model.set_reference()"
     
     def add_sbm_bonds(self, Model):
@@ -136,7 +149,6 @@ class Hamiltonian(object):
                 r0 = np.linalg.norm(xyz[atm1.index,:] - xyz[atm2.index,:])
                 self._add_bond(code, atm1, atm2, kb, r0)
         else:
-            #raise AttributeError("Model.ref_traj needs to be set before SBM contacts can be added")
             print "Warning: Need to set reference structure model.set_reference()"
 
     def define_contact_group(self, label, pairs):
@@ -156,11 +168,17 @@ class Hamiltonian(object):
         pass
 
     def use_sbm_default_parameters(self):
-        self._default_parameters = {"eps":1, "kb":4000, "ka":400, "kd":1}
+        self._default_parameters = {"eps":1., "kb":20000., "ka":40., "kd":1.}
 
     def set_default_parameters(self, default_parameters):
         self._default_parameters = default_parameters
 
+    def set_parameters(self):
+        # Some way to set parameters
+        pass
+
+class SBMHamilonian(Hamiltonian):
+    pass
 
 if __name__ == "__main__":
     pass
