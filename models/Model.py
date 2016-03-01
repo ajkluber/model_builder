@@ -1,7 +1,6 @@
-
-import model_builder.models.structure.mapping as mpg
-import model_builder.models.potentials as ptl
-import model_builder.models.contacts as cts
+from model_builder.models.structure import mappings as mpg
+from model_builder.models.structure import contacts as cts
+from model_builder.models import potentials as ptl
 
 '''
 A Model consists of:
@@ -23,7 +22,7 @@ class Model(object):
         self.ref_traj = self.structure_mapping.map_traj(traj[0])
 
     def add_sbm_contacts(self):
-        residue_contacts = cts.residue_contacts(ref_traj)
+        residue_contacts = cts.residue_contacts(self.ref_traj)
         atm_pairs = self.structure_mapping.residue_to_atom_contacts(residue_contacts)
 
         eps = 1.

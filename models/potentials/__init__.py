@@ -1,9 +1,7 @@
-import model_builder.models.structure.contacts as contacts
 
-import model_builder.models.interactions.pair_potentials as pair_potentials
+#import model_builder.models.interactions.pair_potentials as pair_potentials
 
 
-POTENTIALS = {1:LJ12Potential, 2:LJ1210LJ12Potential}
 
 #POTENTIALS = {1:LJ12Potential,
 #                 2:LJ1210LJ12Potential,
@@ -16,6 +14,8 @@ POTENTIALS = {1:LJ12Potential, 2:LJ1210LJ12Potential}
 #                 9:compound_LJ12_double_GaussianLJ12Potential,
 #                 10:compound_double_GaussianLJ12Potential,
 #                 11:FRET_EfficiencyLJ12Potential}[code]
+
+#__all__ = ["Potentials", "PairPotential"]
 
 class Potentials(object):
 
@@ -82,18 +82,7 @@ class LJ1210Potential(PairPotential):
         V = (-60./self.r0)*((x**13) - (x**11))
         return V
     
-def sbm_contacts(mapping, ref_traj):
-    residue_contacts = contacts.residue_contacts(ref_traj)
-    atm_pairs = mapping.residue_to_atom_contacts(residue_contacts)
-
-    xyz = ref_traj[0].xyz 
-    code = 2
-    pairV = []
-    eps = 1.
-    for atm1, atm2 in atm_pairs:
-        r0 = np.linalg.norm(xyz[atm1.index,:] - xyz[atm2.index,:])
-        pairV.append(LJ1210Potential(atm1, atm2, r0, eps))
-    return pairV
+POTENTIALS = {2:LJ1210Potential}
 
 if __name__ == "__main__":
     pass

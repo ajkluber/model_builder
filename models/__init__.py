@@ -18,3 +18,9 @@ import bonded_potentials
 import pairwise_potentials
 import pdb_parser
 import prep_Gaussian_pairwise
+
+
+import structure
+import potentials
+
+import Model

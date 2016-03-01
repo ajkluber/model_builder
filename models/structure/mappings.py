@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 import mdtraj as md
 
@@ -165,6 +164,7 @@ if __name__ == "__main__":
     #C = np.zeros((traj.n_residues, traj.n_residues))
     #for p in contacts:
     #    C[p[3], p[1]] = 1
+    #import matplotlib.pyplot as plt
     #plt.pcolormesh(C)
     #plt.show()
 
