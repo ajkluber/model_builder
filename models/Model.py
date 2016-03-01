@@ -17,7 +17,7 @@ class Model(object):
         if (topology is None) and (traj is not None):
             topology = traj.top
         self.structure_mapping = mpg.CalphaMapping(topology)  
-        self.potentials = ptl.Potentials()
+        self.potentials = ptl.Hamiltonian()
 
     def set_reference(self, traj):
         self.ref_traj_aa = traj[0]
