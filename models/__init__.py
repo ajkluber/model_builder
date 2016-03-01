@@ -1,29 +1,4 @@
-""" Submodule with classes of coarse-grain models.
-
-Description:
-
-    A module that prepares the Model object which contains the functions and
-parameters needed to prepare input files for coarse-grain protein simulations
-in Gromacs. Each model is a seperate class. 
-
-
-Classes:
-
-References:
-
-"""
 import numpy as np
-
-import CoarseGrainedModel
-import bonded_potentials
-import pairwise_potentials
-import pdb_parser
-import prep_Gaussian_pairwise
-
-
-import structure
-import potentials
-import output
 
 from model_builder.models.structure import mappings as mpg
 from model_builder.models.structure import contacts as cts
@@ -37,23 +12,28 @@ A Model consists of:
 '''
 
 class Model(object):
+    """Model class """
+    def __init__(self, topology, bead_repr="CA"):
+        self.structure_mapping = mpg.assign_mapping(bead_repr, topology) 
+        self.Hamiltonian = ptl.Hamiltonian()
 
-    def __init__(self, topology=None, traj=None):
-        if (topology is None) and (traj is not None):
-            topology = traj.top
-        self.structure_mapping = mpg.CalphaMapping(topology)  
-        self.potentials = ptl.Hamiltonian()
+    def describe(self):
+        #TODO: What is the best description?
+        pass 
+    
+    def map_traj(self, traj):
+        return self.structure_mapping.map_traj(traj)
 
+class StructureBasedModel(Model):
+
+    def __init__(self, topology, bead_repr=None):
+        Model.__init__(self, topology, bead_repr=bead_repr)
+        self.Hamiltonian = ptl.StructureBasedHamiltonian()
+         
     def set_reference(self, traj):
         self.ref_traj_aa = traj[0]
         self.ref_traj = self.structure_mapping.map_traj(traj[0])
 
-    def describe(self):
-        pass 
-
-    def add_sbm_contacts(self):
-        self.potentials.add_sbm_contacts(self)
-
-    def map_traj(self, traj):
-        self.structure_mapping.map_traj(traj)
-
+    def add_sbm_potentials(self):
+        self.Hamiltonian.add_sbm_potentials() 
+        pass
