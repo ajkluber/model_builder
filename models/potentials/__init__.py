@@ -2,6 +2,51 @@ import model_builder.models.structure.contacts as contacts
 
 import model_builder.models.interactions.pair_potentials as pair_potentials
 
+
+POTENTIALS = {1:LJ12Potential, 2:LJ1210LJ12Potential}
+
+#POTENTIALS = {1:LJ12Potential,
+#                 2:LJ1210LJ12Potential,
+#                 3:LJ1210repLJ12Potential,
+#                 4:GaussianLJ12Potential,
+#                 5:Cheng_repLJ12Potential,
+#                 6:LJ126LJ12Potential,
+#                 7:LJ126repLJ12Potential,
+#                 8:compound_LJ12_GaussianLJ12Potential,
+#                 9:compound_LJ12_double_GaussianLJ12Potential,
+#                 10:compound_double_GaussianLJ12Potential,
+#                 11:FRET_EfficiencyLJ12Potential}[code]
+
+class Potentials(object):
+
+    def __init__(self):
+        self._pairs = []
+        self._bonds = []
+        self._angles = []
+        self._dihedrals = []
+
+    def add_pair(self, code, atm1, atm2, *args):
+        self._pairs.append(POTENTIALS[code](atm1, atm2, *args))
+
+    @property
+    def n_pairs(self):
+        return len(self._pairs)
+
+    @property
+    def n_bonds(self):
+        return len(self._bonds)
+
+    @property
+    def n_angles(self):
+        return len(self._angles)
+
+    @property
+    def n_dihedrals(self):
+        return len(self._dihedrals)
+
+    def describe(self):
+        pass
+
 class PairPotential(object):
     
     def __init__(self, atmi, atmj):
