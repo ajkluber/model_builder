@@ -7,8 +7,8 @@ from model_builder.models import potentials as ptl
 '''
 A Model consists of:
 - a structure mapping
-- a set of potentials
-    - a set of interaction parameters
+- a Hamiltonian
+    - a set of parameterized interaction potentials
 '''
 
 class Model(object):
@@ -28,9 +28,6 @@ class Model(object):
 
     def add_sbm_contacts(self):
         self.potentials.add_sbm_contacts(self)
-
-    def Vij(self):
-        return [ interaction.Vij for interaction in self.pairV ]
 
     def map_traj(self, traj):
         self.structure_mapping.map_traj(traj)
