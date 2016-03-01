@@ -1,5 +1,5 @@
-import itertools
 import numpy as np
+import matplotlib.pyplot as plt
 
 import mdtraj as md
 
@@ -43,12 +43,24 @@ class CalphaMapping(object):
         ca_xyz = traj.xyz[:,self._ca_idxs[:,0],:]
         return md.Trajectory(ca_xyz, self.topology)
 
+    def residue_to_atom_contacts(self, residue_contacts):
+        atm_contacts = []
+        for n,k in residue_contacts: 
+            nres = self.topology.residue(n)
+            kres = self.topology.residue(k)
+            # Calpha-Calpha contact
+            ca_n = nres.atom(0)
+            ca_k = kres.atom(0)
+            atm_contacts.append([ca_n, ca_k])
+        return atm_contacts
+
 class CalphaCbetaMapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""
 
     def __init__(self, topology):
         self._ref_topology = topology.copy()
 
+        # Build new topology
         newTopology = Topology()
         new_atm_idx = 0 
         prev_ca = None
@@ -93,6 +105,7 @@ class CalphaCbetaMapping(object):
         self._ca_idxs = np.array(ca_idxs)
         self.topology = newTopology
 
+
     def map_traj(self, traj):
         """Return new Trajectory object with cacb topology and xyz"""
         cacb_xyz = np.zeros((traj.n_frames, self.topology.n_atoms, 3))
@@ -115,81 +128,24 @@ class CalphaCbetaMapping(object):
 
         return md.Trajectory(cacb_xyz, self.topology)
 
-    
-def write_bonds_tcl(topology, tcl_out="bonds.tcl"):
-    molid = 0
-    bondstring = lambda molid, idx1, idx2: \
-'''set sel [atomselect {0} "index {1} {2}"]
-lassign [$sel getbonds] bond1 bond2
-set id [lsearch -exact $bond1 {2}]
-if {{ $id == -1 }} {{
-lappend bond1 {2}
-}}
-set id [lsearch -exact $bond2 {1}]
-if {{ $id == -1 }} {{
-lappend bond2 {1}
-}}
-$sel setbonds [list $bond1 $bond2]
-$sel delete'''.format(molid, idx1, idx2)
-
-    tclstring = ''
-    for atm1, atm2 in topology.bonds:  
-        tclstring += bondstring(molid,atm1.index, atm2.index) + "\n"
-
-    with open(tcl_out, 'w') as fout:
-        fout.write(tclstring)
-
-def get_CA_contacts(mapping, ref_traj, cutoff=0.5, exclude_neighbors=4):
-
-    # print warning that only 
-    if ref_traj.n_frames > 1:
-        print "warning: only using first frame of as reference"
-
-    ref_xyz = ref_traj[0].xyz[0] 
-    
-    top = mapping._ref_topology
-    # find all contacts between two chains
-    contacts = []
-    for i in range(top.n_chains): 
-        ichain = top.chain(i)
-        # included self-contacts for chain i
-        for j in range(i, top.n_chains):
-            jchain = top.chain(j)
-
-            # find all contacts between pairs of residues
-            for n in range(ichain.n_residues):
-                # skip local in sequence residues
-                if i == j:
-                    start = n + exclude_neighbors
-                else:
-                    start = 0
-
-                nres = ichain.residue(n)
-                nheavy_idxs = [ atm.index for atm in nres.atoms \
-                                if atm.element.symbol != 'H' ]
-                nheavy_xyz = ref_xyz[nheavy_idxs,:]
-
-                for k in range(start, jchain.n_residues):
-                    # is there a contact between residues n and k?
-                    kres = ichain.residue(k)
-                    kheavy_idxs = [ atm.index for atm in kres.atoms \
-                                    if atm.element.symbol != 'H' ]
-                    kheavy_xyz = ref_xyz[kheavy_idxs,:]
-
-                    min_dist = np.min([ np.linalg.norm(n_xyz - k_xyz) \
-                                        for n_xyz in nheavy_xyz \
-                                        for k_xyz in kheavy_xyz ])
-
-                    if min_dist <= cutoff:
-                        print "contact: ", i, n, j, k
-                        contacts.append([i, n, j, k]) 
-                        # add contact between corresponding Calpha atoms
-                        #mapping.topology.
-
-    contacts = np.array(contacts)
-    return contacts
+    def residue_to_atom_contacts(self, residue_contacts):
+        atm_contacts = []
+        for n,k in residue_contacts: 
+            nres = self.topology.residue(n)
+            kres = self.topology.residue(k)
+            # Calpha-Calpha contact
+            ca_n = nres.atom(0)
+            ca_k = kres.atom(0)
+            atm_contacts.append([ca_n, ca_k])
+            if (nres.name != "GLY") and (kres.name != "GLY"): 
+                # Cbeta-Cbeta contact
+                cb_n = nres.atom(1)
+                cb_k = kres.atom(1)
+                atm_contacts.append([cb_n, cb_k])
+        return atm_contacts
 
 if __name__ == "__main__":
+    from model_builder.models.structure.viz_bonds import write_bonds_conect, write_bonds_tcl
 
     #name = "1JDP"
     name = "2KJV"
@@ -197,11 +153,20 @@ if __name__ == "__main__":
 
     # test CA
     mapping = CalphaMapping(traj.top)
-    ca_traj = mapping.map_traj(traj)
-    ca_traj[0].save_pdb('ca_{}.pdb'.format(name))
-    ca_traj.save_xtc('ca_{}.xtc'.format(name))
+    #ca_traj = mapping.map_traj(traj)
+    #ca_traj[0].save_pdb('ca_{}.pdb'.format(name))
+    #ca_traj.save_xtc('ca_{}.xtc'.format(name))
+    #write_bonds_tcl(mapping.topology, outfile="{}_cabonds.tcl".format(name))
+    #write_bonds_conect(mapping.topology, outfile="{}_cabonds.conect".format(name))
 
+    # Calculate contacts
     contacts = get_CA_contacts(mapping, traj)
+    contacts2 = residue_contacts(mapping, traj)
+    #C = np.zeros((traj.n_residues, traj.n_residues))
+    #for p in contacts:
+    #    C[p[3], p[1]] = 1
+    #plt.pcolormesh(C)
+    #plt.show()
 
     # test CACB
     #mapping = CalphaCbetaMapping(traj.top)
@@ -209,5 +174,5 @@ if __name__ == "__main__":
     #cacb_traj[0].save_pdb('cacb_{}.pdb'.format(name))
     #cacb_traj.save_xtc('cacb_{}.xtc'.format(name))
 
-    write_bonds_tcl(mapping.topology, tcl_out="{}_cabonds.tcl".format(name))
 
+    
