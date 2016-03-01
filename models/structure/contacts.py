@@ -3,12 +3,12 @@ import numpy as np
 
 def residue_contacts(traj, cutoff=0.5, exclude_neighbors=4):
     """Return indices of residues that are in contact"""
-    if ref_traj.n_frames > 1:
+    if traj.n_frames > 1:
         print "warning: only using first frame of as reference"
     ref_xyz = traj[0].xyz[0] 
 
     contacts = []
-    for ires, jres in itertools.product(traj.residues, traj.residues):
+    for ires, jres in itertools.product(traj.top.residues, traj.top.residues):
         if (ires.chain.index == jres.chain.index) and \
             (abs(ires.index - jres.index) < exclude_neighbors):
             # Exclude neighbors on same chain
