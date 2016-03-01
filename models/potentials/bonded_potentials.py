@@ -186,3 +186,9 @@ class CosineDihedralPotential(DihedralPotential):
         return hash_value
 
 
+BOND_POTENTIALS = {1:HarmonicBondPotential}
+
+ANGLE_POTENTIALS = {1:HarmonicAnglePotential}
+
+DIHEDRAL_POTENTIALS = {1:HarmonicDihedralPotential,
+                    2:CosineDihedralPotential}
