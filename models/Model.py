@@ -1,3 +1,5 @@
+import numpy as np
+
 from model_builder.models.structure import mappings as mpg
 from model_builder.models.structure import contacts as cts
 from model_builder.models import potentials as ptl
@@ -21,19 +23,11 @@ class Model(object):
         self.ref_traj_aa = traj[0]
         self.ref_traj = self.structure_mapping.map_traj(traj[0])
 
-    def add_sbm_contacts(self):
-        residue_contacts = cts.residue_contacts(self.ref_traj)
-        atm_pairs = self.structure_mapping.residue_to_atom_contacts(residue_contacts)
-
-        eps = 1.
-        xyz = self.ref_traj.xyz
-        self.pairV = []
-        for atm1, atm2 in atm_pairs:
-            r0 = np.linalg.norm(xyz[atm1.index,:] - xyz[atm2.index,:])
-            self.potentials.add_pair(code, atm1, atm2, r0)
-
     def describe(self):
         pass 
+
+    def add_sbm_contacts(self):
+        self.potentials.add_sbm_contacts(self)
 
     def Vij(self):
         return [ interaction.Vij for interaction in self.pairV ]
