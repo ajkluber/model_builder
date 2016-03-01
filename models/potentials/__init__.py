@@ -2,6 +2,7 @@ import numpy as np
 
 from model_builder.models.structure import contacts as cts
 from model_builder.models.potentials.pair_potentials import *
+from model_builder.models.potentials.bonded_potentials import *
 
 
 #POTENTIALS = {1:LJ12Potential,
@@ -25,17 +26,13 @@ def _hash_numpy_array(x):
 
 class Hamiltonian(object):
     """Mode Hamiltonian"""
-    pair_potentials = \
-        {2:LJ1210Potential
-        5:TanhRepPotential
-        }
 
     def __init__(self):
         self._bonds = []
         self._angles = []
         self._dihedrals = []
         self._pairs = []
-        #self._special = []  # Add?
+        self._default_parameters = {}
 
     @property
     def n_bonds(self):
@@ -84,25 +81,63 @@ class Hamiltonian(object):
         for pot in self.pairs:
             labels.append(pot.describe())
         return labels
+    
+    def _add_bond(self, code, atm1, atm2, *args):
+        b = BOND_POTENTIALS[code](atm1, atm2, *args)
+        if b not in self._bonds:
+            self._bonds.append(b)
+        else:
+            print "Warning: pair already has this interaction {}. skipping.".format(p.describe())
 
-    def add_pair(self, code, atm1, atm2, *args):
-        p = pair_potentials[code](atm1, atm2, *args)
+    def _add_pair(self, code, atm1, atm2, *args):
+        p = PAIR_POTENTIALS[code](atm1, atm2, *args)
         if p not in self._pairs:
             self._pairs.append(p)
         else:
-            print "warning: pair already has this interaction {}. skipping.".format(p.describe())
+            print "Warning: pair already has this interaction {}. skipping.".format(p.describe())
 
     def add_sbm_contacts(self, Model):
+        """Add structure-based model contacts"""
+        # TODO Allow for different contact code's (e.g. LJ1210, Gaussian, etc.)
+    
+        if self._default_parameters == []:
+            print "Warning: Using default SBM parameters"
+            self.use_sbm_default_parameters() 
+
         residue_contacts = cts.residue_contacts(Model.ref_traj)
         atm_pairs = Model.structure_mapping.residue_to_atom_contacts(residue_contacts)
 
-        code = 2
-        eps = 1.
-        xyz = Model.ref_traj.xyz[0]
-        self.pairV = []
-        for atm1, atm2 in atm_pairs:
-            r0 = np.linalg.norm(xyz[atm1.index,:] - xyz[atm2.index,:])
-            self.add_pair(code, atm1, atm2, eps, r0)
+        code = 2    # LJ1210 for now
+
+        if hasattr(Model,"ref_traj"):
+            eps = self._default_parameters["eps"]
+            xyz = Model.ref_traj.xyz[0]
+            for atm1, atm2 in atm_pairs:
+                r0 = np.linalg.norm(xyz[atm1.index,:] - xyz[atm2.index,:])
+                self._add_pair(code, atm1, atm2, eps, r0)
+        else:
+            #raise AttributeError("Model.ref_traj needs to be set before SBM contacts can be added")
+            print "Warning: Need to set reference structure model.set_reference()"
+    
+    def add_sbm_bonds(self, Model):
+        top = Model.structure_mapping.top
+        if self._default_parameters == []:
+            print "Warning: Using default SBM parameters"
+            self.use_sbm_default_parameters() 
+
+        residue_contacts = cts.residue_contacts(Model.ref_traj)
+        atm_pairs = Model.structure_mapping.residue_to_atom_contacts(residue_contacts)
+        code = 1
+
+        if hasattr(Model,"ref_traj"):
+            kb = self._default_parameters["kb"]
+            xyz = Model.ref_traj.xyz[0]
+            for atm1, atm2 in top.bonds:
+                r0 = np.linalg.norm(xyz[atm1.index,:] - xyz[atm2.index,:])
+                self._add_bond(code, atm1, atm2, kb, r0)
+        else:
+            #raise AttributeError("Model.ref_traj needs to be set before SBM contacts can be added")
+            print "Warning: Need to set reference structure model.set_reference()"
 
     def define_contact_group(self, label, pairs):
         # Use this to define a group of contacts by a label.
@@ -119,6 +154,12 @@ class Hamiltonian(object):
         #   - parameter type: eps, r0, 
         #   - interaction type: bonds, angles, etc.
         pass
+
+    def use_sbm_default_parameters(self):
+        self._default_parameters = {"eps":1, "kb":4000, "ka":400, "kd":1}
+
+    def set_default_parameters(self, default_parameters):
+        self._default_parameters = default_parameters
 
 
 if __name__ == "__main__":
