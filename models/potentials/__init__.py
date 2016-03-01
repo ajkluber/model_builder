@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 
 from model_builder.models.structure import contacts as cts
@@ -24,6 +25,18 @@ def _hash_numpy_array(x):
     hash_value ^= hash(x.data.tobytes())
     return hash_value
 
+def interaction_exists_warning(pot):
+    warnings.warn("Interaction already exists! skipping: {}".format(pot.describe()))
+
+def default_sbm_parameters_warning():
+    warning.warn("Using default SBM parameters")
+
+def default_sbm_potentials_warning():
+    warning.warn("Using default SBM parameters")
+
+def missing_reference_warning():
+    warning.warn("Need to set reference structure model.set_reference()")
+
 class Hamiltonian(object):
     """Mode Hamiltonian"""
 
@@ -33,6 +46,7 @@ class Hamiltonian(object):
         self._dihedrals = []
         self._pairs = []
         self._default_parameters = {}
+        self._default_potentials = {}
 
     @property
     def n_bonds(self):
@@ -87,69 +101,28 @@ class Hamiltonian(object):
         if b not in self._bonds:
             self._bonds.append(b)
         else:
-            print "Warning: pair already has this interaction {}. skipping.".format(p.describe())
+            interaction_exists_warning(b)
 
     def _add_angle(self, code, atm1, atm2, atm3, *args):
         ang = ANGLE_POTENTIALS[code](atm1, atm2, atm3, *args)
         if ang not in self._angles:
             self._angles.append(ang)
         else:
-            print "Warning: pair already has this interaction {}. skipping.".format(p.describe())
+            interaction_exists_warning(ang)
 
     def _add_dihedral(self, code, atm1, atm2, atm3, atm4, *args):
         dih = DIHEDRAL_POTENTIALS[code](atm1, atm2, atm3, atm4, *args)
         if dih not in self._dihedrals:
             self._dihedrals.append(dih)
         else:
-            print "Warning: pair already has this interaction {}. skipping.".format(p.describe())
+            interaction_exists_warning(dih)
 
     def _add_pair(self, code, atm1, atm2, *args):
         p = PAIR_POTENTIALS[code](atm1, atm2, *args)
         if p not in self._pairs:
             self._pairs.append(p)
         else:
-            print "Warning: pair already has this interaction {}. skipping.".format(p.describe())
-
-    def add_sbm_contacts(self, Model):
-        """Add structure-based model contacts"""
-        # TODO Allow for different contact code's (e.g. LJ1210, Gaussian, etc.)
-    
-        if self._default_parameters == []:
-            print "Warning: Using default SBM parameters"
-            self.use_sbm_default_parameters() 
-
-        residue_contacts = cts.residue_contacts(Model.ref_traj)
-        atm_pairs = Model.structure_mapping.residue_to_atom_contacts(residue_contacts)
-
-        code = 2    # LJ1210 for now
-
-        if hasattr(Model,"ref_traj"):
-            eps = self._default_parameters["eps"]
-            xyz = Model.ref_traj.xyz[0]
-            for atm1, atm2 in atm_pairs:
-                r0 = np.linalg.norm(xyz[atm1.index,:] - xyz[atm2.index,:])
-                self._add_pair(code, atm1, atm2, eps, r0)
-        else:
-            print "Warning: Need to set reference structure model.set_reference()"
-    
-    def add_sbm_bonds(self, Model):
-        top = Model.structure_mapping.top
-        if self._default_parameters == []:
-            print "Warning: Using default SBM parameters"
-            self.use_sbm_default_parameters() 
-
-        residue_contacts = cts.residue_contacts(Model.ref_traj)
-        atm_pairs = Model.structure_mapping.residue_to_atom_contacts(residue_contacts)
-        code = 1
-
-        if hasattr(Model,"ref_traj"):
-            kb = self._default_parameters["kb"]
-            xyz = Model.ref_traj.xyz[0]
-            for atm1, atm2 in top.bonds:
-                r0 = np.linalg.norm(xyz[atm1.index,:] - xyz[atm2.index,:])
-                self._add_bond(code, atm1, atm2, kb, r0)
-        else:
-            print "Warning: Need to set reference structure model.set_reference()"
+            interaction_exists_warning(p)
 
     def define_contact_group(self, label, pairs):
         # Use this to define a group of contacts by a label.
@@ -167,18 +140,102 @@ class Hamiltonian(object):
         #   - interaction type: bonds, angles, etc.
         pass
 
-    def use_sbm_default_parameters(self):
-        self._default_parameters = {"eps":1., "kb":20000., "ka":40., "kd":1.}
-
-    def set_default_parameters(self, default_parameters):
-        self._default_parameters = default_parameters
-
     def set_parameters(self):
-        # Some way to set parameters
+        # Some way to set parameters?
         pass
 
 class SBMHamilonian(Hamiltonian):
-    pass
+
+    def __init__(self):
+        Hamiltonian.__init__(self)
+
+    def add_sbm_potentials(self, Model):
+
+        if not hasattr(Model,"ref_traj"):
+            raise AttributeError("Need to set reference structure model.set_reference()")
+
+        Model.structure_mapping.assign_sbm_angles()
+        Model.structure_mapping.assign_sbm_dihedrals()
+        Model.structure_mapping.assign_sbm_contacts()
+
+        self.add_sbm_bonds(Model)
+        self.add_sbm_angles(Model)
+        self.add_sbm_dihedrals(Model)
+        self.add_sbm_contacts(Model)
+
+    def add_sbm_bonds(self, Model):
+        top = Model.structure_mapping.top
+        if self._default_parameters == []:
+            default_sbm_parameters_warning()
+            self.use_sbm_default_parameters() 
+
+        if self._default_potentials == []
+            default_sbm_potentials_warning()
+            self.use_sbm_default_potentials() 
+
+            kb = self._default_parameters["kb"]
+            code = self._default_potentials["bond"]
+
+        if hasattr(Model,"ref_traj"):
+            xyz = Model.ref_traj.xyz[0]
+            for atm1, atm2 in top.bonds:
+                r0 = np.linalg.norm(xyz[atm1.index,:] - xyz[atm2.index,:])
+                self._add_bond(code, atm1, atm2, kb, r0)
+        else:
+            missing_reference_warning()
+
+    def add_sbm_angles(self, Model):
+        # TODO: Finish
+
+        top = Model.structure_mapping.top
+        if self._default_parameters == []:
+            default_sbm_parameters_warning()
+            self.use_sbm_default_parameters() 
+
+        if self._default_potentials == []
+            default_sbm_potentials_warning()
+            self.use_sbm_default_potentials() 
+
+        if hasattr(Model,"ref_traj"):
+            ka = self._default_parameters["ka"]
+            code = self._default_potentials["angles"]
+            xyz = Model.ref_traj.xyz[0]
+            for atm1, atm2 in top.bonds:
+                r0 = np.linalg.norm(xyz[atm1.index,:] - xyz[atm2.index,:])
+                self._add_bond(code, atm1, atm2, kb, r0)
+        else:
+            missing_reference_warning()
+
+    def add_sbm_contacts(self, Model):
+        """Add structure-based model contacts"""
+        # TODO: Allow for different contact code's (e.g. LJ1210, Gaussian, etc.)
+    
+        if self._default_parameters == []:
+            default_sbm_parameters_warning()
+            self.use_sbm_default_parameters() 
+
+        residue_contacts = cts.residue_contacts(Model.ref_traj)
+        atm_pairs = Model.structure_mapping.residue_to_atom_contacts(residue_contacts)
+
+        code = 2    # LJ1210 for now
+        if hasattr(Model,"ref_traj"):
+            eps = self._default_parameters["eps"]
+            xyz = Model.ref_traj.xyz[0]
+            for atm1, atm2 in atm_pairs:
+                r0 = np.linalg.norm(xyz[atm1.index,:] - xyz[atm2.index,:])
+                self._add_pair(code, atm1, atm2, eps, r0)
+        else:
+            missing_reference_warning()
+
+    def use_sbm_default_parameters(self):
+        self._default_parameters = {"kb":20000., "ka":40.,
+                                    "kd":1., "eps":1}
+
+    def use_sbm_default_potentials(self):
+        self._default_potentials = {"bond":"HARMONIC_BOND",
+                                    "angle":"HARMONIC_ANGLE",
+                                    "dihedral":"COSINE_DIHEDRAL"}
+        
 
 if __name__ == "__main__":
     pass
