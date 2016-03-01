@@ -14,7 +14,7 @@ class PairPotential(object):
 
     def describe(self):
         """interaction description"""
-        return "%s:%12s%12s" % (self.prefix_label, self.atmi, self.atmj)
+        return "{}:{:>12}{:>12}{:>12}".format(self.prefix_label, self.atmi, self.atmj)
 
     def __hash__(self):
         hash_value = hash(self.prefix_label)
@@ -109,3 +109,7 @@ class TanhRepPotential(PairPotential):
         hash_value ^= hash(self.r0)
         hash_value ^= hash(self.width)
         return hash_value
+
+PAIR_POTENTIALS = {2:LJ1210Potential
+                5:TanhRepPotential
+                }
