@@ -2,58 +2,133 @@
 
 import numpy as np
 
-
 #############################################################################
-# Helper functions
+# Bond potentials
 #############################################################################
-def distance(coords,i_idx,j_idx):
-    """Distance between atoms"""
-    dist = np.linalg.norm(coords[i_idx] - coords[j_idx])
-    return dist
 
-def angle(coords,i_idx,j_idx,k_idx):
-    """ Compute the angle between 3 atoms in degrees"""
-    xkj = coords[k_idx] - coords[j_idx]
-    xkj /= np.linalg.norm(xkj)
-    xij = coords[i_idx] - coords[j_idx]
-    xij /= np.linalg.norm(xij)
-    theta = (180./np.pi)*np.arccos(np.dot(xkj, xij))
-    return theta
+class BondPotential(object):
 
-def dihedral(coords,i_idx,j_idx,k_idx,l_idx):
-    """ Compute the dihedral angle between planes formed by 4 atoms in degrees """
-    v21 = coords[j_idx] - coords[i_idx]
-    v31 = coords[k_idx] - coords[i_idx]
-    v32 = coords[k_idx] - coords[j_idx]
-    v42 = coords[l_idx] - coords[j_idx]
-    v21xv31 = np.cross(v21,v31)
-    v21xv31 /= np.linalg.norm(v21xv31)
-    v32xv42 = np.cross(v32,v42)
-    v32xv42 /= np.linalg.norm(v32xv42)
-    if np.dot(v21,v32xv42) < 0.:
-        sign = -1.
-    else:
-        sign = 1.
-    phi = 180. + sign*(180./np.pi)*np.arccos(np.dot(v21xv31,v32xv42))
-    return phi
+    def __init__(self, atmi, atmj):
+        self.atmi = atmi
+        self.atmj = atmj
 
-def improper_dihedral(coords,i_idx,j_idx,k_idx,l_idx):
-    """ Compute the dihedral angle between planes formed by 4 atoms in degrees """
-    v21 = coords[j_idx] - coords[i_idx]
-    v31 = coords[k_idx] - coords[i_idx]
-    v32 = coords[k_idx] - coords[j_idx]
-    v42 = coords[l_idx] - coords[j_idx]
-    v21xv31 = np.cross(v21,v31)
-    v21xv31 /= np.linalg.norm(v21xv31)
-    v32xv42 = np.cross(v32,v42)
-    v32xv42 /= np.linalg.norm(v32xv42)
-    if np.dot(v21,v32xv42) < 0.:
-        sign = -1.
-    else:
-        sign = 1.
-    phi = sign*(180./np.pi)*np.arccos(np.dot(v21xv31,v32xv42))
-    return phi
+    def describe(self):
+        """interaction description"""
+        return "{}:{:>12}{:>12}{:>12}".format(self.prefix_label, self.atmi, self.atmj)
 
-#############################################################################
-# Potential energy functions to go below...
-#############################################################################
+    def __hash__(self):
+        hash_value = hash(self.prefix_label)
+        hash_value ^= hash(self.atmi.index)
+        hash_value ^= hash(self.atmj.index)
+        return hash_value
+
+    def __eq__(self, other):
+        return self.__hash__() == other.__hash__()
+
+class HarmonicBondPotential(BondPotential):
+
+    def __init__(self, atmi, atmj, kb, r0):
+        BondPotential.__init__(self, atmi, atmj)
+        self.prefix_label = "HARMONIC_BOND"
+        self.kb = kb
+        self.r0 = r0
+    
+    def V(self, r):
+        return self.kb*self.dVdkb
+
+    def dVdr(self, r): 
+        return self.kb*self.d2Vdrdkb(r)
+
+    def dVdkb(self, r):
+        return 0.5*(r - self.r0)**2
+
+    def d2Vdrdkb(self, r): 
+        return (r - self.r0)
+
+    def __hash__(self):
+        hash_value = BondPotential.__hash__(self)
+        hash_value ^= hash(self.kb)
+        hash_value ^= hash(self.r0)
+        return hash_value
+
+############################################################################
+# Angle potentials
+############################################################################
+
+class AnglePotential(object):
+
+    def __init__(self, atmi, atmj, atmk):
+        self.atmi = atmi
+        self.atmj = atmj
+        self.atmk = atmk
+
+    def describe(self):
+        """interaction description"""
+        return "{}:{:>12}{:>12}{:>12}".format(
+                self.prefix_label, self.atmi, self.atmj, self.atmk)
+
+    def __hash__(self):
+        hash_value = hash(self.prefix_label)
+        hash_value ^= hash(self.atmi.index)
+        hash_value ^= hash(self.atmj.index)
+        hash_value ^= hash(self.atmk.index)
+        return hash_value
+
+    def __eq__(self, other):
+        return self.__hash__() == other.__hash__()
+
+
+class HarmonicAnglePotential(AnglePotential):
+
+    def __init__(self, atmi, atmj, atmk, ka, theta0):
+        AnglePotential.__init__(self, atmi, atmj, atmk)
+        self.prefix_label = "HARMONIC_ANGLE"
+        self.ka = ka
+        self.theta0 = theta0
+
+    def V(self, theta):
+        return self.ka*self.dVdka
+
+    def dVdtheta(self, theta): 
+        return self.ka*self.d2Vdthetadka(theta)
+
+    def dVdka(self, theta):
+        return 0.5*(theta - self.theta0)**2
+
+    def d2Vdthetadka(self, theta): 
+        return (theta - self.theta0)
+
+    def __hash__(self):
+        hash_value = BondPotential.__hash__(self)
+        hash_value ^= hash(self.ka)
+        hash_value ^= hash(self.theta0)
+        return hash_value
+
+############################################################################
+# Angle potentials
+############################################################################
+
+class DihedralPotential(object):
+
+    def __init__(self, atmi, atmj, atmk):
+        self.atmi = atmi
+        self.atmj = atmj
+        self.atmk = atmk
+        self.atml = atml
+
+    def describe(self):
+        """interaction description"""
+        return "{}:{:>12}{:>12}{:>12}{:>12}".format(
+                self.prefix_label, self.atmi, self.atmj, self.atmk, self.atml)
+
+    def __hash__(self):
+        hash_value = hash(self.prefix_label)
+        hash_value ^= hash(self.atmi.index)
+        hash_value ^= hash(self.atmj.index)
+        hash_value ^= hash(self.atmk.index)
+        hash_value ^= hash(self.atml.index)
+        return hash_value
+
+    def __eq__(self, other):
+        return self.__hash__() == other.__hash__()
+
