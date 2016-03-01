@@ -5,7 +5,6 @@ import numpy as np
 #############################################################################
 # Bond potentials
 #############################################################################
-
 class BondPotential(object):
 
     def __init__(self, atmi, atmj):
@@ -54,7 +53,6 @@ class HarmonicBondPotential(BondPotential):
 ############################################################################
 # Angle potentials
 ############################################################################
-
 class AnglePotential(object):
 
     def __init__(self, atmi, atmj, atmk):
@@ -105,12 +103,11 @@ class HarmonicAnglePotential(AnglePotential):
         return hash_value
 
 ############################################################################
-# Angle potentials
+# Dihedral potentials
 ############################################################################
-
 class DihedralPotential(object):
 
-    def __init__(self, atmi, atmj, atmk):
+    def __init__(self, atmi, atmj, atmk, atml):
         self.atmi = atmi
         self.atmj = atmj
         self.atmk = atmk
@@ -131,4 +128,61 @@ class DihedralPotential(object):
 
     def __eq__(self, other):
         return self.__hash__() == other.__hash__()
+
+class HarmonicDihedralPotential(DihedralPotential):
+
+    def __init__(self, atmi, atmj, atmk, atml, kd, phi0):
+        DihedralPotential.__init__(self, atmi, atmj, atmk, atml)
+        self.prefix_label = "HARMONIC_DIHEDRAL"
+        self.kd = kd
+        self.phi0 = phi0
+
+    def V(self, phi):
+        return self.kd*self.dVdkd
+
+    def dVdphi(self, phi): 
+        return self.kd*self.d2Vdphidkd(phi)
+
+    def dVdkd(self, phi):
+        return 0.5*(phi - self.phi0)**2
+
+    def d2Vdphidkd(self, phi): 
+        return (phi - self.phi0)
+
+    def __hash__(self):
+        hash_value = DihedralPotential.__hash__(self)
+        hash_value ^= hash(self.prefix_label) 
+        hash_value ^= hash(self.kd)
+        hash_value ^= hash(self.phi0)
+        return hash_value
+
+class CosineDihedralPotential(DihedralPotential):
+
+    def __init__(self, atmi, atmj, atmk, atml, kd, phi0, mult):
+        DihedralPotential.__init__(self, atmi, atmj, atmk, atml)
+        self.prefix_label = "COS_DIHEDRAL"
+        self.kd = kd
+        self.phi0 = phi0
+        self.mult = mult
+
+    def V(self, phi):
+        return self.kd*self.dVdkd
+
+    def dVdphi(self, phi): 
+        return self.kd*self.d2Vdphidkd(phi)
+
+    def dVdkd(self, phi):
+        return 1. + np.cos(self.mult*(phi - phi0))
+
+    def d2Vdphidkd(self, phi): 
+        return -self.mult*np.sin(self.mult*(phi - phi0))
+
+    def __hash__(self):
+        hash_value = DihedralPotential.__hash__(self)
+        hash_value ^= hash(self.prefix_label) 
+        hash_value ^= hash(self.kd)
+        hash_value ^= hash(self.phi0)
+        hash_value ^= hash(self.mult)
+        return hash_value
+
 
