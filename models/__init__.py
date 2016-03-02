@@ -36,4 +36,3 @@ class StructureBasedModel(Model):
 
     def add_sbm_potentials(self):
         self.Hamiltonian.add_sbm_potentials() 
-        pass

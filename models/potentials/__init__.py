@@ -154,24 +154,24 @@ class SBMHamilonian(Hamiltonian):
         if not hasattr(Model,"ref_traj"):
             raise AttributeError("Need to set reference structure model.set_reference()")
 
-        Model.structure_mapping.assign_sbm_angles()
-        Model.structure_mapping.assign_sbm_dihedrals()
-        Model.structure_mapping.assign_sbm_contacts()
+        Model.structure_mapping._assign_sbm_angles()
+        Model.structure_mapping._assign_sbm_dihedrals()
+        Model.structure_mapping._assign_sbm_contacts()
 
-        self.add_sbm_bonds(Model)
-        self.add_sbm_angles(Model)
-        self.add_sbm_dihedrals(Model)
-        self.add_sbm_contacts(Model)
+        self._add_sbm_bonds(Model)
+        self._add_sbm_angles(Model)
+        self._add_sbm_dihedrals(Model)
+        self._add_sbm_contacts(Model)
 
-    def add_sbm_bonds(self, Model):
+    def _add_sbm_bonds(self, Model):
         top = Model.structure_mapping.top
         if self._default_parameters == []:
             default_sbm_parameters_warning()
-            self.use_sbm_default_parameters() 
+            self._use_sbm_default_parameters() 
 
         if self._default_potentials == []
             default_sbm_potentials_warning()
-            self.use_sbm_default_potentials() 
+            self._use_sbm_default_potentials() 
 
             kb = self._default_parameters["kb"]
             code = self._default_potentials["bond"]
@@ -184,17 +184,17 @@ class SBMHamilonian(Hamiltonian):
         else:
             missing_reference_warning()
 
-    def add_sbm_angles(self, Model):
+    def _add_sbm_angles(self, Model):
         # TODO: Finish
 
         top = Model.structure_mapping.top
         if self._default_parameters == []:
             default_sbm_parameters_warning()
-            self.use_sbm_default_parameters() 
+            self._use_sbm_default_parameters() 
 
         if self._default_potentials == []
             default_sbm_potentials_warning()
-            self.use_sbm_default_potentials() 
+            self._use_sbm_default_potentials() 
 
         if hasattr(Model,"ref_traj"):
             ka = self._default_parameters["ka"]
@@ -206,16 +206,16 @@ class SBMHamilonian(Hamiltonian):
         else:
             missing_reference_warning()
 
-    def add_sbm_contacts(self, Model):
+    def _add_sbm_contacts(self, Model):
         """Add structure-based model contacts"""
         # TODO: Allow for different contact code's (e.g. LJ1210, Gaussian, etc.)
     
         if self._default_parameters == []:
             default_sbm_parameters_warning()
-            self.use_sbm_default_parameters() 
+            self._use_sbm_default_parameters() 
 
         residue_contacts = cts.residue_contacts(Model.ref_traj)
-        atm_pairs = Model.structure_mapping.residue_to_atom_contacts(residue_contacts)
+        atm_pairs = Model.structure_mapping._residue_to_atom_contacts(residue_contacts)
 
         code = 2    # LJ1210 for now
         if hasattr(Model,"ref_traj"):
@@ -227,11 +227,11 @@ class SBMHamilonian(Hamiltonian):
         else:
             missing_reference_warning()
 
-    def use_sbm_default_parameters(self):
+    def _use_sbm_default_parameters(self):
         self._default_parameters = {"kb":20000., "ka":40.,
                                     "kd":1., "eps":1}
 
-    def use_sbm_default_potentials(self):
+    def _use_sbm_default_potentials(self):
         self._default_potentials = {"bond":"HARMONIC_BOND",
                                     "angle":"HARMONIC_ANGLE",
                                     "dihedral":"COSINE_DIHEDRAL"}
