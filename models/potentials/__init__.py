@@ -3,12 +3,8 @@ import numpy as np
 
 import mdtraj as md
 
-from model_builder.models.structure import contacts as cts
-#from model_builder.models.potentials.pair_potentials import *
-#from model_builder.models.potentials.bonded_potentials import *
 import pair_potentials 
 import bonded_potentials
-
 
 #POTENTIALS = {1:LJ12Potential,
 #                 2:LJ1210LJ12Potential,
@@ -33,13 +29,13 @@ def interaction_exists_warning(pot):
     warnings.warn("Interaction already exists! skipping: {}".format(pot.describe()))
 
 def default_sbm_parameters_warning():
-    warning.warn("Using default SBM parameters")
+    warnings.warn("Using default SBM parameters")
 
 def default_sbm_potentials_warning():
-    warning.warn("Using default SBM parameters")
+    warnings.warn("Using default SBM parameters")
 
 def missing_reference_warning():
-    warning.warn("Need to set reference structure model.set_reference()")
+    warnings.warn("Need to set reference structure model.set_reference()")
 
 class Hamiltonian(object):
     """Mode Hamiltonian"""
@@ -175,17 +171,17 @@ class StructureBasedHamiltonian(Hamiltonian):
             raise AttributeError("Need to set reference structure model.set_reference()")
 
         # How should user defined parameters be set? 
-        if self._default_parameters == []:
+        if self._default_parameters == {}:
             default_sbm_parameters_warning()
             self._use_sbm_default_parameters() 
 
-        if self._default_potentials == []:
+        if self._default_potentials == {}:
             default_sbm_potentials_warning()
             self._use_sbm_default_potentials() 
 
         Model.mapping._assign_sbm_angles()
         Model.mapping._assign_sbm_dihedrals()
-        Model.mapping._assign_sbm_contacts()
+        Model.mapping._assign_sbm_contacts(Model.ref_traj)
 
         self._add_sbm_bonds(Model)
         self._add_sbm_angles(Model)
@@ -210,44 +206,43 @@ class StructureBasedHamiltonian(Hamiltonian):
 
         if hasattr(Model,"ref_traj"):
             ka = self._default_parameters["ka"]
-            code = self._default_potentials["angles"]
+            code = self._default_potentials["angle"]
             for atm1, atm2, atm3 in structure._angles:
-                theta0 = md.compute_anlges(Model.ref_traj, \
-                        atm1.index, atm2.index, atm3.index)[0][0]
+                idxs = np.array([[atm1.index, atm2.index, atm3.index]])
+                theta0 = md.compute_angles(Model.ref_traj, idxs)[0][0]
                 self._add_angle(code, atm1, atm2, atm3, ka, theta0)
         else:
             missing_reference_warning()
 
     def _add_sbm_dihedrals(self, Model):
-
         structure = Model.mapping
 
         if hasattr(Model,"ref_traj"):
             kd = self._default_parameters["kd"]
-            code = self._default_potentials["dihedrals"]
+            code = self._default_potentials["dihedral"]
             for atm1, atm2, atm3 in structure._dihedrals:
-                phi0 = 180. + (180./np.pi)*md.compute_dihedral(Model.ref_traj, \
-                            atm1.index, atm2.index, atm3.index, atm4.index)[0][0]
+                idxs = np.array([[atm1.index, atm2.index, atm3.index, atm4.index]])
+                phi0 = 180. + (180./np.pi)*md.compute_dihedral(Model.ref_traj, idxs)[0][0]
+                self._add_angle(code, atm1, atm2, atm3, atm4, kd, phi0)
+
+            kd = self._default_parameters["ka"]
+            code = self._default_potentials["improper_dihedral"]
+            for atm1, atm2, atm3 in structure._improper_dihedrals:
+                idxs = np.array([[atm1.index, atm2.index, atm3.index, atm4.index]])
+                phi0 = (180./np.pi)*md.compute_dihedral(Model.ref_traj, idxs)[0][0]
                 self._add_angle(code, atm1, atm2, atm3, atm4, kd, phi0)
         else:
             missing_reference_warning()
 
     def _add_sbm_contacts(self, Model):
         """Add structure-based model contacts"""
-        # TODO: Allow for different contact code's (e.g. LJ1210, Gaussian, etc.)
     
-        if self._default_parameters == []:
-            default_sbm_parameters_warning()
-            self._use_sbm_default_parameters() 
-
-        residue_contacts = cts.residue_contacts(Model.ref_traj)
-        atm_pairs = Model.mapping._residue_to_atom_contacts(residue_contacts)
-
-        code = 2    # LJ1210 for now
+        structure = Model.mapping
         if hasattr(Model,"ref_traj"):
             eps = self._default_parameters["eps"]
+            code = self._default_potentials["contact"]
             xyz = Model.ref_traj.xyz[0]
-            for atm1, atm2 in atm_pairs:
+            for atm1, atm2 in structure._contact_pairs:
                 r0 = np.linalg.norm(xyz[atm1.index,:] - xyz[atm2.index,:])
                 self._add_pair(code, atm1, atm2, eps, r0)
         else:
@@ -259,8 +254,10 @@ class StructureBasedHamiltonian(Hamiltonian):
 
     def _use_sbm_default_potentials(self):
         self._default_potentials = {"bond":"HARMONIC_BOND",
-                                    "angle":"HARMONIC_ANGLE",
-                                    "dihedral":"COSINE_DIHEDRAL"}
+                                "angle":"HARMONIC_ANGLE",
+                                "dihedral":"COSINE_DIHEDRAL",
+                                "improper_dihedral":"HARMONIC_DIHEDRAL",
+                                "contact":"LJ1210"}
         
 
 if __name__ == "__main__":
