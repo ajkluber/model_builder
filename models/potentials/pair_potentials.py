@@ -14,16 +14,19 @@ class PairPotential(object):
 
     def describe(self):
         """interaction description"""
-        return "{}:{:>12}{:>12}{:>12}".format(self.prefix_label, self.atmi, self.atmj)
+        return "{}:{:>12}{:>12}".format(self.prefix_label, self.atmi, self.atmj)
 
     def __hash__(self):
         hash_value = hash(self.prefix_label)
-        hash_value ^= hash(self.atmi.index)
-        hash_value ^= hash(self.atmj.index)
+        hash_value ^= hash(self.atmi)
+        hash_value ^= hash(self.atmj)
         return hash_value
 
     def __eq__(self, other):
         return self.__hash__() == other.__hash__()
+
+    def __repr__(self):
+        return "<PairPotential at 0x{}x>".format(id(self))
 
 class LJPotential(PairPotential):
     
@@ -110,5 +113,5 @@ class TanhRepPotential(PairPotential):
         hash_value ^= hash(self.width)
         return hash_value
 
-PAIR_POTENTIALS = {2:LJ1210Potential,
-                5:TanhRepPotential}
+PAIR_POTENTIALS = {"LJ1210":LJ1210Potential,
+                "TANHREP":TanhRepPotential}
