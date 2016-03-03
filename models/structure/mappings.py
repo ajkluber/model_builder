@@ -56,7 +56,7 @@ class CalphaMapping(object):
             # Calpha-Calpha contact
             ca_n = nres.atom(0)
             ca_k = kres.atom(0)
-            atm_contacts.append([ca_n, ca_k])
+            atm_contacts.append((ca_n, ca_k))
         return atm_contacts
 
     def _assign_sbm_angles(self):
@@ -73,8 +73,8 @@ class CalphaMapping(object):
                 self._dihedrals.append(( chain.atom(i), chain.atom(i + 1),\
                                    chain.atom(i + 2), chain.atom(i + 3)))
 
-    def _assign_sbm_contacts(self, ref_traj):
-        residue_contacts = cts.residue_contacts(ref_traj)
+    def _assign_sbm_contacts(self, ref_traj_aa):
+        residue_contacts = cts.residue_contacts(ref_traj_aa)
         self._contact_pairs = self._residue_to_atom_contacts(residue_contacts)
 
 class CalphaCbetaMapping(object):

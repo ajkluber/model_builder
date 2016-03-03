@@ -23,7 +23,7 @@ def residue_contacts(traj, cutoff=0.5, exclude_neighbors=4):
                                 for n_xyz in iheavy_xyz \
                                 for k_xyz in jheavy_xyz ])
             if min_dist <= cutoff:
-                contacts.append([ires.index, jres.index])
+                contacts.append((ires.index, jres.index))
                 # To Do: 
                 # Shadow algorithm would require another loop right here
                 # to check for intermediate residues
