@@ -5,6 +5,8 @@ import mdtraj as md
 from mdtraj.core.topology import Topology
 from mdtraj.core.element import get_by_symbol
 
+import contacts as cts
+
 class CalphaMapping(object):
     """Calpha representation mapping"""
     def __init__(self, topology):
@@ -70,6 +72,10 @@ class CalphaMapping(object):
             for i in range(chain.n_atoms - 3):
                 self._dihedrals.append(( chain.atom(i), chain.atom(i + 1),\
                                    chain.atom(i + 2), chain.atom(i + 3)))
+
+    def _assign_sbm_contacts(self, ref_traj):
+        residue_contacts = cts.residue_contacts(ref_traj)
+        self._contact_pairs = self._residue_to_atom_contacts(residue_contacts)
 
 class CalphaCbetaMapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""
