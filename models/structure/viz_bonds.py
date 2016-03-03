@@ -51,7 +51,7 @@ def check_bond_idxs(thing):
          
     return bond_idxs
 
-if __name__ = "__main__":
+if __name__ == "__main__":
     import mdtraj as md
     traj = md.load("1SHG.pdb")
     write_bonds_tcl(traj.top)
