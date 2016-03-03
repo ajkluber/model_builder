@@ -141,6 +141,39 @@ class GaussianPotential(PairPotential):
         hash_value ^= hash(self.width)
         return hash_value
 
+class LJ12GaussianPotential(PairPotential,LJ12Potential,GaussianPotential):
+
+    def __init__(self, atmi, atmj, eps, rNC, r0, width):
+        PairPotential.__init__(self, atmi, atmj)
+        self.prefix_label = "LJ12GAUSSIAN"
+        self.eps = eps
+        self.rNC = rNC
+        self.r0 = r0
+        self.width = width
+
+    def V(self, r):
+        return LJ12Potential.V(self, r)*(1. + GaussianPotential.dVdeps(self, r))
+
+    def dVdr(self, r):
+        return LJ12Potential.dVdr(self, r)*(1. + GaussianPotential.dVdeps(self, r)) +\
+               LJ12Potential.dVdr(self, r)*GaussianPotential.d2Vdrdeps(self, r)
+
+    def dVdeps(self, r):
+        return LJ12Potential.dVdeps(self, r)*(1. + GaussianPotential.dVdeps(self, r))
+
+    def d2Vdrdeps(self, r):
+        return LJ12Potential.dVdr(self, r)*(1. + GaussianPotential.dVdeps(self, r)) +\
+               LJ12Potential.dVdr(self, r)*GaussianPotential.d2Vdrdeps(self, r)
+
+    def __hash__(self):
+        hash_value = PairPotential.__hash__(self)
+        hash_value ^= hash(self.eps)
+        hash_value ^= hash(self.rNC)
+        hash_value ^= hash(self.r0)
+        hash_value ^= hash(self.width)
+        return hash_value
+
 PAIR_POTENTIALS = {"LJ1210":LJ1210Potential,
                 "GAUSSIAN":GaussianPotential,
+                "LJ12GAUSSIAN":LJ12GaussianPotential,
                 "TANHREP":TanhRepPotential}
