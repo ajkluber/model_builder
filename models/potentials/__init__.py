@@ -48,6 +48,17 @@ class Hamiltonian(object):
         self._default_parameters = {}
         self._default_potentials = {}
 
+    def __str__(self):
+        return "<%s>" % (self._string_summary_basic())
+
+    def __repr__(self):
+        return "<%s at 0x%02x>" % (self._string_summary_basic(), id(self))
+
+    def _string_summary_basic(self):
+        return ("model_builder.Hamiltonian with {} bonds, {} angles, "
+                "{} dihedrals, {} pairs".format(self.n_bonds, self.n_angles,
+                                        self.n_dihedrals, self.n_pairs))
+
     @property
     def n_bonds(self):
         return len(self._bonds)
@@ -91,10 +102,10 @@ class Hamiltonian(object):
             yield pot 
 
     def describe(self):
-        labels = []
-        for pot in self.pairs:
-            labels.append(pot.describe())
-        return labels
+        description = ""
+        for pot in self.potentials:
+            description += "{}\n".format(pot.describe())
+        return description 
     
     def _add_bond(self, code, atm1, atm2, *args):
         b = bonded_potentials.BOND_POTENTIALS[code](atm1, atm2, *args)
@@ -165,6 +176,9 @@ class StructureBasedHamiltonian(Hamiltonian):
     def __init__(self):
         Hamiltonian.__init__(self)
 
+    def describe(self):
+        pass
+
     def add_sbm_potentials(self, Model):
 
         if not hasattr(Model,"ref_traj"):
@@ -181,7 +195,7 @@ class StructureBasedHamiltonian(Hamiltonian):
 
         Model.mapping._assign_sbm_angles()
         Model.mapping._assign_sbm_dihedrals()
-        Model.mapping._assign_sbm_contacts(Model.ref_traj)
+        Model.mapping._assign_sbm_contacts(Model.ref_traj_aa)
 
         self._add_sbm_bonds(Model)
         self._add_sbm_angles(Model)
@@ -220,17 +234,18 @@ class StructureBasedHamiltonian(Hamiltonian):
         if hasattr(Model,"ref_traj"):
             kd = self._default_parameters["kd"]
             code = self._default_potentials["dihedral"]
-            for atm1, atm2, atm3 in structure._dihedrals:
+            for atm1, atm2, atm3, atm4 in structure._dihedrals:
                 idxs = np.array([[atm1.index, atm2.index, atm3.index, atm4.index]])
-                phi0 = 180. + (180./np.pi)*md.compute_dihedral(Model.ref_traj, idxs)[0][0]
-                self._add_angle(code, atm1, atm2, atm3, atm4, kd, phi0)
+                phi0 = 180. + (180./np.pi)*md.compute_dihedrals(Model.ref_traj, idxs)[0][0]
+                self._add_dihedral(code, atm1, atm2, atm3, atm4, kd, phi0, 1)
+                self._add_dihedral(code, atm1, atm2, atm3, atm4, kd, phi0, 3)
 
             kd = self._default_parameters["ka"]
             code = self._default_potentials["improper_dihedral"]
-            for atm1, atm2, atm3 in structure._improper_dihedrals:
+            for atm1, atm2, atm3, atm4 in structure._improper_dihedrals:
                 idxs = np.array([[atm1.index, atm2.index, atm3.index, atm4.index]])
-                phi0 = (180./np.pi)*md.compute_dihedral(Model.ref_traj, idxs)[0][0]
-                self._add_angle(code, atm1, atm2, atm3, atm4, kd, phi0)
+                phi0 = (180./np.pi)*md.compute_dihedrals(Model.ref_traj, idxs)[0][0]
+                self._add_dihedral(code, atm1, atm2, atm3, atm4, kd, phi0)
         else:
             missing_reference_warning()
 
