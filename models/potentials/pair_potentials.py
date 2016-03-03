@@ -113,5 +113,34 @@ class TanhRepPotential(PairPotential):
         hash_value ^= hash(self.width)
         return hash_value
 
+class GaussianPotential(PairPotential):
+
+    def __init__(self, atmi, atmj, eps, r0, width):
+        PairPotential.__init__(self, atmi, atmj)
+        self.prefix_label = "GAUSSIAN"
+        self.eps = eps
+        self.r0 = r0
+        self.width = width
+
+    def V(self, r):
+        return self.eps*self.dVdeps(r)
+
+    def dVdeps(self, r)
+        return -np.exp(-((r - self.r0)**2)/(2.*(self.width**2)))
+
+    def dVdr(self, r):
+        return self.eps*self.d2Vdrdeps(r)
+
+    def d2Vdrdeps(self, r):
+        return ((r - self.r0)/(self.width**2))*np.exp(-((r - self.r0)**2)/(2.*(self.width**2)))
+
+    def __hash__(self):
+        hash_value = PairPotential.__hash__(self)
+        hash_value ^= hash(self.eps)
+        hash_value ^= hash(self.r0)
+        hash_value ^= hash(self.width)
+        return hash_value
+
 PAIR_POTENTIALS = {"LJ1210":LJ1210Potential,
+                "GAUSSIAN":GaussianPotential,
                 "TANHREP":TanhRepPotential}
