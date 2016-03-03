@@ -1,20 +1,22 @@
+'''
+Classes
+-------
+Model
+
+StructureBasedModel
+
+'''
+
 import numpy as np
 
-from model_builder.models.structure import mappings as mpg
-from model_builder.models.structure import contacts as cts
-from model_builder.models import potentials as ptl
-
-'''
-A Model consists of:
-- a structure mapping
-- a Hamiltonian
-    - a set of parameterized interaction potentials
-'''
+import structure.mappings as mpg
+import structure.contacts as cts
+import potentials as ptl
 
 class Model(object):
     """Model class """
     def __init__(self, topology, bead_repr="CA"):
-        self.structure_mapping = mpg.assign_mapping(bead_repr, topology) 
+        self.mapping = mpg.assign_mapping(bead_repr, topology) 
         self.Hamiltonian = ptl.Hamiltonian()
 
     def describe(self):
@@ -22,7 +24,7 @@ class Model(object):
         pass 
     
     def map_traj(self, traj):
-        return self.structure_mapping.map_traj(traj)
+        return self.mapping.map_traj(traj)
 
 class StructureBasedModel(Model):
 
@@ -32,7 +34,7 @@ class StructureBasedModel(Model):
          
     def set_reference(self, traj):
         self.ref_traj_aa = traj[0]
-        self.ref_traj = self.structure_mapping.map_traj(traj[0])
+        self.ref_traj = self.mapping.map_traj(traj[0])
 
     def add_sbm_potentials(self):
-        self.Hamiltonian.add_sbm_potentials() 
+        self.Hamiltonian.add_sbm_potentials(self) 

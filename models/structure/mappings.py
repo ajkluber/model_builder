@@ -37,12 +37,16 @@ class CalphaMapping(object):
         self._ca_idxs = np.array(ca_idxs)
         self.topology = newTopology
 
+    @property
+    def top(self):
+        return self.topology
+
     def map_traj(self, traj):
         """Create new trajectory"""
         ca_xyz = traj.xyz[:,self._ca_idxs[:,0],:]
         return md.Trajectory(ca_xyz, self.topology)
 
-    def residue_to_atom_contacts(self, residue_contacts):
+    def _residue_to_atom_contacts(self, residue_contacts):
         atm_contacts = []
         for n,k in residue_contacts: 
             nres = self.topology.residue(n)
@@ -52,6 +56,20 @@ class CalphaMapping(object):
             ca_k = kres.atom(0)
             atm_contacts.append([ca_n, ca_k])
         return atm_contacts
+
+    def _assign_sbm_angles(self):
+        self._angles = []
+        for chain in self.topology.chains:
+            for i in range(chain.n_atoms - 2):
+                self._angles.append(( chain.atom(i), chain.atom(i + 1), chain.atom(i + 2)))
+        
+    def _assign_sbm_dihedrals(self):
+        self._improper_dihedrals = []
+        self._dihedrals = []
+        for chain in self.topology.chains:
+            for i in range(chain.n_atoms - 3):
+                self._dihedrals.append(( chain.atom(i), chain.atom(i + 1),\
+                                   chain.atom(i + 2), chain.atom(i + 3)))
 
 class CalphaCbetaMapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""
@@ -127,7 +145,7 @@ class CalphaCbetaMapping(object):
 
         return md.Trajectory(cacb_xyz, self.topology)
 
-    def residue_to_atom_contacts(self, residue_contacts):
+    def _residue_to_atom_contacts(self, residue_contacts):
         atm_contacts = []
         for n,k in residue_contacts: 
             nres = self.topology.residue(n)
@@ -142,6 +160,19 @@ class CalphaCbetaMapping(object):
                 cb_k = kres.atom(1)
                 atm_contacts.append([cb_n, cb_k])
         return atm_contacts
+
+    def _assign_sbm_angles(self):
+        pass
+
+    def _assign_sbm_dihedrals(self):
+        pass
+        
+
+MAPPINGS = {"CA":CalphaMapping, "CACB":CalphaCbetaMapping}
+
+def assign_mapping(code, topology):
+    return MAPPINGS[code](topology)
+    
 
 if __name__ == "__main__":
     from model_builder.models.structure.viz_bonds import write_bonds_conect, write_bonds_tcl
@@ -174,5 +205,3 @@ if __name__ == "__main__":
     #cacb_traj[0].save_pdb('cacb_{}.pdb'.format(name))
     #cacb_traj.save_xtc('cacb_{}.xtc'.format(name))
 
-
-    

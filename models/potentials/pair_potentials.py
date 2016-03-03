@@ -110,6 +110,5 @@ class TanhRepPotential(PairPotential):
         hash_value ^= hash(self.width)
         return hash_value
 
-PAIR_POTENTIALS = {2:LJ1210Potential
-                5:TanhRepPotential
-                }
+PAIR_POTENTIALS = {2:LJ1210Potential,
+                5:TanhRepPotential}
