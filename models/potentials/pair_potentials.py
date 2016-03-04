@@ -59,7 +59,27 @@ class LJ12Potential(LJPotential):
 
     def d2Vdrdeps(self, r):
         x = self.r0/r
-        return (-60./self.r0)*((x**13) - (x**11))
+        return (-12./self.r0)*(x**13)
+
+class LJ126Potential(LJPotential):
+
+    def __init__(self, atmi, atmj, eps, r0):
+        LJPotential.__init__(self, atmi, atmj, eps, r0) 
+        self.prefix_label = "LJ126"
+
+    def V(self, r):
+        return self.eps*self.dVdeps(r)
+
+    def dVdeps(self, r):
+        x = self.r0/r
+        return 4*((x**12) - (x**6))
+
+    def dVdr(self, r):
+        return self.eps*self.d2Vdrdeps(r)
+
+    def d2Vdrdeps(self, r):
+        x = self.r0/r
+        return (-24/self.r0)*(2.*(x**13) - (x**7))
 
 class LJ1210Potential(LJPotential):
     
@@ -80,6 +100,32 @@ class LJ1210Potential(LJPotential):
     def d2Vdrdeps(self, r):
         x = self.r0/r
         return (-60./self.r0)*((x**13) - (x**11))
+
+class LJ1210RepPotential(LJPotential):
+    
+    def __init__(self, atmi, atmj, r0, eps):
+        LJPotential.__init__(self, atmi, atmj, r0, eps)
+        self.prefix_label = "LJ1210REP"
+
+    def V(self, r):
+        return self.eps*self.dVdeps(r)
+
+    def dVdeps(self, r):
+        x = self.r0/r
+        V = np.zeros(x.shape,float)
+        V[x > 1] = 5.*(x[x > 1]**12) - 6.*(x[x > 1]**10) + 2.
+        V[x <= 1] = -5.*(x[x <= 1]**12) - 6.*(x[x <= 1]**10)
+        return V
+
+    def dVdr(self, r):
+        return self.eps*self.d2Vdrdeps(r)
+
+    def d2Vdrdeps(self, r):
+        x = self.r0/r
+        V = np.zeros(x.shape,float)
+        V[x > 1] = (-60./r0)*(x[x > 1]**13 - x[x > 1]**11)
+        V[x <= 1] = (60./r0)*(x[x <= 1]**13 - x[x <= 1]**11)
+        return V
 
 class TanhRepPotential(PairPotential):
     
