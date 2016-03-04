@@ -151,6 +151,50 @@ class Hamiltonian(object):
         for p in pair_params:
             self._add_pair(p[0], p[1], p[2], p[3:])
 
+    def calc_bond_energy(self, traj):
+        """TODO Test"""
+        bond_idxs = np.array([[ bond.atmi.index, bond.atmj.index] for bond in self.bonds ])
+        r = md.compute_distances(traj, bond_idxs)
+        Ebond = np.zeros(traj.n_frames, float)
+        for i in range(self.n_bonds):
+            Ebond += self._bonds[i].V(r[:,i])
+        return Ebond
+
+        #Ebond = np.zeros(traj.n_frames, float)
+        #for bond in self.bonds:
+        #    r = np.linalg.norm(traj.xyz[:,bond.atmi.index,:] - \
+        #                        traj.xyz[:,bond.atmj.index,:],axis=1)
+        #    E += bond.V(r)
+        #return E
+
+    def calc_angle_energy(self, traj):
+        """TODO Test"""
+        angle_idxs = np.array([[ angle.atmi.index, angle.atmj.index, angle.atmk.index] for angle in self.angles ])
+        theta = md.compute_angles(traj, angles_idxs)
+        Eangle = np.zeros(traj.n_frames, float)
+        for i in range(self.n_angles):
+            Eangle += self._angles[i].V(theta[:,i])
+        return Eangle
+
+    def calc_dihedral_energy(self, traj):
+        """TODO Test"""
+        dihedral_idxs = np.array([[ dih.atmi.index, dih.atmj.index,
+                                     dih.atmk.index, dih.atml.index] for dih in self.dihedrals ])
+        phi = md.compute_dihedrals(traj, dihedrals_idxs)
+        Edihedral = np.zeros(traj.n_frames, float)
+        for i in range(self.n_dihedrals):
+            Edihedral += self._dihedrals[i].V(phi[:,i])
+        return Edihedral
+
+    def calc_pair_energy(self, traj):
+        """TODO Test"""
+        pair_idxs = np.array([[pair.atmi.index, pair.atmj.index] for pair in self.pairs ])
+        r = md.compute_distances(traj, pairs_idxs)
+        Epair = np.zeros(traj.n_frames, float)
+        for i in range(self.n_pairs):
+            Epair += self._pairs[i].V(r[:,i])
+        return Epair
+
     def define_contact_group(self, label, pairs):
         # Use this to define a group of contacts by a label.
         # The label can later be used to get their energy. 
