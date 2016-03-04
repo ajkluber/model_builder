@@ -5,6 +5,7 @@ SUPPORTED_VERSIONS = ["4.5.4","4.6.5","4.6.5_sbm"]
 
 class GromacsFiles(object):
 
+    natively_supported_potentials = {"4.5.4":["LJ1210",]}
 
     def __init__(self, model, version=None):
         self.model = model
@@ -21,7 +22,7 @@ class GromacsFiles(object):
         self._dihedral_funcs = {"COSINE_DIHEDRAL":1,
                                 "HARMONIC_DIHEDRAL":2}
 
-        self.supported_pair_potentials = ["LJ1210", 
+        self._supported_pair_potentials = ["LJ1210", 
                                         "GAUSSIAN",
                                         "LJ12GAUSSIAN"]
 
@@ -29,24 +30,27 @@ class GromacsFiles(object):
         """Generates tables of user-defined potentials"""
 
         # Determine which interactions need to be tabled 
-        for pot in self.model.Hamiltonian.pairs:
-            if pot.prefix_label not in supported_pair_interactions:  
-
         self.tablep = self._get_LJ1210_table()
         self.LJtable = self.tablep
-        r = np.arange(0, 20.0, 0.002)
-        self.tables = []
-        self.tablenames = []
-        for i in range(self.n_tables):
-            pair_indx = tabled_pairs[i]
-            table_name = "table_b%d.xvg" % (i+1)
-            self.tablenames.append(table_name)
 
-            table = np.zeros((len(r),3),float)
-            table[1:,0] = r[1:]
-            table[10:,1] = self.pair_V[pair_indx](r[10:]) 
-            table[10:,2] = -1.*self.pair_dV[pair_indx](r[10:]) 
-            self.tables.append(table)
+        r = np.arange(0, 20.0, 0.002)
+        self._tabled_pots = []
+        self._tables = []
+        self._tablenames = []
+        for i in range(self.model.Hamiltonia.n_pairs):
+            pot = self.model.Hamiltonian._pairs[i]
+            if pot.prefix_label not in self._supported_pair_interactions:  
+                self._tabled_pots.append(pot)
+
+                table_name = "table_b{}.xvg".format(len(self._tabled_pots) + 1)
+                self._tablenames.append(table_name)
+
+                table = np.zeros((r.shape[0], 3), float)
+                table[1:,0] = r[1:]
+                table[10:,1] = pot.V(r[10:]) 
+                table[10:,2] = -1.*pot.dVdr(r[10:]) 
+                self._tables.append(table)
+        self._n_tables = len(self._tablenames)
 
     def _get_LJ1210_table(self):
         """ LJ1210 interaction table """ 
@@ -88,6 +92,16 @@ class GromacsFiles(object):
                                 bond.atmi.index + 1, bond.atmj.index + 1, func, bond.r0, bond.kb) 
         return bonds_top
 
+    def _get_tabled_top(self):
+        """ Generate the topology files to specify table interactions. """
+        # Add special nonbonded table interactions. 
+        tabled_string = "; tabled interactions pairs below\n"
+        for i in range(self._n_tables):
+            pot = self._tabled_pots[i]
+            tabled_string += "{:>6} {:>6}{:>2}{:>18}{:>18.9e}\n".format(
+                          pot.atmi.index, pot.atmj.index, 9, i + 1, 1)
+        return tabled_string
+
     def _get_angles_top(self):
         """ Generate the [ angles ] top."""
         angles_top = " [ angles ]\n"
@@ -121,33 +135,42 @@ class GromacsFiles(object):
         return dihedrals_top
 
     def _get_pairs_top(self):
-        """ Get the [ pairs ] string for SBM Gromacs """
-        pairs_string = " [ pairs ]\n"
-        pairs_string += " ; %5s  %5s %4s    %8s   %8s\n" % ("i","j","type","c10","c12")
-        for i in range(self.n_pairs):
-            if i not in self.smog_pair_indxs:
-                res_a = self.pairs[i][0]
-                res_b = self.pairs[i][1]
-                r0 = self.pairwise_other_parameters[i][0]
-                eps = self.pair_eps[i]
-                if self.pairwise_type[i] == 1:     # LJ12
-                    c12 = eps*(r0**12)
+        """ Get the [ pairs ] top for SBM Gromacs """
+        pairs_top = " [ pairs ]\n"
+        pairs_top += " ;    i     j  type    c10      c12  \n"
+        for i in range(self.model.Hamiltonian.n_pairs):
+            pot = self.model.Hamiltonian._pairs[i]
+            # How are LJ126 interactions defined?
+            if pot not in self._tabled_pots:
+                atm_idxs = "{:>6} {:>6}".format(pot.atmi.index, pot.atmj.index)
+                if pot.prefix_label == "LJ1210":
+                    func = 1
+                    c12 = pot.eps*5.0*(pot.r0**12)
+                    c10 = pot.eps*6.0*(pot.r0**10)
+                    params = "{:>18.9e}{:>18.9e}".format(c10, c12)
+                elif pot.prefix_label == "LJ12":
+                    func = 1
+                    c12 = pot.eps*(pot.r0**12)
                     c10 = 0
-                    pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
-                elif self.pairwise_type[i] == 2:   # LJ1210
-                    c12 = eps*5.0*(r0**12)
-                    c10 = eps*6.0*(r0**10)
-                    pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
+                    params = "{:>18.9e}{:>18.9e}".format(c10, c12)
+                elif pot.prefix_label == "GAUSSIAN":
+                    func = 5
+                    params = "{:>18.9e}{:>18.9e}{:>18.9e}".format(
+                                pot.eps, pot.r0, pot.width)
+                elif pot.prefix_label == "LJ12GAUSSIAN":
+                    func = 6
+                    params = "{:>18.9e}{:>18.9e}{:>18.9e}{:>18.9e}".format(
+                                pot.eps, pot.r0, pot.width, pot.rNC)
                 else:
-                    pass
-
-    def _get_smog_pairs_top(self):
-        pairs_string = " [ pairs ]\n"
-        pairs_string += " ; Using smog Guassian interactions\n"
-        for i in range(len(self.smog_pairs)):
-            res_a = self.smog_pairs[i][0]
-            res_b = self.smog_pairs[i][1]
-            pairs_string += "%5d%5d%s\n" % (res_a,res_b,self.smog_strings[i]) 
+                    print "Warning: interaction is not supported: {}".format(pot.describe())
+                pairs_top += "{}{:>2}{}\n".format(atm_idxs, func, params)
+    
+    def _get_exclusions_top(self):
+        """ Get [ exclusions ] top""" 
+        exclusions_top = " [ exclusions ]\n"
+        for pot in self.model.Hamiltonian.pairs:
+            exclusions_top += "{:>6} {:>6}".format(pot.atmi.index, pot.atmj.index)
+        return exclusions_top
 
     def generate_topology(self):
         """ Return a structure-based topology file. Currently only for one molecule. """
@@ -163,11 +186,11 @@ class GromacsFiles(object):
 
         top += "{}\n".format(self._get_atoms_top())
         top += "{}\n".format(self._get_bonds_top())
-        #top += "{}\n".format(self._get_tabled_top()) #TODO
+        top += "{}\n".format(self._get_tabled_top())
         top += "{}\n".format(self._get_angles_top())
         top += "{}\n".format(self._get_dihedrals_top())
-        #top += "{}\n".format(self._get_pairs_top()) # TODO
-        #top += "{}\n".format(self._get_exclusions_top()) # TODO
+        top += "{}\n".format(self._get_pairs_top())
+        top += "{}\n".format(self._get_exclusions_top())
 
         top += " [ system ]\n"
         top += " ; name\n"
