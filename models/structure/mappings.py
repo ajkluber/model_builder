@@ -128,7 +128,6 @@ class CalphaCbetaMapping(object):
         self._ca_idxs = np.array(ca_idxs)
         self.topology = newTopology
 
-
     def map_traj(self, traj):
         """Return new Trajectory object with cacb topology and xyz"""
         cacb_xyz = np.zeros((traj.n_frames, self.topology.n_atoms, 3))

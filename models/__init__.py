@@ -9,9 +9,12 @@ StructureBasedModel
 
 import numpy as np
 
+import output
+
 import structure.mappings as mpg
 import structure.contacts as cts
 import potentials as ptl
+
 
 class Model(object):
     """Model class """
