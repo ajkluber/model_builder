@@ -1,6 +1,8 @@
 
 SUPPORTED_VERSIONS = ["4.5.4","4.6.5","4.6.5_sbm"]
 
+
+
 class GromacsFiles(object):
 
 
@@ -17,7 +19,50 @@ class GromacsFiles(object):
         self._bond_funcs = {"HARMONIC_BOND":1}
         self._angle_funcs = {"HARMONIC_ANGLE":1}
         self._dihedral_funcs = {"COSINE_DIHEDRAL":1,
-                                    "HARMONIC_DIHEDRAL":2}
+                                "HARMONIC_DIHEDRAL":2}
+
+        self.supported_pair_potentials = ["LJ1210", 
+                                        "GAUSSIAN",
+                                        "LJ12GAUSSIAN"]
+
+    def _generate_interaction_tables(self):
+        """Generates tables of user-defined potentials"""
+
+        # Determine which interactions need to be tabled 
+        for pot in self.model.Hamiltonian.pairs:
+            if pot.prefix_label not in supported_pair_interactions:  
+
+        self.tablep = self._get_LJ1210_table()
+        self.LJtable = self.tablep
+        r = np.arange(0, 20.0, 0.002)
+        self.tables = []
+        self.tablenames = []
+        for i in range(self.n_tables):
+            pair_indx = tabled_pairs[i]
+            table_name = "table_b%d.xvg" % (i+1)
+            self.tablenames.append(table_name)
+
+            table = np.zeros((len(r),3),float)
+            table[1:,0] = r[1:]
+            table[10:,1] = self.pair_V[pair_indx](r[10:]) 
+            table[10:,2] = -1.*self.pair_dV[pair_indx](r[10:]) 
+            self.tables.append(table)
+
+    def _get_LJ1210_table(self):
+        """ LJ1210 interaction table """ 
+        r = np.arange(0.0, 20.0, 0.002)
+        r[0] = 1
+        table = np.zeros((len(r),7),float)
+        table[:,0] = r
+        table[:,1] = 1./r
+        table[:,2] = 1./(r**2)
+        table[:,3] = -1./(r**10)
+        table[:,4] = -10./(r**11)
+        table[:,5] = 1./(r**12)
+        table[:,6] = 12./(r**13)
+        table[:5,1:] = 0
+        table[0,0] = 0
+        return table
 
     def write_simulation_files(self):
         pass
@@ -74,6 +119,35 @@ class GromacsFiles(object):
             else:
                 print "Warning: unknown dihedral interaction for: {}".format(dih.describe())
         return dihedrals_top
+
+    def _get_pairs_top(self):
+        """ Get the [ pairs ] string for SBM Gromacs """
+        pairs_string = " [ pairs ]\n"
+        pairs_string += " ; %5s  %5s %4s    %8s   %8s\n" % ("i","j","type","c10","c12")
+        for i in range(self.n_pairs):
+            if i not in self.smog_pair_indxs:
+                res_a = self.pairs[i][0]
+                res_b = self.pairs[i][1]
+                r0 = self.pairwise_other_parameters[i][0]
+                eps = self.pair_eps[i]
+                if self.pairwise_type[i] == 1:     # LJ12
+                    c12 = eps*(r0**12)
+                    c10 = 0
+                    pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
+                elif self.pairwise_type[i] == 2:   # LJ1210
+                    c12 = eps*5.0*(r0**12)
+                    c10 = eps*6.0*(r0**10)
+                    pairs_string += "%6d %6d%2d%18.9e%18.9e\n" % (res_a,res_b,1,c10,c12)
+                else:
+                    pass
+
+    def _get_smog_pairs_top(self):
+        pairs_string = " [ pairs ]\n"
+        pairs_string += " ; Using smog Guassian interactions\n"
+        for i in range(len(self.smog_pairs)):
+            res_a = self.smog_pairs[i][0]
+            res_b = self.smog_pairs[i][1]
+            pairs_string += "%5d%5d%s\n" % (res_a,res_b,self.smog_strings[i]) 
 
     def generate_topology(self):
         """ Return a structure-based topology file. Currently only for one molecule. """
