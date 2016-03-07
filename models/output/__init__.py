@@ -1,5 +1,5 @@
 
-SUPPORTED_VERSIONS = ["4.5.4","4.6.5","4.6.5_sbm"]
+SUPPORTED_VERSIONS = ["4.5.4","4.5.4_sbm","4.6.5","4.6.5_sbm"]
 
 
 
@@ -22,9 +22,8 @@ class GromacsFiles(object):
         self._dihedral_funcs = {"COSINE_DIHEDRAL":1,
                                 "HARMONIC_DIHEDRAL":2}
 
-        self._supported_pair_potentials = ["LJ1210", 
-                                        "GAUSSIAN",
-                                        "LJ12GAUSSIAN"]
+        self._supported_pair_potentials = ["LJ12", "LJ1210",
+                                            "GAUSSIAN", "LJ12GAUSSIAN"]
 
     def _generate_interaction_tables(self):
         """Generates tables of user-defined potentials"""
