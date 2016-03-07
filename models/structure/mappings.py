@@ -6,6 +6,7 @@ from mdtraj.core.topology import Topology
 from mdtraj.core.element import get_by_symbol
 
 import contacts as cts
+import atom_types
 
 class CalphaMapping(object):
     """Calpha representation mapping"""
@@ -21,8 +22,7 @@ class CalphaMapping(object):
             newChain = newTopology.add_chain()
             for residue in chain._residues:
                 resSeq = getattr(residue, 'resSeq', None) or residue.index
-                newResidue = newTopology.add_residue(residue.name, newChain,
-                                                     resSeq, residue.segment_id)
+                newResidue = newTopology.add_residue(residue.name, newChain, resSeq)
                 # map CA
                 new_ca = newTopology.add_atom('CA', get_by_symbol('C'), 
                                     newResidue, serial=new_atm_idx)
@@ -47,6 +47,13 @@ class CalphaMapping(object):
         """Create new trajectory"""
         ca_xyz = traj.xyz[:,self._ca_idxs[:,0],:]
         return md.Trajectory(ca_xyz, self.topology)
+
+    def _add_atomtypes(self):
+        name = "CA"
+        mass = 1
+        radius = 2.
+        charge = 1
+        self.atomtypes = [ atom_types.CoarseGrainAtomType(name, radius, mass, charge) ]
 
     def _residue_to_atom_contacts(self, residue_contacts):
         atm_contacts = []
@@ -76,6 +83,7 @@ class CalphaMapping(object):
     def _assign_sbm_contacts(self, ref_traj_aa):
         residue_contacts = cts.residue_contacts(ref_traj_aa)
         self._contact_pairs = self._residue_to_atom_contacts(residue_contacts)
+
 
 class CalphaCbetaMapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""
@@ -170,6 +178,9 @@ class CalphaCbetaMapping(object):
         pass
 
     def _assign_sbm_dihedrals(self):
+        pass
+
+    def _add_atomtypes(self):
         pass
         
 
