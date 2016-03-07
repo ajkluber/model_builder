@@ -1,7 +1,6 @@
+import numpy as np
 
 SUPPORTED_VERSIONS = ["4.5.4","4.5.4_sbm","4.6.5","4.6.5_sbm"]
-
-
 
 class GromacsFiles(object):
 
@@ -36,9 +35,9 @@ class GromacsFiles(object):
         self._tabled_pots = []
         self._tables = []
         self._tablenames = []
-        for i in range(self.model.Hamiltonia.n_pairs):
+        for i in range(self.model.Hamiltonian.n_pairs):
             pot = self.model.Hamiltonian._pairs[i]
-            if pot.prefix_label not in self._supported_pair_interactions:  
+            if pot.prefix_label not in self._supported_pair_potentials:
                 self._tabled_pots.append(pot)
 
                 table_name = "table_b{}.xvg".format(len(self._tabled_pots) + 1)
@@ -70,6 +69,17 @@ class GromacsFiles(object):
     def write_simulation_files(self):
         pass
 
+    def _get_atomtypes_top(self):
+        """ Generate the [ atoms ] top."""
+        atomtypes_top = " [ atomtypes ]\n"
+        atomtypes_top += " ;name  mass  charge  ptype       c6       c12\n"
+        for atomtype in self.model.mapping.atomtypes:
+            #" CA     1.000    0.000 A    0.000   1.677721600e-05"
+            atomtypes_top += " {}  {:>8.3f}{:>8.3f} {} {:>18.9e}{:>18.9e}\n".format(
+                            atomtype.name, atomtype.mass, atomtype.charge,
+                            atomtype.ptype, atomtype.c6, atomtype.c12)
+        return atomtypes_top
+
     def _get_atoms_top(self):
         """ Generate the [ atoms ] top."""
         top = self.model.mapping.topology
@@ -94,11 +104,14 @@ class GromacsFiles(object):
     def _get_tabled_top(self):
         """ Generate the topology files to specify table interactions. """
         # Add special nonbonded table interactions. 
-        tabled_string = "; tabled interactions pairs below\n"
-        for i in range(self._n_tables):
-            pot = self._tabled_pots[i]
-            tabled_string += "{:>6} {:>6}{:>2}{:>18}{:>18.9e}\n".format(
-                          pot.atmi.index, pot.atmj.index, 9, i + 1, 1)
+        if self._n_tables != 0:
+            tabled_string = "; tabled interactions pairs below\n"
+            for i in range(self._n_tables):
+                pot = self._tabled_pots[i]
+                tabled_string += "{:>6} {:>6}{:>2}{:>18}{:>18.9e}\n".format(
+                              pot.atmi.index + 1, pot.atmj.index + 1, 9, i + 1, 1)
+        else:
+            tabled_string = ""
         return tabled_string
 
     def _get_angles_top(self):
@@ -141,7 +154,7 @@ class GromacsFiles(object):
             pot = self.model.Hamiltonian._pairs[i]
             # How are LJ126 interactions defined?
             if pot not in self._tabled_pots:
-                atm_idxs = "{:>6} {:>6}".format(pot.atmi.index, pot.atmj.index)
+                atm_idxs = "{:>6} {:>6}".format(pot.atmi.index + 1, pot.atmj.index + 1)
                 if pot.prefix_label == "LJ1210":
                     func = 1
                     c12 = pot.eps*5.0*(pot.r0**12)
@@ -168,23 +181,25 @@ class GromacsFiles(object):
         """ Get [ exclusions ] top""" 
         exclusions_top = " [ exclusions ]\n"
         for pot in self.model.Hamiltonian.pairs:
-            exclusions_top += "{:>6} {:>6}".format(pot.atmi.index, pot.atmj.index)
+            exclusions_top += "{:>6} {:>6}\n".format(pot.atmi.index + 1, pot.atmj.index + 1)
         return exclusions_top
 
     def generate_topology(self):
         """ Return a structure-based topology file. Currently only for one molecule. """
 
+        self._generate_interaction_tables()
+
         top =  " ; Structure-based  topology file for Gromacs:\n"
         top += " [ defaults ]\n"
         top += " ;nbfunc comb-rule gen-pairs\n"
         top += "      1           1 no\n\n"
-        #top += self.atomtypes_top #TODO
+        top += "{}\n".format(self._get_atomtypes_top())
         top += " [ moleculetype ]\n"
         top += " ;name   nrexcl\n"
         top += " Macromolecule           3\n\n"
 
         top += "{}\n".format(self._get_atoms_top())
-        top += "{}\n".format(self._get_bonds_top())
+        top += "{}".format(self._get_bonds_top())
         top += "{}\n".format(self._get_tabled_top())
         top += "{}\n".format(self._get_angles_top())
         top += "{}\n".format(self._get_dihedrals_top())
@@ -196,6 +211,6 @@ class GromacsFiles(object):
         top += " Macromolecule\n\n"
         top += " [ molecules ]\n"
         top += " ; name molec \n"
-        top += " Macromolecule 1\n\n"
+        top += " Macromolecule 1\n\n" # Need to account for multiple molecules (?)
 
         self.topfile = top
