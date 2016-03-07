@@ -198,7 +198,6 @@ class LJ12GaussianPotential(PairPotential,LJ12Potential,GaussianPotential):
         self.width = width
 
     def V(self, r):
-        
         return ((self.rNC/r)**12)*(1. + GaussianPotential.dVdeps(self, r)) +\
                 GaussianPotential.V(self, r)
 
