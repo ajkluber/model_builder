@@ -239,7 +239,6 @@ def modify_pairs_exclusions(residue_contacts, long_short_list, repeat_long_list,
             exc = exclusions_file[i]
 
             if long_short_list[i]==0:
-                
                 short_pairs_file.write('{0:4d}   {1:4d}    {2:2d}    {3:2.12e}   {4:2.12e}   {5:2.12e}   {6:2.12e}\n'.format(int(pair[0]),int(pair[1]),int(pair[2]),pair[3],pair[4],pair[5],pair[6]))
                 new_exclusions_file.write('{0:4d}   {1:4d}\n'.format(int(exc[0]),int(exc[1])))
 

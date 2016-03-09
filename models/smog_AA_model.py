@@ -148,26 +148,54 @@ class smog_AA_model(object):
         # Clean pdb for mutations
         self.pdb = self.name +'.pdb'
         self.cleanpdb_full = pdb_parser.get_clean_full(self.pdb)
-        
-    def update_model_param_values(self,new_model_param_values):
-        """ If parameter changed sign, change the pairwise interaction type """
+
+#    def update_model_param_values(self,new_model_param_values):
+#        """ If parameter changed sign, change the pairwise interaction type """
         # Switching between different interaction function types
-        potential_type_switch = {2:3,3:2,5:9,9:5}
+#        potential_type_switch = {2:3,3:2,5:9,9:5}
     
         # Loop over fitting_params only 
-        for i in range(self.n_long_fitting_params):
-            p_idx = self.long_fitting_params[i]
-            if new_model_param_values[i] < 0.:
+#        for i in range(self.n_long_fitting_params):
+#            p_idx = self.long_fitting_params[i]
+#            if new_model_param_values[i] < 0.:
                     # If parameter changes sign then the pairwise_type is flipped.
-                self.long_pairwise_type[p_idx] = potential_type_switch[self.long_pairwise_type[p_idx]]
-            else:
-                pass
+#                self.long_pairwise_type[p_idx] = potential_type_switch[self.long_pairwise_type[p_idx]]
+#            else:
+#                pass
                 # Model parameters are always positive
-            self.long_model_param_values[p_idx] = abs(new_model_param_values[i])   
+#            self.long_model_param_values[p_idx] = abs(new_model_param_values[i])   
 
         # Refresh everything that depends on model parameters
-        self._determine_tabled_interactions()
-        self._set_nonbonded_interactions()
+#        self._determine_tabled_interactions()
+#        self._set_nonbonded_interactions()
+#        self._determine_debye_huckel()
+
+######
+ 
+##  UPDATE THIS FUNCTION TO REFLECT NEW POTENTIAL (DESOLVATION-LIKE)  ##
+
+######
+    def update_model_param_values(self,new_model_param_values):
+        """ If parameter changed sign, change the pairwise interaction type """
+        # Switching between different interaction function types                                                                  
+        potential_type_switch = {2:3,3:2,5:9,9:5}
+
+        # Loop over fitting_params only                                                                                           
+#        for i in range(self.n_long_fitting_params):
+#            p_idx = self.long_fitting_params[i]
+#            if new_model_param_values[i] < 0.:
+                    # If parameter changes sign then the pairwise_type is flipped.                                                
+#                self.long_pairwise_type[p_idx] = potential_type_switch[self.long_pairwise_type[p_idx]]
+#            else:
+#                pass
+                # Model parameters are always positive                                                                            
+#            self.long_model_param_values[p_idx] = abs(new_model_param_values[i])
+
+        # Refresh everything that depends on model parameters                                                                     
+#        self._determine_tabled_interactions()
+#        self._set_nonbonded_interactions()
+        self._determine_debye_huckel()
+
 
     def save_simulation_files(self,savetables=True):
         """ Write all needed simulation files. """
@@ -254,7 +282,10 @@ class smog_AA_model(object):
  # File to save model parameters                                                                                                                      
 ##### TO-DO : GENERATE TANG INTERACTION TABLES           
             self._generate_interaction_tables()
-            
+
+    def _determine_debye_huckel(self):
+
+        
     def _generate_interaction_tables(self):
         """ Generates tables of user-defined potentials                                                                                                                                                                              
         """

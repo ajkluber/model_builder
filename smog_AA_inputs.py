@@ -173,7 +173,8 @@ def load_fitting_section(config,modelopts,fittingopts):
                     value = [ float(x) for x in re.split(",\s+|\s+", value.strip("[ | ]"))] 
                 elif item == "simplify_lambdas":
                     value = value in bool_valid_check
-
+                elif item == "ionic_strength":
+                    value = float(value)
                 fittingopts[item] = value
                         
 #############################################################################
@@ -184,7 +185,8 @@ def _empty_fitting_opts():
     opts = ["data_type","include_dirs","solver",
             "iteration","n_processors","queue"
             "allow_switch","parameters_to_fit",
-            "nonnative","last_completed_task","cutoffs","simplify_lambdas"]         
+            "nonnative","last_completed_task","cutoffs","simplify_lambdas",
+            "ionic_strength"]         
     fittingopts = { opt:None for opt in opts }
     fittingopts["simplify_lambdas"] = False
     return fittingopts
