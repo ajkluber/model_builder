@@ -72,9 +72,8 @@ class GromacsFiles(object):
     def _get_atomtypes_top(self):
         """ Generate the [ atoms ] top."""
         atomtypes_top = " [ atomtypes ]\n"
-        atomtypes_top += " ;name  mass  charge  ptype       c6       c12\n"
+        atomtypes_top += " ;name   mass  charge ptype      c6               c12\n"
         for atomtype in self.model.mapping.atomtypes:
-            #" CA     1.000    0.000 A    0.000   1.677721600e-05"
             atomtypes_top += " {}  {:>8.3f}{:>8.3f} {} {:>18.9e}{:>18.9e}\n".format(
                             atomtype.name, atomtype.mass, atomtype.charge,
                             atomtype.ptype, atomtype.c6, atomtype.c12)
@@ -84,7 +83,7 @@ class GromacsFiles(object):
         """ Generate the [ atoms ] top."""
         top = self.model.mapping.topology
         atoms_top = " [ atoms ]\n"
-        atoms_top += " ;nr  type  resnr residue atom  cgnr charge  mass\n"
+        atoms_top += " ;  nr  type resnr  res atom   cgnr  charge    mass\n"
         for atom in top.atoms:
             atoms_top += " {:>5d}{:>4}{:>8d}{:>5}{:>4}{:>8}{:>8.3f}{:>8.3f}\n".format(
                                 atom.index + 1, atom.name, atom.residue.index + 1, 
@@ -94,7 +93,7 @@ class GromacsFiles(object):
     def _get_bonds_top(self):
         """ Generate the [ bonds ] top."""
         bonds_top = " [ bonds ]\n"
-        bonds_top += " ; ai aj func r0(nm) Kb\n"
+        bonds_top += " ;  ai     aj func     r0(nm)            Kb\n"
         for bond in self.model.Hamiltonian.bonds:
             func = self._bond_funcs[bond.prefix_label]
             bonds_top += "{:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}\n".format(
@@ -117,23 +116,24 @@ class GromacsFiles(object):
     def _get_angles_top(self):
         """ Generate the [ angles ] top."""
         angles_top = " [ angles ]\n"
-        angles_top += " ; ai  aj  ak  func  th0(deg)   Ka\n"
+        angles_top += " ;  ai     aj     ak func     th0(deg)            Ka\n"
         for angle in self.model.Hamiltonian.angles:
             func = self._angle_funcs[angle.prefix_label]
             angles_top += "{:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}\n".format(
                             angle.atmi.index + 1, angle.atmj.index + 1, 
                             angle.atmk.index + 1, func, 
                             angle.theta0, angle.ka)
+        return angles_top
 
     def _get_dihedrals_top(self):
         """ Generate the [ dihedrals ] top."""
         dihedrals_top = " [ dihedrals ]\n"
-        dihedrals_top += " ; ai  aj  ak al  func  phi0(deg)   Kd mult\n"
+        dihedrals_top += " ;  ai     aj     ak     al func    phi0(deg)           Kd        (mult)\n"
         for dih in self.model.Hamiltonian.dihedrals:
             func = self._dihedral_funcs[dih.prefix_label]
             #self._dihedrals_top += "%6d %6d %6d %6d%2d%18.9e%18.9e%2d\n" %  \
             if dih.prefix_label == "COSINE_DIHEDRAL":
-                dihedrals_top += "{:>6} {:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}\n".format(
+                dihedrals_top += "{:>6} {:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}{:>3d}\n".format(
                                 dih.atmi.index + 1, dih.atmj.index + 1,
                                 dih.atmk.index + 1, dih.atml.index + 1,
                                 func, dih.phi0, dih.kd, dih.mult)
@@ -149,10 +149,10 @@ class GromacsFiles(object):
     def _get_pairs_top(self):
         """ Get the [ pairs ] top for SBM Gromacs """
         pairs_top = " [ pairs ]\n"
-        pairs_top += " ;    i     j  type    c10      c12  \n"
+        pairs_top += " ;   i      j type      c10               c12  \n"
         for i in range(self.model.Hamiltonian.n_pairs):
             pot = self.model.Hamiltonian._pairs[i]
-            # How are LJ126 interactions defined?
+            # How are LJ126 interactions defined? By atomtypes(?)
             if pot not in self._tabled_pots:
                 atm_idxs = "{:>6} {:>6}".format(pot.atmi.index + 1, pot.atmj.index + 1)
                 if pot.prefix_label == "LJ1210":
@@ -176,6 +176,7 @@ class GromacsFiles(object):
                 else:
                     print "Warning: interaction is not supported: {}".format(pot.describe())
                 pairs_top += "{}{:>2}{}\n".format(atm_idxs, func, params)
+        return pairs_top
     
     def _get_exclusions_top(self):
         """ Get [ exclusions ] top""" 
@@ -191,11 +192,11 @@ class GromacsFiles(object):
 
         top =  " ; Structure-based  topology file for Gromacs:\n"
         top += " [ defaults ]\n"
-        top += " ;nbfunc comb-rule gen-pairs\n"
+        top += " ;nbfunc    comb-rule gen-pairs\n"
         top += "      1           1 no\n\n"
         top += "{}\n".format(self._get_atomtypes_top())
         top += " [ moleculetype ]\n"
-        top += " ;name   nrexcl\n"
+        top += " ;name                 nrexcl\n"
         top += " Macromolecule           3\n\n"
 
         top += "{}\n".format(self._get_atoms_top())
@@ -207,10 +208,10 @@ class GromacsFiles(object):
         top += "{}\n".format(self._get_exclusions_top())
 
         top += " [ system ]\n"
-        top += " ; name\n"
+        top += " ;   name\n"
         top += " Macromolecule\n\n"
         top += " [ molecules ]\n"
-        top += " ; name molec \n"
+        top += " ;   name      n_molec \n"
         top += " Macromolecule 1\n\n" # Need to account for multiple molecules (?)
 
         self.topfile = top
