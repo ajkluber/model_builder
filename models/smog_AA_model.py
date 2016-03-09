@@ -194,7 +194,6 @@ class smog_AA_model(object):
         # Refresh everything that depends on model parameters                                                                     
         self._determine_tabled_interactions()
         self._set_nonbonded_interactions()
-        self._determine_debye_huckel()
 
 
     def save_simulation_files(self,savetables=True):
@@ -205,22 +204,22 @@ class smog_AA_model(object):
         smog_files = glob('{0}/{1}/smog_files/*'.format(self.path,self.name))                                              
         for item in smog_files:                                                                                                 
             shutil.copy(item,cwd)   
-        os.remove("smog_pairs_l.top")
-        os.remove("smog_pairs_long")
-        os.remove("smog_bonds_rep.top")
+        #os.remove("smog_pairs_l.top")
+        #os.remove("smog_pairs_long")
+        #os.remove("smog_bonds_rep.top")
         if os.path.isfile('frame.gro'):
             shutil.move('smog.gro','crystal.gro')
             shutil.move('frame.gro','smog.gro')
-        open("smog_pairs_long","w").write(self.long_pairs_file_string)
-        open("smog_pairs_l.top","w").write(self.long_pairs_top_string)
-        open("smog_bonds_rep.top","w").write(self.long_bonds_rep_string)
+        #open("smog_pairs_long","w").write(self.long_pairs_file_string)
+        #open("smog_pairs_l.top","w").write(self.long_pairs_top_string)
+        #open("smog_bonds_rep.top","w").write(self.long_bonds_rep_string)
 
-        if savetables:
+        #if savetables:
             # Save needed table files                                               
-            np.savetxt("table.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
-            np.savetxt("tablep.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
-            for i in range(self.n_tables):
-                np.savetxt(self.tablenames[i],self.tables[i],fmt="%16.15e",delimiter=" ")
+         #   np.savetxt("table.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
+          #  np.savetxt("tablep.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
+           # for i in range(self.n_tables):
+            #    np.savetxt(self.tablenames[i],self.tables[i],fmt="%16.15e",delimiter=" ")
                     
 
     def _determine_tabled_interactions(self):
@@ -283,9 +282,6 @@ class smog_AA_model(object):
 ##### TO-DO : GENERATE TANG INTERACTION TABLES           
             self._generate_interaction_tables()
 
-    def _determine_debye_huckel(self):
-        pass
-
     def _generate_interaction_tables(self):
         """ Generates tables of user-defined potentials                                                                                                                                                                              
         """
@@ -320,6 +316,25 @@ class smog_AA_model(object):
         table[:5,1:] = 0
         table[0,0] = 0
         return table
+
+    def _get_debye_hueckel_table(self,temp,ionic_strength=0.1,rel_permitivity=80.):
+        T = temp                                    # K
+        I = ionic_strength*(10**(-27))              # mol/nm^3
+        eps_r = rel_permitivity                     # dimensionless
+        eps_0 = 0.00057277                          #(mol.e^2)/(kJ.nm)
+        k_B = 1.380648*(10**(-26))                  # kJ/(mol.K)
+        #eps_0 uses units of e^2 so no need to input the value of e (it cancels out)
+        const = np.sqrt((eps_r*eps_0*k_B*T)/(2*I))  # nm, Debye's length (should be around ~30.4 nm in 25C water, I = 0.1 M, 1:1 ions)
+
+        r = np.arange(0.0,70.0,0.002)               # nm, which is Gromac's unit
+        r[0] = 1
+        table = np.zeros((len(r),7),float)
+        table[:,0] = r
+        table[10:,1] = (np.exp(-r[10:]/const))/(r[10:]*eps_r) #Gromacs already multiplies everything by a factor of (Zi*Zj)/(4*Pi*eps_0)
+        table[10:,2] = -(np.exp(-r[10:]/const))/(r[10:]*eps_r)*(1./const+1./r[10:])
+        table[0,0] = 0
+
+        np.savetxt("table.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
 
     def _get_tabled_string(self):
 
