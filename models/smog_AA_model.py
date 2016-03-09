@@ -280,7 +280,10 @@ class smog_AA_model(object):
 
  # File to save model parameters                                                                                                                      
 ##### TO-DO : GENERATE TANG INTERACTION TABLES           
-            self._generate_interaction_tables()
+
+###### THIS FUNCTION DISABLED FOR THE TIME BEING
+
+#            self._generate_interaction_tables()
 
     def _generate_interaction_tables(self):
         """ Generates tables of user-defined potentials                                                                                                                                                                              
@@ -334,7 +337,7 @@ class smog_AA_model(object):
         table[10:,2] = -(np.exp(-r[10:]/const))/(r[10:]*eps_r)*(1./const+1./r[10:])
         table[0,0] = 0
 
-        np.savetxt("table.xvg",self.tablep,fmt="%16.15e",delimiter=" ")
+        np.savetxt("table.xvg",table,fmt="%16.15e",delimiter=" ")
 
     def _get_tabled_string(self):
 
