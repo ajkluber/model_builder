@@ -284,8 +284,8 @@ class smog_AA_model(object):
             self._generate_interaction_tables()
 
     def _determine_debye_huckel(self):
+        pass
 
-        
     def _generate_interaction_tables(self):
         """ Generates tables of user-defined potentials                                                                                                                                                                              
         """
