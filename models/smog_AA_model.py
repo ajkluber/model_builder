@@ -192,8 +192,8 @@ class smog_AA_model(object):
 #            self.long_model_param_values[p_idx] = abs(new_model_param_values[i])
 
         # Refresh everything that depends on model parameters                                                                     
-#        self._determine_tabled_interactions()
-#        self._set_nonbonded_interactions()
+        self._determine_tabled_interactions()
+        self._set_nonbonded_interactions()
         self._determine_debye_huckel()
 
 
