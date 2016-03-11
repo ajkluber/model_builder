@@ -215,3 +215,4 @@ class GromacsFiles(object):
         top += " Macromolecule 1\n\n" # Need to account for multiple molecules (?)
 
         self.topfile = top
+

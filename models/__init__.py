@@ -9,8 +9,6 @@ StructureBasedModel
 
 import numpy as np
 
-import mdtraj as md
-
 import output
 
 import structure.mappings as mpg
