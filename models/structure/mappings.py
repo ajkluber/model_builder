@@ -1,3 +1,13 @@
+"""Convert all-atom to coarse-grain representation
+
+
+
+"""
+
+# TODO: 
+# - Finish CACB mapping.
+
+
 import numpy as np
 
 import mdtraj as md
@@ -9,8 +19,22 @@ import contacts as cts
 import atom_types
 
 class CalphaMapping(object):
-    """Calpha representation mapping"""
+    r"""Calpha representation mapping"""
+
     def __init__(self, topology):
+        r"""Calpha representation mapping
+
+        Maps an all-atom representation to just the C-alpha's of the backbone.
+
+        Holds default assignment of .
+
+        Parameters
+        ----------
+        topology : mdtraj.Topology object
+
+        """
+
+
         self._ref_topology = topology.copy()
 
         # Build new topology
@@ -175,7 +199,32 @@ class CalphaCbetaMapping(object):
         return atm_contacts
 
     def _assign_sbm_angles(self):
-        pass
+
+        self._angles = []
+        for chain in self.topology.chains:
+            # CA-CA-CA angles first
+            ca_atoms = [ atom for atom in chain.atoms if atom.name == "CA" ]
+            for i in range(len(ca_atoms) - 2):
+                self._angles.append((ca_atoms[i], ca_atoms[i + 1], ca_atoms[i + 2]))
+
+            # CA-CA-CB and CB-CA-CA angles next
+            for res in chain.residues:
+                if res.name != "GLY":
+                    ca = res.atom(0)
+                    cb = res.atom(1)
+                    if res.index == 0:
+                        # if terminal
+                        next_ca = chain.residue(res.index + 1).atom(0)
+                        self._angles.append((cb, ca, next_ca))
+                    elif (res.index + 1) == chain.n_residues:
+                        # if terminal
+                        prev_ca = chain.residue(res.index - 1).atom(0)
+                        self._angles.append((prev_ca, ca, cb))
+                    else:
+                        prev_ca = chain.residue(res.index - 1).atom(0)
+                        next_ca = chain.residue(res.index + 1).atom(0)
+                        self._angles.append((prev_ca, ca, cb))
+                        self._angles.append((cb, ca, next_ca))
 
     def _assign_sbm_dihedrals(self):
         pass
