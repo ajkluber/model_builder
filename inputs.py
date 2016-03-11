@@ -45,13 +45,13 @@ def load_model(name,dry_run=False):
     #Check pairs. If no pairs are made, default to using the 
     if modelopts["pairs"] == None:
         if modelopts["pairwise_params_file"] == None:
-            model.Hamiltonian.add_sbm_potentials(model)
+            model.add_sbm_potentials()
         else:
-            model.Hamiltonian.add_sbm_backbone(model)
+            model.add_sbm_backbone()
             ##need to add in pairwise param parsing
     else:
-        model.mapping._add_pairs(np.loadtxt(modelopts["pairs"]))
-        model.potential._add_sbm_contacts(model)     
+        model.add_pairs(np.loadtxt(modelopts["pairs"]))
+        model.add_sbm_contacts()     
     
 
     
