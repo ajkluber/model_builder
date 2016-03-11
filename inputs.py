@@ -8,8 +8,7 @@ import ConfigParser
 import mdtraj
 
 
-import models.StructureBasedModel as SBM
-
+from models import StructureBasedModel as SBM
 
 #############################################################################
 # Helper functions to load in models from .ini files
@@ -19,7 +18,7 @@ def load_model(name,dry_run=False):
     modelopts, fittingopts = load_config(name)
     modelopts["dry_run"] = dry_run
     topology = mdtraj.load(modelopts["topology"]).topology
-    model = sbm(topology, bead_repr=modelopts["bead_repr"])
+    model = SBM(topology, bead_repr=modelopts["bead_repr"])
     return model,fittingopts
 
 def load_models(names,dry_run=False):
@@ -35,10 +34,11 @@ def load_models(names,dry_run=False):
 
 def load_config(name):
     """Parse options from <name>.ini file"""
-    if not os.path.exists("%s.ini" % name):
-        raise IOError("%s.ini doesn't exist!" % name)
+     
+    if not os.path.exists("%s" % name):
+        raise IOError("%s doesn't exist!" % name)
     config = ConfigParser.SafeConfigParser(allow_no_value=True)
-    config.read("%s.ini" % name)
+    config.read("%s" % name)
 
     # Populate all fields as None 
     modelopts = _empty_model_opts()
