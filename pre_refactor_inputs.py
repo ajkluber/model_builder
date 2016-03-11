@@ -1,19 +1,56 @@
-""" Check inputs for making a CoarseGrainedModel """
-
-import numpy as np
-import re
-import os
-import shutil
-import ConfigParser
-import mdtraj
-
-
 import models.StructureBasedModel as SBM
 
 
 #############################################################################
 # Helper functions to load in models from .ini files
 #############################################################################
+def save_model(model,fitopts):
+    name = model.name
+    config = ConfigParser.SafeConfigParser(allow_no_value=True)
+    config.add_section("model")
+    config.add_section("fitting")
+    modelkeys = ["name","bead_repr","disulfides","pairs_file",
+                "pairwise_params_file_location","model_params_file_location",
+                "defaults","cb_volume","n_native_pairs","contact_type",
+                "backbone_param_vals","starting_gro","simple_disulfides",
+                "verbose","using_sbm_gmx"]
+    
+    #special formatting options
+    possible_formats = ["FRET"]
+    special_fitting_checks = {"FRET":FRET_fitopts_save}
+    check_special=False
+    if "data_type" in fitopts:
+        if fitopts["data_type"] in possible_formats:
+            check_function = special_fitting_checks[fitopts["data_type"]] 
+            check_special = True
+            
+    # Save fitting options that aren't None.
+    for key in fitopts.iterkeys():
+        if fitopts[key] not in [None,""]:
+            if key == "include_dirs":
+                temp = ""
+                for dir in fitopts["include_dirs"]:
+                    temp += "%s " % dir
+                config.set("fitting",key,temp)
+            
+            else:
+                config.set("fitting",key,str(fitopts[key]))
+            if check_special:
+                check_function(key, fitopts[key], config)    
+    # Save model options that aren't None.
+    for key in modelkeys:
+        value = getattr(model,key)
+        if value not in [None,""]:
+            if key in ["pairwise_params_file_location","model_params_file_location"]:
+                config.set("model",key.split("_location")[0],str(value))
+            else:
+                config.set("model",key,str(value))
+
+    if os.path.exists("%s.ini" % name):
+        shutil.move("%s.ini" % name,"%s.1.ini" % name)
+
+    with open("%s.ini" % name,"w") as cfgfile:
+        config.write(cfgfile)
 
 def load_model(name,dry_run=False):
     modelopts, fittingopts = load_config(name)
@@ -33,6 +70,50 @@ def load_models(names,dry_run=False):
         Fittingopts.append(fittingopts)
     return Models,Fittingopts
 
+def new_models(names):
+    """ Create new models with inputted options."""
+    Models = []
+    Fittingopts = []
+    for name in names:
+        modelopts, fittingopts = load_config(name)
+        model = cg.CoarseGrainedModel(**modelopts)
+        Models.append(model)
+        Fittingopts.append(fittingopts)
+    return Models,Fittingopts
+
+def new_model_from_config(name):
+    """ Create new models with inputted options."""
+    modelopts, fittingopts = load_config(name)
+    model = cg.CoarseGrainedModel(**modelopts)
+    return model
+
+def get_pairwise_params(pairwise_params_file,model_params_file):
+    """ Grab pairwise_params from file. """
+    model_param_values = np.loadtxt(model_params_file)
+
+    p_lines = [ x.rstrip("\n") for x in open(pairwise_params_file,"r").readlines() ]
+
+    pairs = []
+    pairwise_param_assignment = []
+    pairwise_type = [] 
+    pairwise_other_params = []
+
+    for p in p_lines[1:]:
+        data = p.split() 
+        pairs.append([int(data[0]),int(data[1])])
+        pairwise_param_assignment.append(int(data[2]))
+        pairwise_type.append(int(data[3]))
+        temp = []
+        for otherparam in data[4:]:
+            temp.append(float(otherparam))
+        pairwise_other_params.append(tuple(temp))
+
+    pairs = np.array(pairs) 
+    pairwise_param_assignment = np.array(pairwise_param_assignment)
+    pairwise_type = np.array(pairwise_type)
+
+    return pairs,pairwise_param_assignment,model_param_values,pairwise_type,pairwise_other_params
+
 def load_config(name):
     """Parse options from <name>.ini file"""
     if not os.path.exists("%s.ini" % name):
@@ -48,7 +129,8 @@ def load_config(name):
     print "Options not shown default to None"
     load_model_section(config.items("model"),modelopts)
     load_fitting_section(config,modelopts,fittingopts)
-    #_add_pair_opts(modelopts) 
+    _add_pair_opts(modelopts) 
+    modelopts["pdb"] = "%s.pdb" % modelopts["name"]
     return modelopts,fittingopts
 
 def load_model_section(modelitems,modelopts):

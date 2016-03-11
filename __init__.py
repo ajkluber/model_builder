@@ -21,5 +21,6 @@ Example:
 
 import models
 import inputs
+load_model = inputs.load_model
 #import info_string
 import make_model
