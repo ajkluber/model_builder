@@ -15,6 +15,19 @@ from models import StructureBasedModel as SBM
 #############################################################################
 
 def load_model(name,dry_run=False):
+    """ Load a model from a config file.
+    
+    Constructs a models.Model class or one of its subclasses using the 
+    provided config file. 
+    
+    Args:
+        name(string): Full name of the config file to load
+        
+    Return:
+        Model: A Model object constructed from the config file
+        Dict.: List of fitting options
+    
+    """
     modelopts, fittingopts = load_config(name)
     modelopts["dry_run"] = dry_run
     topology = mdtraj.load(modelopts["topology"]).topology
