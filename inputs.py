@@ -28,16 +28,34 @@ def load_model(name,dry_run=False):
         Dict.: List of fitting options
     
     """
+    
+    #Load options and construct topology
     modelopts, fittingopts = load_config(name)
     modelopts["dry_run"] = dry_run
     top = mdtraj.load(modelopts["topology"])
     model = SBM(top.topology, bead_repr=modelopts["bead_repr"])
+    
+    #load a reference set to base a model off of
     if modelopts["reference"] == None:
         traj = top
     else:
         traj = md.load(modelopts["reference"])
+    model.set_reference(traj)
     
-    model.set_reference(traj)    
+    #Check pairs. If no pairs are made, default to using the 
+    if modelopts["pairs"] == None:
+        if modelopts["pairwise_params_file"] == None:
+            model.add_sbm_potentials()
+        else:
+            model.add_sbm_backbone()
+            ##need to add in pairwise param parsing
+    else:
+        model.add_pairs(np.loadtxt(modelopts["pairs"]))
+        model.add_sbm_contacts()     
+    
+
+    
+        
     
     return model,fittingopts
 

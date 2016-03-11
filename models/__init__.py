@@ -31,6 +31,9 @@ class Model(object):
 
     def save_starting_conf(self, saveas="conf.gro"):
         self.starting_traj.save(saveas)
+        
+    def add_pairs(self, pairs):
+        self.mapping._add_pairs(pairs)    
 
 class StructureBasedModel(Model):
 
@@ -51,3 +54,10 @@ class StructureBasedModel(Model):
 
     def add_sbm_potentials(self):
         self.Hamiltonian.add_sbm_potentials(self) 
+        
+    def add_sbm_backbone(self):
+        self.Hamiltonian.add_sbm_backbone(self)
+        
+    def add_sbm_contacts(self):
+        self.Hamiltonian._add_sbm_contacts(self)    
+        
