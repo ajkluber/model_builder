@@ -171,7 +171,7 @@ class GaussianPotential(PairPotential):
     def V(self, r):
         return self.eps*self.dVdeps(r)
 
-    def dVdeps(self, r)
+    def dVdeps(self, r):
         return -np.exp(-((r - self.r0)**2)/(2.*(self.width**2)))
 
     def dVdr(self, r):
@@ -187,7 +187,7 @@ class GaussianPotential(PairPotential):
         hash_value ^= hash(self.width)
         return hash_value
 
-class LJ12GaussianPotential(PairPotential,LJ12Potential,GaussianPotential):
+class LJ12GaussianPotential(PairPotential):
 
     def __init__(self, atmi, atmj, eps, rNC, r0, width):
         PairPotential.__init__(self, atmi, atmj)
