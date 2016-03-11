@@ -24,6 +24,15 @@ class GromacsFiles(object):
         self._supported_pair_potentials = ["LJ12", "LJ1210",
                                             "GAUSSIAN", "LJ12GAUSSIAN"]
 
+    def _generate_index_file(self):
+        top = self.model.mapping.topology
+        self.index_ndx = "[ System ]\n"
+        for i in range(top.n_atoms):
+            atom = top.atom(i)
+            self.index_ndx += "{:>4}".format(atom.index + 1)
+            if (i % 15) == 0:
+                self.index_ndx += "\n" 
+
     def _generate_interaction_tables(self):
         """Generates tables of user-defined potentials"""
 
