@@ -30,8 +30,15 @@ def load_model(name,dry_run=False):
     """
     modelopts, fittingopts = load_config(name)
     modelopts["dry_run"] = dry_run
-    topology = mdtraj.load(modelopts["topology"]).topology
-    model = SBM(topology, bead_repr=modelopts["bead_repr"])
+    top = mdtraj.load(modelopts["topology"])
+    model = SBM(top.topology, bead_repr=modelopts["bead_repr"])
+    if modelopts["reference"] == None:
+        traj = top
+    else:
+        traj = md.load(modelopts["reference"])
+    
+    model.set_reference(traj)    
+    
     return model,fittingopts
 
 def load_models(names,dry_run=False):
@@ -72,7 +79,7 @@ def load_model_section(modelitems,modelopts):
     
     #generic checks/handling of certain options
     check_boolean = ["using_sbm_gmx", "umbrella", "simple_disulfides"]
-    check_exists = ["topology", "starting_gro", "name"]
+    check_exists = ["topology", "starting_gro", "name", "reference"]
     
     print "Model options:"
     for item,value in modelitems:
@@ -182,7 +189,7 @@ def _empty_model_opts():
             "pairs","pairwise_other_parameters",
             "pairwise_param_assignment","n_processors",
             "pairwise_type","verbose","dry_run",
-            "using_sbm_gmx","umbrella", "topology"] 
+            "using_sbm_gmx","umbrella", "topology", "reference"] 
     modelopts = { opt:None for opt in opts }
     return modelopts
 
