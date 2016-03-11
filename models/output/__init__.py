@@ -32,6 +32,7 @@ class GromacsFiles(object):
             self.index_ndx += "{:>4}".format(atom.index + 1)
             if (i % 15) == 0:
                 self.index_ndx += "\n" 
+        self.index_ndx += "\n" 
 
     def _generate_interaction_tables(self):
         """Generates tables of user-defined potentials"""
@@ -198,6 +199,7 @@ class GromacsFiles(object):
         """ Return a structure-based topology file. Currently only for one molecule. """
 
         self._generate_interaction_tables()
+        self._generate_index_file()
 
         top =  " ; Structure-based  topology file for Gromacs:\n"
         top += " [ defaults ]\n"

@@ -275,7 +275,7 @@ class StructureBasedHamiltonian(Hamiltonian):
             code = self._default_potentials["angle"]
             for atm1, atm2, atm3 in structure._angles:
                 idxs = np.array([[atm1.index, atm2.index, atm3.index]])
-                theta0 = md.compute_angles(Model.ref_traj, idxs)[0][0]
+                theta0 = (180./np.pi)*md.compute_angles(Model.ref_traj, idxs)[0][0]
                 self._add_angle(code, atm1, atm2, atm3, ka, theta0)
         else:
             missing_reference_warning()
