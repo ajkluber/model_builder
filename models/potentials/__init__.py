@@ -163,6 +163,7 @@ class Hamiltonian(object):
     def _dihedral_idxs(self):
         return np.array([[ dih.atmi.index, dih.atmj.index,
                            dih.atmk.index, dih.atml.index] for dih in self.dihedrals ])
+
     @property
     def _pair_idxs(self):
         return np.array([[pair.atmi.index, pair.atmj.index] for pair in self.pairs ])
@@ -184,7 +185,7 @@ class Hamiltonian(object):
 
     def calc_angle_energy(self, traj, sum=True):
         """TODO Test"""
-        theta = md.compute_angles(traj, self._angles_idxs)
+        theta = (180./np.pi)*md.compute_angles(traj, self._angle_idxs)
         if sum:
             Eangle = np.zeros(traj.n_frames, float)
         else:
@@ -197,9 +198,13 @@ class Hamiltonian(object):
                 Eangle[:,i] = self._angles[i].V(theta[:,i])
         return Eangle
 
-    def calc_dihedral_energy(self, traj, sum=True):
+    def calc_dihedral_energy(self, traj, improper=False, sum=True):
         """TODO Test"""
-        phi = md.compute_dihedrals(traj, self._dihedrals_idxs)
+        if improper:
+            phi = (180./np.pi)*md.compute_dihedrals(traj, self._dihedral_idxs)
+        else:
+            phi = 180. + (180./np.pi)*md.compute_dihedrals(traj, self._dihedral_idxs)
+
         if sum:
             Edihedral = np.zeros(traj.n_frames, float)
         else:
@@ -214,7 +219,7 @@ class Hamiltonian(object):
 
     def calc_pair_energy(self, traj, sum=True):
         """TODO Test"""
-        r = md.compute_distances(traj, self._pairs_idxs)
+        r = md.compute_distances(traj, self._pair_idxs)
         if sum:
             Epair = np.zeros(traj.n_frames, float)
         else:
