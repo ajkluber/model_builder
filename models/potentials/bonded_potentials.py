@@ -172,10 +172,10 @@ class CosineDihedralPotential(DihedralPotential):
         return self.kd*self.d2Vdphidkd(phi)
 
     def dVdkd(self, phi):
-        return 1. + np.cos(self.mult*(phi - phi0))
+        return 1. + np.cos(self.mult*(phi - self.phi0))
 
     def d2Vdphidkd(self, phi): 
-        return -self.mult*np.sin(self.mult*(phi - phi0))
+        return -self.mult*np.sin(self.mult*(phi - self.phi0))
 
     def __hash__(self):
         hash_value = DihedralPotential.__hash__(self)
