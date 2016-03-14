@@ -151,48 +151,80 @@ class Hamiltonian(object):
         for p in pair_params:
             self._add_pair(p[0], p[1], p[2], p[3:])
 
-    def calc_bond_energy(self, traj):
+    @property
+    def _bond_idxs(self):
+        return np.array([[bond.atmi.index, bond.atmj.index] for bond in self.bonds ])
+
+    @property
+    def _angle_idxs(self):
+        return np.array([[angle.atmi.index, angle.atmj.index, angle.atmk.index] for angle in self.angles ])
+
+    @property 
+    def _dihedral_idxs(self):
+        return np.array([[ dih.atmi.index, dih.atmj.index,
+                           dih.atmk.index, dih.atml.index] for dih in self.dihedrals ])
+    @property
+    def _pair_idxs(self):
+        return np.array([[pair.atmi.index, pair.atmj.index] for pair in self.pairs ])
+
+    def calc_bond_energy(self, traj, sum=True):
         """TODO Test"""
-        bond_idxs = np.array([[ bond.atmi.index, bond.atmj.index] for bond in self.bonds ])
-        r = md.compute_distances(traj, bond_idxs)
-        Ebond = np.zeros(traj.n_frames, float)
+        r = md.compute_distances(traj, self._bond_idxs)
+        if sum:
+            Ebond = np.zeros(traj.n_frames, float)
+        else:
+            Ebond = np.zeros((traj.n_frames, self.n_bonds), float)
+
         for i in range(self.n_bonds):
-            Ebond += self._bonds[i].V(r[:,i])
+            if sum:
+                Ebond += self._bonds[i].V(r[:,i])
+            else:
+                Ebond[:,i] = self._bonds[i].V(r[:,i])
         return Ebond
 
-        #Ebond = np.zeros(traj.n_frames, float)
-        #for bond in self.bonds:
-        #    r = np.linalg.norm(traj.xyz[:,bond.atmi.index,:] - \
-        #                        traj.xyz[:,bond.atmj.index,:],axis=1)
-        #    E += bond.V(r)
-        #return E
-
-    def calc_angle_energy(self, traj):
+    def calc_angle_energy(self, traj, sum=True):
         """TODO Test"""
-        angle_idxs = np.array([[ angle.atmi.index, angle.atmj.index, angle.atmk.index] for angle in self.angles ])
-        theta = md.compute_angles(traj, angles_idxs)
-        Eangle = np.zeros(traj.n_frames, float)
+        theta = md.compute_angles(traj, self._angles_idxs)
+        if sum:
+            Eangle = np.zeros(traj.n_frames, float)
+        else:
+            Eangle = np.zeros((traj.n_frames, self.n_angles), float)
+
         for i in range(self.n_angles):
-            Eangle += self._angles[i].V(theta[:,i])
+            if sum:
+                Eangle += self._angles[i].V(theta[:,i])
+            else:
+                Eangle[:,i] = self._angles[i].V(theta[:,i])
         return Eangle
 
-    def calc_dihedral_energy(self, traj):
+    def calc_dihedral_energy(self, traj, sum=True):
         """TODO Test"""
-        dihedral_idxs = np.array([[ dih.atmi.index, dih.atmj.index,
-                                     dih.atmk.index, dih.atml.index] for dih in self.dihedrals ])
-        phi = md.compute_dihedrals(traj, dihedrals_idxs)
-        Edihedral = np.zeros(traj.n_frames, float)
+        phi = md.compute_dihedrals(traj, self._dihedrals_idxs)
+        if sum:
+            Edihedral = np.zeros(traj.n_frames, float)
+        else:
+            Edihedral = np.zeros((traj.n_frames, self.n_dihedrals), float)
+
         for i in range(self.n_dihedrals):
-            Edihedral += self._dihedrals[i].V(phi[:,i])
+            if sum:
+                Edihedral += self._dihedrals[i].V(phi[:,i])
+            else:
+                Edihedral[:,i] = self._dihedrals[i].V(phi[:,i])
         return Edihedral
 
-    def calc_pair_energy(self, traj):
+    def calc_pair_energy(self, traj, sum=True):
         """TODO Test"""
-        pair_idxs = np.array([[pair.atmi.index, pair.atmj.index] for pair in self.pairs ])
-        r = md.compute_distances(traj, pairs_idxs)
-        Epair = np.zeros(traj.n_frames, float)
+        r = md.compute_distances(traj, self._pairs_idxs)
+        if sum:
+            Epair = np.zeros(traj.n_frames, float)
+        else:
+            Epair = np.zeros((traj.n_frames, self.n_pairs), float)
+
         for i in range(self.n_pairs):
-            Epair += self._pairs[i].V(r[:,i])
+            if sum:
+                Epair += self._pairs[i].V(r[:,i])
+            else:
+                Epair[:,i] = self._pairs[i].V(r[:,i])
         return Epair
 
     def define_contact_group(self, label, pairs):
