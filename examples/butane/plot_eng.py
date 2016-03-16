@@ -35,9 +35,9 @@ if __name__ == "__main__":
     traj = md.load("traj.xtc", top=top)
 
     # Get energy from simulation
-    Ebond_gmx = np.loadtxt("Ebond_gmx.xvg", usecols=(,1))
-    Eangle_gmx = np.loadtxt("Eangle_gmx.xvg", usecols=(,1))
-    Edih_gmx = np.loadtxt("Edih_gmx.xvg", usecols=(,1))
+    Ebond_gmx = np.loadtxt("Ebond_gmx.xvg", usecols=(1,))
+    Eangle_gmx = np.loadtxt("Eangle_gmx.xvg", usecols=(1,))
+    Edih_gmx = np.loadtxt("Edih_gmx.xvg", usecols=(1,))
     os.chdir("..")
     
     # calculate energy terms using model_builder
