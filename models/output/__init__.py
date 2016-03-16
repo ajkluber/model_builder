@@ -102,97 +102,119 @@ class GromacsFiles(object):
 
     def _get_bonds_top(self):
         """ Generate the [ bonds ] top."""
-        bonds_top = " [ bonds ]\n"
-        bonds_top += " ;  ai     aj func     r0(nm)            Kb\n"
-        for bond in self.model.Hamiltonian.bonds:
-            func = self._bond_funcs[bond.prefix_label]
-            bonds_top += "{:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}\n".format(
-                                bond.atmi.index + 1, bond.atmj.index + 1, func, bond.r0, bond.kb) 
+        if self.model.Hamiltonian.n_bonds == 0:
+            bonds_top = ""
+        else:
+            bonds_top = " [ bonds ]\n"
+            bonds_top += " ;  ai     aj func     r0(nm)            Kb\n"
+            for bond in self.model.Hamiltonian.bonds:
+                func = self._bond_funcs[bond.prefix_label]
+                bonds_top += "{:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}\n".format(
+                                    bond.atmi.index + 1, bond.atmj.index + 1,
+                                    func, bond.r0, bond.kb) 
         return bonds_top
 
     def _get_tabled_top(self):
         """ Generate the topology files to specify table interactions. """
         # Add special nonbonded table interactions. 
-        if self._n_tables != 0:
+        if self._n_tables == 0:
+            tabled_string = ""
+        else:
             tabled_string = "; tabled interactions pairs below\n"
             for i in range(self._n_tables):
                 pot = self._tabled_pots[i]
                 tabled_string += "{:>6} {:>6}{:>2}{:>18}{:>18.9e}\n".format(
                               pot.atmi.index + 1, pot.atmj.index + 1, 9, i + 1, 1)
-        else:
-            tabled_string = ""
         return tabled_string
 
     def _get_angles_top(self):
         """ Generate the [ angles ] top."""
-        angles_top = " [ angles ]\n"
-        angles_top += " ;  ai     aj     ak func     th0(deg)            Ka\n"
-        for angle in self.model.Hamiltonian.angles:
-            func = self._angle_funcs[angle.prefix_label]
-            angles_top += "{:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}\n".format(
-                            angle.atmi.index + 1, angle.atmj.index + 1, 
-                            angle.atmk.index + 1, func, 
-                            angle.theta0, angle.ka)
+        if self.model.Hamiltonian.n_angles == 0:
+            angles_top = ""
+        else:
+            angles_top = " [ angles ]\n"
+            angles_top += " ;  ai     aj     ak func     th0(deg)            Ka\n"
+            for angle in self.model.Hamiltonian.angles:
+                if angle.prefix_label == "HARMONIC_ANGLE":
+                    ka = angle.ka*((180./np.pi)**2)
+                    func = self._angle_funcs[angle.prefix_label]
+                    angles_top += "{:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}\n".format(
+                                    angle.atmi.index + 1, angle.atmj.index + 1, 
+                                    angle.atmk.index + 1, func, 
+                                    angle.theta0, ka)
         return angles_top
 
     def _get_dihedrals_top(self):
         """ Generate the [ dihedrals ] top."""
-        dihedrals_top = " [ dihedrals ]\n"
-        dihedrals_top += " ;  ai     aj     ak     al func    phi0(deg)           Kd        (mult)\n"
-        for dih in self.model.Hamiltonian.dihedrals:
-            func = self._dihedral_funcs[dih.prefix_label]
-            #self._dihedrals_top += "%6d %6d %6d %6d%2d%18.9e%18.9e%2d\n" %  \
-            if dih.prefix_label == "COSINE_DIHEDRAL":
-                dihedrals_top += "{:>6} {:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}{:>3d}\n".format(
-                                dih.atmi.index + 1, dih.atmj.index + 1,
-                                dih.atmk.index + 1, dih.atml.index + 1,
-                                func, dih.phi0, dih.kd, dih.mult)
-            elif dih.prefix_label == "HARMONIC_DIHEDRAL":
-                dihedrals_top += "{:>6} {:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}\n".format(
-                                dih.atmi.index + 1, dih.atmj.index + 1,
-                                dih.atmk.index + 1, dih.atml.index + 1,
-                                func, dih.phi0, dih.kd)
-            else:
-                print "Warning: unknown dihedral interaction for: {}".format(dih.describe())
+        if self.model.Hamiltonian.n_dihedrals == 0:
+            dihedrals_top = ""
+        else:
+            dihedrals_top = " [ dihedrals ]\n"
+            dihedrals_top += " ;  ai     aj     ak     al func    phi0(deg)           Kd        (mult)\n"
+            for dih in self.model.Hamiltonian.dihedrals:
+                func = self._dihedral_funcs[dih.prefix_label]
+                if dih.prefix_label == "COSINE_DIHEDRAL":
+                    phi_s = dih.mult*dih.phi0*(180./np.pi) - 180.
+                    dihedrals_top += "{:>6} {:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}{:>3d}\n".format(
+                                    dih.atmi.index + 1, dih.atmj.index + 1,
+                                    dih.atmk.index + 1, dih.atml.index + 1,
+                                    func, phi_s, dih.kd, dih.mult)
+                elif dih.prefix_label == "HARMONIC_DIHEDRAL":
+                    phi_s = dih.phi0*(180./np.pi)
+                    #kd = dih.kd*((np.pi/180.)**2) 
+                    kd = dih.kd 
+                    dihedrals_top += "{:>6} {:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}\n".format(
+                                    dih.atmi.index + 1, dih.atmj.index + 1,
+                                    dih.atmk.index + 1, dih.atml.index + 1,
+                                    func, phi_s, kd)
+                else:
+                    print "Warning: unknown dihedral interaction for: {}".format(dih.describe())
         return dihedrals_top
 
     def _get_pairs_top(self):
         """ Get the [ pairs ] top for SBM Gromacs """
-        pairs_top = " [ pairs ]\n"
-        pairs_top += " ;   i      j type      c10               c12  \n"
-        for i in range(self.model.Hamiltonian.n_pairs):
-            pot = self.model.Hamiltonian._pairs[i]
-            # How are LJ126 interactions defined? By atomtypes(?)
-            if pot not in self._tabled_pots:
-                atm_idxs = "{:>6} {:>6}".format(pot.atmi.index + 1, pot.atmj.index + 1)
-                if pot.prefix_label == "LJ1210":
-                    func = 1
-                    c12 = pot.eps*5.0*(pot.r0**12)
-                    c10 = pot.eps*6.0*(pot.r0**10)
-                    params = "{:>18.9e}{:>18.9e}".format(c10, c12)
-                elif pot.prefix_label == "LJ12":
-                    func = 1
-                    c12 = pot.eps*(pot.r0**12)
-                    c10 = 0
-                    params = "{:>18.9e}{:>18.9e}".format(c10, c12)
-                elif pot.prefix_label == "GAUSSIAN":
-                    func = 5
-                    params = "{:>18.9e}{:>18.9e}{:>18.9e}".format(
-                                pot.eps, pot.r0, pot.width)
-                elif pot.prefix_label == "LJ12GAUSSIAN":
-                    func = 6
-                    params = "{:>18.9e}{:>18.9e}{:>18.9e}{:>18.9e}".format(
-                                pot.eps, pot.r0, pot.width, pot.rNC)
-                else:
-                    print "Warning: interaction is not supported: {}".format(pot.describe())
-                pairs_top += "{}{:>2}{}\n".format(atm_idxs, func, params)
+        if self.model.Hamiltonian.n_pairs == 0:
+            pairs_top = ""
+        else:
+            pairs_top = " [ pairs ]\n"
+            pairs_top += " ;   i      j type      c10               c12  \n"
+            for i in range(self.model.Hamiltonian.n_pairs):
+                pot = self.model.Hamiltonian._pairs[i]
+                # How are LJ126 interactions defined? By atomtypes(?)
+                if pot not in self._tabled_pots:
+                    atm_idxs = "{:>6} {:>6}".format(pot.atmi.index + 1, pot.atmj.index + 1)
+                    if pot.prefix_label == "LJ1210":
+                        func = 1
+                        c12 = pot.eps*5.0*(pot.r0**12)
+                        c10 = pot.eps*6.0*(pot.r0**10)
+                        params = "{:>18.9e}{:>18.9e}".format(c10, c12)
+                    elif pot.prefix_label == "LJ12":
+                        func = 1
+                        c12 = pot.eps*(pot.r0**12)
+                        c10 = 0
+                        params = "{:>18.9e}{:>18.9e}".format(c10, c12)
+                    elif pot.prefix_label == "GAUSSIAN":
+                        func = 5
+                        params = "{:>18.9e}{:>18.9e}{:>18.9e}".format(
+                                    pot.eps, pot.r0, pot.width)
+                    elif pot.prefix_label == "LJ12GAUSSIAN":
+                        func = 6
+                        params = "{:>18.9e}{:>18.9e}{:>18.9e}{:>18.9e}".format(
+                                    pot.eps, pot.r0, pot.width, pot.rNC)
+                    else:
+                        print "Warning: interaction is not supported: {}".format(pot.describe())
+                    pairs_top += "{}{:>2}{}\n".format(atm_idxs, func, params)
         return pairs_top
     
     def _get_exclusions_top(self):
         """ Get [ exclusions ] top""" 
-        exclusions_top = " [ exclusions ]\n"
-        for pot in self.model.Hamiltonian.pairs:
-            exclusions_top += "{:>6} {:>6}\n".format(pot.atmi.index + 1, pot.atmj.index + 1)
+        if self.model.Hamiltonian.n_pairs == 0:
+            exclusions_top = ""
+        else:
+            exclusions_top = " [ exclusions ]\n"
+            for pot in self.model.Hamiltonian.pairs:
+                exclusions_top += "{:>6} {:>6}\n".format(pot.atmi.index + 1, 
+                                                         pot.atmj.index + 1)
         return exclusions_top
 
     def generate_topology(self):
