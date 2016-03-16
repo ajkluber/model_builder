@@ -1,9 +1,10 @@
 
-
-
-class CoarseGrainAtomType(object):
-    def __init__(self, name, radius, mass, charge):
+class CoarseGrainAtom(object):
+    def __init__(self, index, name, residx, resname, radius, mass, charge):
+        self.index = index
         self.name = name
+        self.residx = residx
+        self.resname = resname
         self.radius = radius
         self.mass = mass
         self.charge = charge
