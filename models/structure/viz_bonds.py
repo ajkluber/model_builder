@@ -1,4 +1,4 @@
-from numpy import ndarray
+from numpy import ndarray, array
 
 from mdtraj import Topology, Trajectory
 
@@ -40,9 +40,9 @@ def write_bonds_conect(bond_idxs, outfile="conect.pdb"):
 
 def check_bond_idxs(thing):
     if type(thing) == Topology:
-        bond_idxs = np.array([ [atm1.index, atm2.index] for atm1, atm2 in thing.bonds ])
+        bond_idxs = array([ [atm1.index, atm2.index] for atm1, atm2 in thing.bonds ])
     elif type(thing) == Trajectory:
-        bond_idxs = np.array([ [atm1.index, atm2.index] for atm1, atm2 in thing.top.bonds ])
+        bond_idxs = array([ [atm1.index, atm2.index] for atm1, atm2 in thing.top.bonds ])
     elif type(thing) == ndarray:
         if topology.shape[1] != 2:
             raise IOError("array must be size (n_bonds, 2). Inputted: {}".format(topology.shape))
