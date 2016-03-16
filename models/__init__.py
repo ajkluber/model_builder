@@ -31,6 +31,9 @@ class Model(object):
 
     def save_starting_conf(self, saveas="conf.gro"):
         self.starting_traj.save(saveas)
+
+    def set_starting_conf(self, traj):
+        self.starting_traj = traj
         
     def add_pairs(self, pairs):
         self.mapping._add_pairs(pairs)    
