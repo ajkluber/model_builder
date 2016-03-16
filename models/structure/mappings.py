@@ -72,12 +72,21 @@ class CalphaMapping(object):
         ca_xyz = traj.xyz[:,self._ca_idxs[:,0],:]
         return md.Trajectory(ca_xyz, self.topology)
 
-    def add_atomtypes(self):
+    def add_atoms(self, mass=1, radius=0.4, charge=0):
         name = "CA"
-        mass = 1. # amu
-        radius = 0.4  # nm
-        charge = 0.0  # ??
-        self.atomtypes = [ atom_types.CoarseGrainAtomType(name, radius, mass, charge) ]
+        mass = mass # amu
+        radius = radius # nm
+        charge = charge  # units??
+        self.atoms = []
+        self.atomtypes = []
+        for atom in self.top.atoms:
+            cg_atom = atom_types.CoarseGrainAtom(atom.index, name, 
+                    atom.residue.index, atom.residue.name, radius, mass, charge)
+            self.atoms.append(cg_atom)
+
+            # Unique list of atom types.
+            if cg_atom.name not in [ atm.name for atm in self.atomtypes ]:
+                self.atomtypes.append(cg_atom)
 
     def _residue_to_atom_contacts(self, residue_contacts):
         atm_contacts = []
