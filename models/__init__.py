@@ -43,7 +43,7 @@ class StructureBasedModel(Model):
     def __init__(self, topology, bead_repr=None):
         Model.__init__(self, topology, bead_repr=bead_repr)
         self.Hamiltonian = ptl.StructureBasedHamiltonian()
-        self.mapping.add_atomtypes()
+        self.mapping.add_atoms()
          
     def set_reference(self, traj):
         self.ref_traj_aa = traj[0]
