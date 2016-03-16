@@ -91,13 +91,12 @@ class GromacsFiles(object):
 
     def _get_atoms_top(self):
         """ Generate the [ atoms ] top."""
-        top = self.model.mapping.topology
         atoms_top = " [ atoms ]\n"
         atoms_top += " ;  nr  type resnr  res atom   cgnr  charge    mass\n"
-        for atom in top.atoms:
+        for atom in self.model.mapping.atoms:
             atoms_top += " {:>5d}{:>4}{:>8d}{:>5}{:>4}{:>8}{:>8.3f}{:>8.3f}\n".format(
-                                atom.index + 1, atom.name, atom.residue.index + 1, 
-                                atom.residue.name, atom.name, atom.index + 1, 0.0, 1.0)
+                                atom.index + 1, atom.name, atom.residx + 1, 
+                                atom.resname, atom.name, atom.index + 1, atom.charge, atom.mass)
         return atoms_top
 
     def _get_bonds_top(self):
