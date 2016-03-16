@@ -108,6 +108,7 @@ class Hamiltonian(object):
         return description 
     
     def _add_bond(self, code, atm1, atm2, *args):
+        
         b = bonded_potentials.BOND_POTENTIALS[code](atm1, atm2, *args)
         if b not in self._bonds:
             self._bonds.append(b)
@@ -200,10 +201,12 @@ class Hamiltonian(object):
 
     def calc_dihedral_energy(self, traj, improper=False, sum=True):
         """TODO Test"""
+        temp_phi = md.compute_dihedrals(traj, self._dihedral_idxs)
         if improper:
-            phi = (180./np.pi)*md.compute_dihedrals(traj, self._dihedral_idxs)
+            phi = np.pi + md.compute_dihedrals(traj, self._dihedral_idxs) # ?
         else:
-            phi = 180. + (180./np.pi)*md.compute_dihedrals(traj, self._dihedral_idxs)
+            phi = -temp_phi.copy()
+            phi[temp_phi > 0] = 2.*np.pi - temp_phi[temp_phi > 0]
 
         if sum:
             Edihedral = np.zeros(traj.n_frames, float)
@@ -325,15 +328,21 @@ class StructureBasedHamiltonian(Hamiltonian):
             code = self._default_potentials["dihedral"]
             for atm1, atm2, atm3, atm4 in structure._dihedrals:
                 idxs = np.array([[atm1.index, atm2.index, atm3.index, atm4.index]])
-                phi0 = 180. + (180./np.pi)*md.compute_dihedrals(Model.ref_traj, idxs)[0][0]
+                temp_phi = md.compute_dihedrals(Model.ref_traj, idxs)[0][0]
+                if temp_phi > 0:
+                    phi0 = 2.*np.pi - temp_phi
+                else:
+                    phi0 = -temp_phi
+
                 self._add_dihedral(code, atm1, atm2, atm3, atm4, kd, phi0, 1)
-                self._add_dihedral(code, atm1, atm2, atm3, atm4, kd, phi0, 3)
+                self._add_dihedral(code, atm1, atm2, atm3, atm4, 0.5*kd, phi0, 3)
 
             kd = self._default_parameters["ka"]
             code = self._default_potentials["improper_dihedral"]
             for atm1, atm2, atm3, atm4 in structure._improper_dihedrals:
+                # How does mdtraj angle correspond to gromacs? 
                 idxs = np.array([[atm1.index, atm2.index, atm3.index, atm4.index]])
-                phi0 = (180./np.pi)*md.compute_dihedrals(Model.ref_traj, idxs)[0][0]
+                phi0 = md.compute_dihedrals(Model.ref_traj, idxs)[0][0]
                 self._add_dihedral(code, atm1, atm2, atm3, atm4, kd, phi0)
         else:
             missing_reference_warning()
@@ -353,8 +362,10 @@ class StructureBasedHamiltonian(Hamiltonian):
             missing_reference_warning()
 
     def _use_sbm_default_parameters(self):
-        self._default_parameters = {"kb":20000., "ka":40.,
-                                    "kd":1., "eps":1}
+        self._default_parameters = {"kb":20000., # kJ/(mol nm^2)
+                                    "ka":40.*((np.pi/180.)**2),  # kJ/(mol deg^2)
+                                    "kd":1.,     # kJ/mol
+                                    "eps":1}     # kJ/(mol nm)
 
     def _use_sbm_default_potentials(self):
         self._default_potentials = {"bond":"HARMONIC_BOND",
