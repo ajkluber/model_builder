@@ -10,26 +10,7 @@ import model_builder as mdb
 
 import simulation.mdp
 
-#def generate_dihedral_traj():
-#    n_points = 1000
-#    phi = np.linspace(0, 2.*np.pi, n_points)
-#
-#    xyz = np.zeros((n_points, 4, 3), float) 
-#    xyz[:,0,:] = np.array([1, -1, 0])
-#    xyz[:,1,:] = np.array([0, -1, 0])
-#    xyz[:,2,:] = np.array([0, 0, 0])
-#    xyz[:,3,0] = np.cos(phi)
-#    xyz[:,3,2] = np.sin(phi)
-#    
-#    traj = md.Trajectory(xyz, top)
-#
-#    dih_idxs = np.array([[0, 1, 2, 3]])
-#
-#    dih = md.compute_dihedrals(traj, dih_idxs)
-#
-#    plt.plot(phi, dih)
-#    plt.plot(phi, np.pi - dih)
-#    plt.show()
+import plot_eng
 
 def butane_toy_model():
 
@@ -58,7 +39,7 @@ def butane_toy_model():
         #    newtop.add_bond(prev_ca, new_ca)
     model = mdb.models.Model(newtop, bead_repr="CA")
 
-    model.mapping.add_atomtypes()
+    model.mapping.add_atoms(mass=10)
 
     top = model.mapping.top
 
@@ -78,27 +59,9 @@ def butane_toy_model():
     model.Hamiltonian._add_dihedral("COSINE_DIHEDRAL", top.atom(0), top.atom(1),
                                     top.atom(2), top.atom(3), 1, phi0, 1)
 
-    #model.Hamiltonian._add_dihedral("COSINE_DIHEDRAL", top.atom(0), top.atom(1),
-    #                                top.atom(2), top.atom(3), 0.5, phi0, 3)
-
     return xyz, top, model
 
-if __name__ == "__main__":
-
-    # Create
-    xyz, top, model = butane_toy_model()
-
-    traj = md.Trajectory(xyz, top)
-
-    if os.path.exists("sim_data"):
-        os.rmdir("sim_data")
-    os.mkdir("sim_data")
-    os.chdir("sim_data")
-
-    # We're going to run a constant energy (newtonian dynamics) simulation to
-    # see the oscillations in energy.
-    with open("run.mdp", "w") as fout:
-        fout.write(simulation.mdp.constant_energy("1000000"))
+def save_top_file(model, traj):
 
     # Write the Hamiltonian Gromacs input file: topol.top
     writer = mdb.models.output.GromacsFiles(model)
@@ -132,6 +95,8 @@ if __name__ == "__main__":
     with open("ca.pdb", "w") as fout:
         fout.write(temp)
 
+
+def run_and_analyze():
     # Run the simulation
     sb.call("grompp_sbm -f run.mdp -c conf.gro -p topol.top -o topol.tpr", shell=True)
     sb.call("mdrun_sbm -s topol.tpr -table table.xvg -tablep tablep.xvg", shell=True)
@@ -149,5 +114,46 @@ HERE""", shell=True)
     sb.call("""g_energy_sbm -f ener.edr -s topol.tpr -xvg none -o Epot_gmx.xvg << HERE
 Potential
 HERE""", shell=True)
+
+if __name__ == "__main__":
+    # Create
+    xyz, top, model = butane_toy_model()
+
+    startingtraj = md.Trajectory(xyz, top)
+
+    ##################################
+    # Run a constant Energy simlation
+    ##################################
+    if not os.path.exists("nve_data"):
+        os.mkdir("nve_data")
+    os.chdir("nve_data")
+
+    # Save mdp file for NVE simulation (newtonian dynamics). We want to see the
+    # oscillations in energy.
+    with open("run.mdp", "w") as fout:
+        fout.write(simulation.mdp.constant_energy("1000000"))
+
+    # Save remaining simulation files
+    save_top_file(model, startingtraj)
+    run_and_analyze()
+    plot_energy_terms(model, display=True)
+
+    os.chdir("..")
+
+    #######################################
+    # Run a constant temperature simulation
+    #######################################
+    if not os.path.exists("nvt_data"):
+        os.mkdir("nvt_data")
+    os.chdir("nvt_data")
+
+    # Save mdp file for NVT simulation (constant temperature).
+    with open("run.mdp", "w") as fout:
+        fout.write(simulation.mdp.constant_temperature(10, "1000000"))
+
+    # Save remaining simulation files
+    save_top_file(model, startingtraj)
+    run_and_analyze()
+    plot_eng.plot_energy_terms(model, display=True)
 
     os.chdir("..")

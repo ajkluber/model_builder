@@ -9,57 +9,80 @@ import model_builder as mdb
 
 import run_butane
 
-def plot_energy(ax, gmxeng, myeng, xlabel, ylabel, title=""):
+def plot_energy(ax, data1, data2, xlabel, ylabel, title="", ls='', withxy=False):
 
-    maxE = max([max(myeng), max(gmxeng)])
-    minE = min([min(myeng), min(gmxeng)])
+    if withxy:
+        maxdata = max([max(data2), max(data1)])
+        mindata = min([min(data2), min(data1)])
+        ax.plot([mindata, maxdata], [mindata, maxdata], 'k')
+        ax.set_ylim(mindata, maxdata)
+        ax.set_xlim(mindata, maxdata)
 
-    # calculate R^2 value
+        # calculate R^2 value
+        r2 = 1 - (np.sum((data1 - data2)**2)/np.var(data2))
+        ax.annotate("$R^2 = {:.5f}$".format(r2), xy=(0,0), xytext=(0.1,0.8),
+                    textcoords="axes fraction",fontsize=18)
 
-    ax.plot([minE, maxE], [minE, maxE], 'k')
-    ax.plot(gmxeng, myeng, 'r.')
-    ax.set_ylim(minE, maxE)
-    ax.set_xlim(minE, maxE)
+    if ls == '':
+        ax.plot(data1, data2)
+    else:
+        ax.plot(data1, data2, ls)
+
     ax.set_xlabel(xlabel, fontsize=18)
     ax.set_ylabel(ylabel, fontsize=18)
     ax.set_title(title, fontsize=18)
 
-
-if __name__ == "__main__":
-    save = True
-
-    xyz, top, model = run_butane.butane_toy_model()
-
-    os.chdir("sim_data")
+def plot_energy_terms(model, save=True, display=False):
     # Get simulation trajectory
-    traj = md.load("traj.xtc", top=top)
+    traj = md.load("traj.xtc", top=model.mapping.top)
 
     # Get energy from simulation
+    t = np.loadtxt("Ebond_gmx.xvg", usecols=(0,))
     Ebond_gmx = np.loadtxt("Ebond_gmx.xvg", usecols=(1,))
     Eangle_gmx = np.loadtxt("Eangle_gmx.xvg", usecols=(1,))
     Edih_gmx = np.loadtxt("Edih_gmx.xvg", usecols=(1,))
-    os.chdir("..")
+    Epot_gmx = np.loadtxt("Epot_gmx.xvg", usecols=(1,))
     
     # calculate energy terms using model_builder
     Ebond_mdb = model.Hamiltonian.calc_bond_energy(traj)
     Eangle_mdb = model.Hamiltonian.calc_angle_energy(traj)
     Edih_mdb = model.Hamiltonian.calc_dihedral_energy(traj)
 
-    # plot comparison of energy terms
+    # Plot correlation of model_builder and gromacs
     fig, axes = plt.subplots(2, 2, figsize=(14,10))
 
-    plot_energy(axes[0,0], Ebond_gmx, Ebond_mdb, "gmx bond", "mdb bond")
-    plot_energy(axes[0,1], Eangle_gmx, Eangle_mdb, "gmx angle", "mdb angle")
-    plot_energy(axes[1,0], Edih_gmx, Edih_mdb, "gmx dihedral", "mdb dihedral")
+    plot_energy(axes[0,0], Ebond_gmx, Ebond_mdb, "GMX $E_{bond}$", "MDB $E_{bond}$", ls='r.', withxy=True)
+    plot_energy(axes[0,1], Eangle_gmx, Eangle_mdb, "GMX $E_{angle}$", "MDB $E_{angle}$", ls='r.', withxy=True)
+    plot_energy(axes[1,0], Edih_gmx, Edih_mdb, "GMX $E_{dih}$", "MDB $E_{dih}$", ls='r.', withxy=True)
 
-    fig.suptitle("Energy terms", fontsize=20)
+    fig.suptitle("model_builder energies match Gromacs", fontsize=20)
+
+    # Plot model_builder and gromacs timeseries
+    fig2, axes2 = plt.subplots(2, 2, figsize=(14,10))
+
+    plot_energy(axes2[0,0], t, Ebond_gmx, "time", "$E_{bond}$")
+    plot_energy(axes2[0,0], t, Ebond_mdb, "time", "$E_{bond}$", ls='--')
+
+    plot_energy(axes2[0,1], t, Eangle_gmx, "time", "$E_{angle}$")
+    plot_energy(axes2[0,1], t, Eangle_mdb, "time", "$E_{angle}$", ls='--')
+
+    plot_energy(axes2[1,0], t, Edih_gmx, "time", "$E_{dih}$")
+    plot_energy(axes2[1,0], t, Edih_mdb, "time", "$E_{dih}$", ls='--')
+
+    fig2.suptitle("model_builder energies match Gromacs", fontsize=20)
 
     if save:
         if not os.path.exists("plots"):
             os.mkdir("plots")
         os.chdir("plots")
-        fig.savefig("compare_energy_terms.pdf", bbox_inches="tight")
-        fig.savefig("compare_energy_terms.png", bbox_inches="tight")
+        fig.savefig("Eterms_corr.pdf", bbox_inches="tight")
+        fig.savefig("Eterms_corr.png", bbox_inches="tight")
+        fig2.savefig("Eterms_vs_time.pdf", bbox_inches="tight")
+        fig2.savefig("Eterms_vs_time.png", bbox_inches="tight")
         os.chdir("..")
 
-    plt.show()
+    if display:
+        plt.show()
+
+if __name__ == "__main__":
+    pass
