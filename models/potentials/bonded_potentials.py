@@ -46,10 +46,7 @@ class HarmonicBondPotential(BondPotential):
         return (r - self.r0)
 
     def __hash__(self):
-        hash_value = BondPotential.__hash__(self)
-        hash_value ^= hash(self.kb)
-        hash_value ^= hash(self.r0)
-        return hash_value
+        return hash(frozenset(self.__dict__.iteritems()))
 
 ############################################################################
 # Angle potentials
@@ -172,10 +169,10 @@ class CosineDihedralPotential(DihedralPotential):
         return self.kd*self.d2Vdphidkd(phi)
 
     def dVdkd(self, phi):
-        return 1. + np.cos(self.mult*(phi - self.phi0))
+        return 1. - np.cos(self.mult*(phi - self.phi0))
 
     def d2Vdphidkd(self, phi): 
-        return -self.mult*np.sin(self.mult*(phi - self.phi0))
+        return self.mult*np.sin(self.mult*(phi - self.phi0))
 
     def __hash__(self):
         hash_value = DihedralPotential.__hash__(self)
