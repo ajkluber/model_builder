@@ -44,20 +44,20 @@ def butane_toy_model():
     top = model.mapping.top
 
     # Add bond interactions
-    model.Hamiltonian._add_bond("HARMONIC_BOND", top.atom(0), top.atom(1), 1, 1)
-    model.Hamiltonian._add_bond("HARMONIC_BOND", top.atom(1), top.atom(2), 1, 1)
-    model.Hamiltonian._add_bond("HARMONIC_BOND", top.atom(2), top.atom(3), 1, 1)
+    model.Hamiltonian._add_bond("HARMONIC_BOND", top.atom(0), top.atom(1), 100, 1)
+    model.Hamiltonian._add_bond("HARMONIC_BOND", top.atom(1), top.atom(2), 100, 1)
+    model.Hamiltonian._add_bond("HARMONIC_BOND", top.atom(2), top.atom(3), 100, 1)
 
     # Add angle interactions
     model.Hamiltonian._add_angle("HARMONIC_ANGLE", top.atom(0), top.atom(1),
-                                    top.atom(2), 2*(np.pi/180)**2, 90)
+                                    top.atom(2), 20*(np.pi/180)**2, 90)
 
     model.Hamiltonian._add_angle("HARMONIC_ANGLE", top.atom(1), top.atom(2),
-                                    top.atom(3), 2*(np.pi/180)**2, 90)
+                                    top.atom(3), 20*(np.pi/180)**2, 90)
 
     # Add dihedral interaction
     model.Hamiltonian._add_dihedral("COSINE_DIHEDRAL", top.atom(0), top.atom(1),
-                                    top.atom(2), top.atom(3), 1, phi0, 1)
+                                    top.atom(2), top.atom(3), 0.1, phi0, 1)
 
     return xyz, top, model
 
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     # Save remaining simulation files
     save_top_file(model, startingtraj)
     run_and_analyze()
-    plot_energy_terms(model, display=True)
+    plot_eng.plot_energy_terms(model, display=True)
 
     os.chdir("..")
 
