@@ -11,5 +11,6 @@ purpose of this example is to demonstrate:
 2. How interactions are saved in the topol.top for running simulation.
 
 Usage::
-$ python run_butane.py
-$ python plot_eng.py
+
+    $ python run_butane.py
+    $ python plot_eng.py
