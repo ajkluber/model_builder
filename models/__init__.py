@@ -41,11 +41,35 @@ class Model(object):
 class StructureBasedModel(Model):
 
     def __init__(self, topology, bead_repr=None):
+        """Structure-based Model (SBM)
+
+        Parameters
+        ----------
+        topology : mdtraj.Topology object
+            An mdtraj Topology object that describes the molecular topology.
+
+        bead_repr : str [CA, CACB]
+            A code specifying the desired coarse-grain mapping. The all-atom 
+        to coarse-grain mapping.
+
+        """
+
+    
+
         Model.__init__(self, topology, bead_repr=bead_repr)
         self.Hamiltonian = ptl.StructureBasedHamiltonian()
         self.mapping.add_atoms()
          
     def set_reference(self, traj):
+        """Set the reference structure
+        
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory object
+            Trajectory to be used as a reference (only uses first frame). The 
+            geometry of the reference structure is used to construct structure-
+            based potentials.
+        """
         self.ref_traj_aa = traj[0]
         self.ref_traj = self.mapping.map_traj(traj[0])
 
