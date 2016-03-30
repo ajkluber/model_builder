@@ -20,12 +20,28 @@ def load_model(name,dry_run=False):
     Constructs a models.Model class or one of its subclasses using the 
     provided config file. 
     
+    All files handled by load_model is assumed to be formatted with 
+    their respective outside use formats. I.E. Residues numbering starts 
+    from 1, not zero.
+    All inputs to methods should be assumed to take the python way of 
+    numbering, i.e. start from zero. 
+    By Design, this inputs.py file should be where any and all 
+    conversions take place for consistency. The assumed conversions and 
+    defaults are listed under Default Assumptions. Some conversions 
+    might still be necessary inside other methods, but should generally 
+    be avoided.
+    
     Args:
         name(string): Full name of the config file to load
         
     Return:
         Model: A Model object constructed from the config file
         Dict.: List of fitting options
+        
+    Default Assumptions:
+        pairs_lists start from 1 (residue-residue contacts for CA-CA 
+            potentials). Get converted to starting from zero when 
+            calling model.add_pairs
     
     """
     
@@ -50,12 +66,10 @@ def load_model(name,dry_run=False):
             model.add_sbm_backbone()
             ##need to add in pairwise param parsing
     else:
-        model.add_pairs(np.loadtxt(modelopts["pairs"]))
+        model.add_sbm_backbone()
+        model.add_pairs(np.loadtxt(modelopts["pairs"]).astype(int)-1)
         model.add_sbm_contacts()     
     
-
-    
-        
     
     return model,fittingopts
 
