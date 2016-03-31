@@ -39,7 +39,7 @@ def load_model(name,dry_run=False):
         Dict.: List of fitting options
         
     Default Assumptions:
-        pairs_lists start from 1 (residue-residue contacts for CA-CA 
+        pairs start from 1 (residue-residue contacts for CA-CA 
             potentials). Get converted to starting from zero when 
             calling model.add_pairs
     
@@ -58,14 +58,29 @@ def load_model(name,dry_run=False):
         traj = md.load(modelopts["reference"])
     model.set_reference(traj)
     
-    #Check pairs. If no pairs are made, default to using the 
+    #Check for pair options
     if modelopts["pairs"] == None:
         if modelopts["pairwise_params_file"] == None:
+            #Use default parameters for pair interactions
             model.add_sbm_potentials()
         else:
+            #use the modelopts["pairwise_params"] file
             model.add_sbm_backbone()
-            ##need to add in pairwise param parsing
+            pairs, pairs_index_number, pairs_potential_type, pairs_args = parse_pairwise_params(modelopts["pairwise_params_file"])
+            model.add_pairs(pairs)
+            pairopts = []
+            for i in range(len(pairs)):
+                code = pairs_potential_type[i]
+                atm1, atm2 = model.mapping._contact_pairs[i]
+                eps = 1.0
+                opts = ["LJ12GAUSSIAN", atm1, atm2, eps]
+                for args in pairs_args[i]:
+                    opts.append(args)
+                pairopts.append(opts)
+            print pairopts
+            model.Hamiltonian._add_pairs(pairopts)
     else:
+        #use the modelopts["pairs"] file
         model.add_sbm_backbone()
         model.add_pairs(np.loadtxt(modelopts["pairs"]).astype(int)-1)
         model.add_sbm_contacts()     
@@ -225,7 +240,24 @@ def _empty_model_opts():
     modelopts = { opt:None for opt in opts }
     return modelopts
 
-
+def parse_pairwise_params(pairwise_file):
+    """ parse the pairwise_params file and output necessary values"""
+    
+    fopen = open(pairwise_file, "r")
+    pairs = []
+    pairs_index_number = []
+    pairs_potential_type = []
+    pairs_args = []
+    fopen.readline()
+    for line in fopen:
+        data = line.strip().split()
+        pairs.append([int(data[0])-1, int(data[1])-1]) #convert to pythonic indices
+        pairs_index_number.append(int(data[2]))
+        pairs_potential_type.append(data[3])
+        pairs_args.append([float(val) for val in data[4:]])
+    
+    return pairs, pairs_index_number, pairs_potential_type, pairs_args
+    
 def _add_pairwise_params(modelopts):
     """Parse pairwise_params file"""
 
