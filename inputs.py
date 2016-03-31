@@ -69,15 +69,21 @@ def load_model(name,dry_run=False):
             pairs, pairs_index_number, pairs_potential_type, pairs_args = parse_pairwise_params(modelopts["pairwise_params_file"])
             model.add_pairs(pairs)
             pairopts = []
+            try:
+                epsilons = np.loadtxt(modelopts["model_params_file"], skiprows=1)
+            except:
+                epsilons = np.ones(np.shape(pairs)[0])
+            if not np.shape(epsilons)[0] == len(pairs):
+                raise IOError("Number of model params not equal to number of pairwise params")
+                
             for i in range(len(pairs)):
                 code = pairs_potential_type[i]
                 atm1, atm2 = model.mapping._contact_pairs[i]
-                eps = 1.0
+                eps = epsilons[i]
                 opts = ["LJ12GAUSSIAN", atm1, atm2, eps]
                 for args in pairs_args[i]:
                     opts.append(args)
                 pairopts.append(opts)
-            print pairopts
             model.Hamiltonian._add_pairs(pairopts)
     else:
         #use the modelopts["pairs"] file
