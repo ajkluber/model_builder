@@ -196,21 +196,22 @@ class LJ12GaussianPotential(PairPotential):
         self.rNC = rNC
         self.r0 = r0
         self.width = width
+        self.gaussian = GaussianPotential(atmi, atmj, eps, r0, width)
+        self.lj12 = LJ12Potential(atmi, atmj, 1.0, rNC)
 
     def V(self, r):
-        return ((self.rNC/r)**12)*(1. + GaussianPotential.dVdeps(self, r)) +\
-                GaussianPotential.V(self, r)
+        return (1. + self.lj12.V(r))*(1. + self.gaussian.V(r)) - 1.
 
     def dVdr(self, r):
-        return (-1./self.rNC)*((self.rNC/r)**13)*(1. + GaussianPotential.dVdeps(self, r)) +\
-                ((self.rNC/r)**12)*GaussianPotential.d2Vdrdeps(self, r) +\
-                GaussianPotential.dVdr(self, r)
+        first = (1. + self.lj12.V(r))*self.gaussian.dVdr(r)
+        second = (1. + self.gaussian.V(r))*self.lj12.dVdr(r)
+        return first + second
 
     def dVdeps(self, r):
-        return GaussianPotential.dVdeps(self, r)
-
+        return self.gaussian.dVdeps(r)
+        
     def d2Vdrdeps(self, r):
-        return GaussianPotential.d2Vdrdeps(self, r)
+        return self.gaussian.d2Vdrdeps(self, r)
 
     def __hash__(self):
         hash_value = PairPotential.__hash__(self)
