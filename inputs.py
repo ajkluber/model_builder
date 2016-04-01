@@ -77,7 +77,6 @@ def load_model(name,dry_run=False):
                 raise IOError("Number of model params not equal to number of pairwise params")
                 
             for i in range(len(pairs)):
-                print i
                 code = pairs_potential_type[i]
                 atm1, atm2 = model.mapping._contact_pairs[i]
                 eps = epsilons[i]

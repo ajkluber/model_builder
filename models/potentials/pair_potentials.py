@@ -21,9 +21,20 @@ class PairPotential(object):
         hash_value ^= hash(self.atmi)
         hash_value ^= hash(self.atmj)
         return hash_value
-
+    
+    def _list_hash(self):
+        listhash = [hash(self.prefix_label)]
+        listhash.append(hash(self.atmi))
+        listhash.append(hash(self.atmj))
+        
+        return listhash
+        
     def __eq__(self, other):
-        return self.__hash__() == other.__hash__()
+        test = True
+        for i,j in zip(self._list_hash(), other._list_hash()):
+            test = test and (i==j)
+            
+        return test
 
     def __repr__(self):
         return "<PairPotential at 0x{}x>".format(id(self))
