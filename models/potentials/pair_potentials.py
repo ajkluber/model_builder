@@ -94,8 +94,8 @@ class LJ126Potential(LJPotential):
 
 class LJ1210Potential(LJPotential):
     
-    def __init__(self, atmi, atmj, r0, eps):
-        LJPotential.__init__(self, atmi, atmj, r0, eps)
+    def __init__(self, atmi, atmj, eps, r0):
+        LJPotential.__init__(self, atmi, atmj, eps, r0)
         self.prefix_label = "LJ1210"
 
     def V(self, r):
@@ -114,8 +114,8 @@ class LJ1210Potential(LJPotential):
 
 class LJ1210RepPotential(LJPotential):
     
-    def __init__(self, atmi, atmj, r0, eps):
-        LJPotential.__init__(self, atmi, atmj, r0, eps)
+    def __init__(self, atmi, atmj, eps, r0):
+        LJPotential.__init__(self, atmi, atmj, eps, r0)
         self.prefix_label = "LJ1210REP"
 
     def V(self, r):
