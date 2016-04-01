@@ -77,10 +77,12 @@ def load_model(name,dry_run=False):
                 raise IOError("Number of model params not equal to number of pairwise params")
                 
             for i in range(len(pairs)):
+                print i
                 code = pairs_potential_type[i]
                 atm1, atm2 = model.mapping._contact_pairs[i]
                 eps = epsilons[i]
-                opts = ["LJ12GAUSSIAN", atm1, atm2, eps]
+                pot_type = pairs_potential_type[i]
+                opts = [pot_type, atm1, atm2, eps]
                 for args in pairs_args[i]:
                     opts.append(args)
                 pairopts.append(opts)
@@ -259,7 +261,16 @@ def parse_pairwise_params(pairwise_file):
         data = line.strip().split()
         pairs.append([int(data[0])-1, int(data[1])-1]) #convert to pythonic indices
         pairs_index_number.append(int(data[2]))
-        pairs_potential_type.append(data[3])
+        try:
+            #convert old file format number codes into word codes
+            test = int(data[3])
+            key={"8":"LJ12GAUSSIAN", "4": "GAUSSIAN", "2":"LJ1210", "5":"TANHREP"}
+            pot_type = key[data[3]] 
+        except:
+            pot_type = data[3]
+        
+        pairs_potential_type.append(pot_type)
+        
         pairs_args.append([float(val) for val in data[4:]])
     
     return pairs, pairs_index_number, pairs_potential_type, pairs_args
