@@ -7,8 +7,6 @@ import mdtraj as md
 
 import model_builder as mdb
 
-import run_butane
-
 def plot_energy(ax, data1, data2, xlabel, ylabel, title="", ls='', withxy=False):
 
     if withxy:

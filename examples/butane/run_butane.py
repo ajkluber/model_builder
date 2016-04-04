@@ -1,15 +1,12 @@
 import os
 import numpy as np
 import subprocess as sb
-import matplotlib.pyplot as plt
 
 import mdtraj as md
 from mdtraj.core.element import get_by_symbol
 
 import model_builder as mdb
-
 import simulation.mdp
-
 import plot_eng
 
 def butane_toy_model():
