@@ -183,8 +183,8 @@ class Hamiltonian(object):
     def _add_pairs(self, pair_params):
         """Add a set of pair interactions"""
         for p in pair_params:
-            self._add_pair(p[0], p[1], p[2], p[3:])
-
+            self._add_pair(p[0], p[1], p[2], *p[3:])
+            
     @property
     def _bond_idxs(self):
         """Indices of atoms in bond interactions"""

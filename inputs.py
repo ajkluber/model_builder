@@ -20,12 +20,28 @@ def load_model(name,dry_run=False):
     Constructs a models.Model class or one of its subclasses using the 
     provided config file. 
     
+    All files handled by load_model is assumed to be formatted with 
+    their respective outside use formats. I.E. Residues numbering starts 
+    from 1, not zero.
+    All inputs to methods should be assumed to take the python way of 
+    numbering, i.e. start from zero. 
+    By Design, this inputs.py file should be where any and all 
+    conversions take place for consistency. The assumed conversions and 
+    defaults are listed under Default Assumptions. Some conversions 
+    might still be necessary inside other methods, but should generally 
+    be avoided.
+    
     Args:
         name(string): Full name of the config file to load
         
     Return:
         Model: A Model object constructed from the config file
         Dict.: List of fitting options
+        
+    Default Assumptions:
+        pairs start from 1 (residue-residue contacts for CA-CA 
+            potentials). Get converted to starting from zero when 
+            calling model.add_pairs
     
     """
     
@@ -42,20 +58,41 @@ def load_model(name,dry_run=False):
         traj = md.load(modelopts["reference"])
     model.set_reference(traj)
     
-    #Check pairs. If no pairs are made, default to using the 
+    #Check for pair options
     if modelopts["pairs"] == None:
         if modelopts["pairwise_params_file"] == None:
+            #Use default parameters for pair interactions
             model.add_sbm_potentials()
         else:
+            #use the modelopts["pairwise_params"] file
             model.add_sbm_backbone()
-            ##need to add in pairwise param parsing
+            pairs, pairs_index_number, pairs_potential_type, pairs_args = parse_pairwise_params(modelopts["pairwise_params_file"])
+            model.add_pairs(pairs)
+            pairopts = []
+            try: #load epsilons from a model params file
+                epsilons = np.loadtxt(modelopts["model_params_file"], skiprows=1)
+            except: 
+                print "Warning: No model_params_file specified. Defaulting all epsilons to 1"
+                epsilons = np.ones(np.shape(pairs)[0])
+            if not np.shape(epsilons)[0] == len(pairs):
+                raise IOError("Number of model params not equal to number of pairwise params")
+                
+            for i in range(len(pairs)):
+                code = pairs_potential_type[i]
+                atm1, atm2 = model.mapping._contact_pairs[i]
+                eps = epsilons[i]
+                pot_type = pairs_potential_type[i]
+                opts = [pot_type, atm1, atm2, eps]
+                for args in pairs_args[i]:
+                    opts.append(args)
+                pairopts.append(opts)
+            model.Hamiltonian._add_pairs(pairopts)
     else:
-        model.add_pairs(np.loadtxt(modelopts["pairs"]))
+        #use the modelopts["pairs"] file
+        model.add_sbm_backbone()
+        model.add_pairs(np.loadtxt(modelopts["pairs"]).astype(int)-1)
         model.add_sbm_contacts()     
     
-
-    
-        
     
     return model,fittingopts
 
@@ -211,7 +248,33 @@ def _empty_model_opts():
     modelopts = { opt:None for opt in opts }
     return modelopts
 
-
+def parse_pairwise_params(pairwise_file):
+    """ parse the pairwise_params file and output necessary values"""
+    
+    fopen = open(pairwise_file, "r")
+    pairs = []
+    pairs_index_number = []
+    pairs_potential_type = []
+    pairs_args = []
+    fopen.readline()
+    for line in fopen:
+        data = line.strip().split()
+        pairs.append([int(data[0])-1, int(data[1])-1]) #convert to pythonic indices
+        pairs_index_number.append(int(data[2]))
+        try:
+            #convert old file format number codes into word codes
+            test = int(data[3])
+            key={"8":"LJ12GAUSSIAN", "4": "GAUSSIAN", "2":"LJ1210", "5":"TANHREP"}
+            pot_type = key[data[3]] 
+        except:
+            pot_type = data[3]
+        
+        pairs_potential_type.append(pot_type)
+        
+        pairs_args.append([float(val) for val in data[4:]])
+    
+    return pairs, pairs_index_number, pairs_potential_type, pairs_args
+    
 def _add_pairwise_params(modelopts):
     """Parse pairwise_params file"""
 
