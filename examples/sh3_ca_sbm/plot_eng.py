@@ -56,8 +56,6 @@ def plot_energy_terms(model, save=True, display=False):
     plot_energy(axes[1,0], Edih_gmx, Edih_mdb, "GMX $E_{dih}$", "MDB $E_{dih}$", ls='r.', withxy=True)
     plot_energy(axes[1,1], Epair_gmx, Epair_mdb, "GMX $E_{pair}$", "MDB $E_{pair}$", ls='r.', withxy=True)
 
-    fig.suptitle("model_builder energies match Gromacs", fontsize=20)
-
     # Plot model_builder and gromacs timeseries
     fig2, axes2 = plt.subplots(2, 2, figsize=(14,10))
 
@@ -72,8 +70,6 @@ def plot_energy_terms(model, save=True, display=False):
 
     plot_energy(axes2[1,1], t, Epair_gmx, "time", "$E_{pair}$")
     plot_energy(axes2[1,1], t, Epair_mdb, "time", "$E_{pair}$", ls='--')
-
-    fig2.suptitle("model_builder energies match Gromacs", fontsize=20)
 
     if save:
         if not os.path.exists("plots"):
