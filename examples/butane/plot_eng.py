@@ -17,8 +17,8 @@ def plot_energy(ax, data1, data2, xlabel, ylabel, title="", ls='', withxy=False)
         ax.set_xlim(mindata, maxdata)
 
         # calculate R^2 value
-        r2 = 1 - (np.sum((data1 - data2)**2)/np.var(data2))
-        ax.annotate("$R^2 = {:.5f}$".format(r2), xy=(0,0), xytext=(0.1,0.8),
+        r2 = np.mean((data1 - data1.mean())*(data2 - data2.mean()))/(np.std(data1)*np.std(data2))
+        ax.annotate("$r^2 = {:.5f}$".format(r2), xy=(0,0), xytext=(0.1,0.8),
                     textcoords="axes fraction",fontsize=18)
 
     if ls == '':
@@ -53,8 +53,6 @@ def plot_energy_terms(model, save=True, display=False):
     plot_energy(axes[0,1], Eangle_gmx, Eangle_mdb, "GMX $E_{angle}$", "MDB $E_{angle}$", ls='r.', withxy=True)
     plot_energy(axes[1,0], Edih_gmx, Edih_mdb, "GMX $E_{dih}$", "MDB $E_{dih}$", ls='r.', withxy=True)
 
-    fig.suptitle("model_builder energies match Gromacs", fontsize=20)
-
     # Plot model_builder and gromacs timeseries
     fig2, axes2 = plt.subplots(2, 2, figsize=(14,10))
 
@@ -67,7 +65,8 @@ def plot_energy_terms(model, save=True, display=False):
     plot_energy(axes2[1,0], t, Edih_gmx, "time", "$E_{dih}$")
     plot_energy(axes2[1,0], t, Edih_mdb, "time", "$E_{dih}$", ls='--')
 
-    fig2.suptitle("model_builder energies match Gromacs", fontsize=20)
+    fig.tight_layout()
+    fig2.tight_layout()
 
     if save:
         if not os.path.exists("plots"):
