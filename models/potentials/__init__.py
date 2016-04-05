@@ -262,12 +262,12 @@ class Hamiltonian(object):
         sum : bool (opt.)
             If sum=True return the total energy.
         """
-        temp_phi = md.compute_dihedrals(traj, self._dihedral_idxs)
-        if improper:
-            phi = np.pi + md.compute_dihedrals(traj, self._dihedral_idxs) # ?
-        else:
-            phi = -temp_phi.copy()
-            phi[temp_phi > 0] = 2.*np.pi - temp_phi[temp_phi > 0]
+        phi = md.compute_dihedrals(traj, self._dihedral_idxs)
+        #if improper:
+        #    phi = np.pi + md.compute_dihedrals(traj, self._dihedral_idxs) # ?
+        #else:
+        #    phi = -temp_phi.copy()
+        #    phi[temp_phi > 0] = 2.*np.pi - temp_phi[temp_phi > 0]
 
         if sum:
             Edihedral = np.zeros(traj.n_frames, float)
@@ -397,11 +397,12 @@ class StructureBasedHamiltonian(Hamiltonian):
             code = self._default_potentials["dihedral"]
             for atm1, atm2, atm3, atm4 in structure._dihedrals:
                 idxs = np.array([[atm1.index, atm2.index, atm3.index, atm4.index]])
-                temp_phi = md.compute_dihedrals(Model.ref_traj, idxs)[0][0]
-                if temp_phi > 0:
-                    phi0 = 2.*np.pi - temp_phi
-                else:
-                    phi0 = -temp_phi
+                phi0 = md.compute_dihedrals(Model.ref_traj, idxs)[0][0]
+
+                #if temp_phi > 0:
+                #    phi0 = 2.*np.pi - temp_phi
+                #else:
+                #    phi0 = -temp_phi
 
                 self._add_dihedral(code, atm1, atm2, atm3, atm4, kd, phi0, 1)
                 self._add_dihedral(code, atm1, atm2, atm3, atm4, 0.5*kd, phi0, 3)
