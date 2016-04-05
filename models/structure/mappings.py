@@ -239,8 +239,51 @@ class CalphaCbetaMapping(object):
                         self._angles.append((cb, ca, next_ca))
 
     def _assign_sbm_dihedrals(self):
-        pass
-
+        
+        self._improper_dihedrals = []
+        self._dihedrals = []
+        for chain in self.topology.chains:
+            #add the proper ca-ca-ca-ca dihedrals
+            ca_atoms = [ atom for atom in chain.atoms if atom.name == "CA" ]
+            for i in range(len(ca_atoms)-3):
+                self._dihedrals.append((ca_atoms[i], ca_atoms[i+1], ca_atoms[i+2], ca_atoms[i+3]))
+            #add improper dihedrals
+            num_residues = len(chain.residues)
+            for res in chain.residues:
+                check = res.index == 0 #not first residue 
+                check = check or res.index == num_residues #last residue 
+                check = check or res.name == "GLY" #GLY
+                if not check:
+                    idx = res.index
+                    cj = chain.residues[idx-1].atom(0)
+                    ck = chain.residues[idx+1].atom(0)
+                    dih = (res.atom(0), cj, res.atom(1), ck)
+                    model._improper_dihedrals.append(dih)
+                        
+    def add_atoms(self):
+        self.atoms = []
+        self.atomtypes = []
+        for chain in self.top._chains:
+            for res in chain._residues:
+                if res.name == "GLY":
+                    cg_atom = atom_types.CoarseGrainAtom(res.atom(0).index, "CA", 
+                            res.index, res.name, 0.266, 1, 0)
+                    self.atoms.append(cg_atom)
+                else:
+                    cg_atom = atom_types.CoarseGrainAtom(res.atom(0).index, "CA", 
+                            res.index, res.name, 0.266, 1, 0)  
+                    self.atoms.append(cg_atom)
+                    radii = atom_types.residue_radii[res.name]
+                    name = "CB%s" % atom_types.residue_code[res.name]
+                    cg_atom = atom_types.CoarseGrainAtom(res.atom(1).index, name, 
+                            res.index, res.name, radii, 1, 0)
+                    self.atoms.append(cg_atom)   
+        
+        for cg_atom in self.atoms:
+            # Unique list of atom types.
+            if cg_atom.name not in [ atm.name for atm in self.atomtypes ]:
+                self.atomtypes.append(cg_atom)
+    
     def _add_atomtypes(self):
         pass
         
