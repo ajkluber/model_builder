@@ -84,7 +84,7 @@ class GromacsFiles(object):
         atomtypes_top = " [ atomtypes ]\n"
         atomtypes_top += " ;name   mass  charge ptype      c6               c12\n"
         for atomtype in self.model.mapping.atomtypes:
-            atomtypes_top += " {}  {:>8.3f}{:>8.3f} {} {:>18.9e}{:>18.9e}\n".format(
+            atomtypes_top += "{:<3}  {:>8.3f}{:>8.3f} {} {:>18.9e}{:>18.9e}\n".format(
                             atomtype.name, atomtype.mass, atomtype.charge,
                             atomtype.ptype, atomtype.c6, atomtype.c12)
         return atomtypes_top

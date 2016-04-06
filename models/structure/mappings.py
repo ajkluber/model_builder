@@ -139,7 +139,7 @@ class CalphaCbetaMapping(object):
             for residue in chain._residues:
                 resSeq = getattr(residue, 'resSeq', None) or residue.index
                 newResidue = newTopology.add_residue(residue.name, newChain,
-                                                     resSeq, residue.segment_id)
+                                                     resSeq)
                 # map CA
                 new_ca = newTopology.add_atom('CA', get_by_symbol('C'), 
                                     newResidue, serial=new_atm_idx)
@@ -171,6 +171,10 @@ class CalphaCbetaMapping(object):
 
         self._ca_idxs = np.array(ca_idxs)
         self.topology = newTopology
+    
+    @property
+    def top(self):
+        return self.topology
 
     def map_traj(self, traj):
         """Return new Trajectory object with cacb topology and xyz"""
@@ -248,17 +252,17 @@ class CalphaCbetaMapping(object):
             for i in range(len(ca_atoms)-3):
                 self._dihedrals.append((ca_atoms[i], ca_atoms[i+1], ca_atoms[i+2], ca_atoms[i+3]))
             #add improper dihedrals
-            num_residues = len(chain.residues)
+            num_residues = chain.residue(-1).index
             for res in chain.residues:
                 check = res.index == 0 #not first residue 
                 check = check or res.index == num_residues #last residue 
                 check = check or res.name == "GLY" #GLY
                 if not check:
                     idx = res.index
-                    cj = chain.residues[idx-1].atom(0)
-                    ck = chain.residues[idx+1].atom(0)
+                    cj = chain.residue(idx-1).atom(0)
+                    ck = chain.residue(idx+1).atom(0)
                     dih = (res.atom(0), cj, res.atom(1), ck)
-                    model._improper_dihedrals.append(dih)
+                    self._improper_dihedrals.append(dih)
                         
     def add_atoms(self):
         self.atoms = []
@@ -284,6 +288,17 @@ class CalphaCbetaMapping(object):
             if cg_atom.name not in [ atm.name for atm in self.atomtypes ]:
                 self.atomtypes.append(cg_atom)
     
+    def _atomidx_to_atom_contacts(self, pairs):
+        atm_contacts = []
+        for n,k in pairs:
+            natom = self.top.atom(n)
+            katom = self.top.atom(k)
+            atm_contacts.append([natom, katom])
+        return atm_contacts
+        
+    def _add_pairs(self, pairs):
+        self._contact_pairs = self._atomidx_to_atom_contacts(pairs)
+
     def _add_atomtypes(self):
         pass
         
