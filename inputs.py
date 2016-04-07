@@ -140,7 +140,7 @@ def load_model_section(modelitems,modelopts):
     
     #generic checks/handling of certain options
     check_boolean = ["using_sbm_gmx", "umbrella", "simple_disulfides"]
-    check_exists = ["topology", "starting_gro", "name", "reference"]
+    check_exists = ["topology", "starting_gro", "reference"]
     
     print "Model options:"
     for item,value in modelitems:
