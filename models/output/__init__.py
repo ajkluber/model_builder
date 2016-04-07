@@ -153,14 +153,14 @@ class GromacsFiles(object):
             for dih in self.model.Hamiltonian.dihedrals:
                 func = self._dihedral_funcs[dih.prefix_label]
                 if dih.prefix_label == "COSINE_DIHEDRAL":
-                    phi_s = 180. + dih.mult*dih.phi0*(180./np.pi)
+                    phi_s = dih.mult*(180. + dih.phi0*(180./np.pi))
                     
                     dihedrals_top += "{:>6} {:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}{:>3d}\n".format(
                                     dih.atmi.index + 1, dih.atmj.index + 1,
                                     dih.atmk.index + 1, dih.atml.index + 1,
                                     func, phi_s, dih.kd, dih.mult)
                 elif dih.prefix_label == "HARMONIC_DIHEDRAL":
-                    phi_s = dih.phi0*(180./np.pi)
+                    phi_s = dih.phi0
                     #kd = dih.kd*((np.pi/180.)**2) 
                     kd = dih.kd*((180./np.pi)**2)
                     dihedrals_top += "{:>6} {:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}\n".format(

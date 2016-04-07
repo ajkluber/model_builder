@@ -413,7 +413,7 @@ class StructureBasedHamiltonian(Hamiltonian):
                 # How does mdtraj angle correspond to gromacs? 
                 idxs = np.array([[atm1.index, atm2.index, atm3.index, atm4.index]])
                 phi0 = md.compute_dihedrals(Model.ref_traj, idxs)[0][0]
-                self._add_dihedral(code, atm1, atm2, atm3, atm4, kd, phi0)
+                self._add_dihedral(code, atm1, atm2, atm3, atm4, kd, phi0*(180./np.pi))
         else:
             missing_reference_warning()
 
