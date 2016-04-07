@@ -43,10 +43,11 @@ def load_model(name,dry_run=False):
             potentials). Get converted to starting from zero when 
             calling model.add_pairs
         Default_Energy_parameters for angle bonds are assumed to be 
-            given in the gromacs way (/rad^2). Internally in the 
-            models/potentials package, it assumes the energy constant is 
-            given in /deg^2. It should be converted here on input, as it 
-            is re-converted in outputs accordingly.
+            given in the gromacs way (/rad^2). Inside the model_builder 
+            package, the energy and angles are also assumed to use 
+            radians. They are converted accordingly in the outputted 
+            files. Therefore, all conversions should only take place in 
+            the outputs package.
     
     """
     

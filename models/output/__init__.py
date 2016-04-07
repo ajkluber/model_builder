@@ -135,12 +135,12 @@ class GromacsFiles(object):
             angles_top += " ;  ai     aj     ak func     th0(deg)            Ka\n"
             for angle in self.model.Hamiltonian.angles:
                 if angle.prefix_label == "HARMONIC_ANGLE":
-                    ka = angle.ka*((180./np.pi)**2)
+                    ka = angle.ka
                     func = self._angle_funcs[angle.prefix_label]
                     angles_top += "{:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}\n".format(
                                     angle.atmi.index + 1, angle.atmj.index + 1, 
                                     angle.atmk.index + 1, func, 
-                                    angle.theta0, ka)
+                                    angle.theta0*(180./np.pi), ka)
         return angles_top
 
     def _get_dihedrals_top(self):
@@ -153,16 +153,17 @@ class GromacsFiles(object):
             for dih in self.model.Hamiltonian.dihedrals:
                 func = self._dihedral_funcs[dih.prefix_label]
                 if dih.prefix_label == "COSINE_DIHEDRAL":
-                    phi_s = dih.mult*(180. + dih.phi0*(180./np.pi))
+                    #first convert to degrees, then Gromacs angles, then multiplicity
+                    phi_s = dih.mult*(180. + dih.phi0*(180./np.pi)) #first convert to Gromacs angles, then multiply by multiplicity
                     
                     dihedrals_top += "{:>6} {:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}{:>3d}\n".format(
                                     dih.atmi.index + 1, dih.atmj.index + 1,
                                     dih.atmk.index + 1, dih.atml.index + 1,
                                     func, phi_s, dih.kd, dih.mult)
                 elif dih.prefix_label == "HARMONIC_DIHEDRAL":
-                    phi_s = dih.phi0
+                    phi_s = dih.phi0*(180./np.pi)
                     #kd = dih.kd*((np.pi/180.)**2) 
-                    kd = dih.kd*((180./np.pi)**2)
+                    kd = dih.kd
                     dihedrals_top += "{:>6} {:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}\n".format(
                                     dih.atmi.index + 1, dih.atmj.index + 1,
                                     dih.atmk.index + 1, dih.atml.index + 1,

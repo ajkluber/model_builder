@@ -384,7 +384,7 @@ class StructureBasedHamiltonian(Hamiltonian):
             code = self._default_potentials["angle"]
             for atm1, atm2, atm3 in structure._angles:
                 idxs = np.array([[atm1.index, atm2.index, atm3.index]])
-                theta0 = (180./np.pi)*md.compute_angles(Model.ref_traj, idxs)[0][0]
+                theta0 = md.compute_angles(Model.ref_traj, idxs)[0][0]
                 self._add_angle(code, atm1, atm2, atm3, ka, theta0)
         else:
             missing_reference_warning()
@@ -413,7 +413,7 @@ class StructureBasedHamiltonian(Hamiltonian):
                 # How does mdtraj angle correspond to gromacs? 
                 idxs = np.array([[atm1.index, atm2.index, atm3.index, atm4.index]])
                 phi0 = md.compute_dihedrals(Model.ref_traj, idxs)[0][0]
-                self._add_dihedral(code, atm1, atm2, atm3, atm4, kd, phi0*(180./np.pi))
+                self._add_dihedral(code, atm1, atm2, atm3, atm4, kd, phi0)
         else:
             missing_reference_warning()
 
@@ -433,7 +433,7 @@ class StructureBasedHamiltonian(Hamiltonian):
 
     def _use_sbm_default_parameters(self):
         self._default_parameters = {"kb":20000., # kJ/(mol nm^2)
-                                    "ka":40.*((np.pi/180.)**2),  # kJ/(mol deg^2)
+                                    "ka":40.,  # kJ/(mol deg^2)
                                     "kd":1.,     # kJ/mol
                                     "eps":1}     # kJ/(mol nm)
 
