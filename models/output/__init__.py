@@ -162,7 +162,7 @@ class GromacsFiles(object):
                 elif dih.prefix_label == "HARMONIC_DIHEDRAL":
                     phi_s = dih.phi0*(180./np.pi)
                     #kd = dih.kd*((np.pi/180.)**2) 
-                    kd = dih.kd 
+                    kd = dih.kd*((180./np.pi)**2)
                     dihedrals_top += "{:>6} {:>6} {:>6} {:>6}{:>2}{:>18.9e}{:>18.9e}\n".format(
                                     dih.atmi.index + 1, dih.atmj.index + 1,
                                     dih.atmk.index + 1, dih.atml.index + 1,

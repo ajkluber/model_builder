@@ -42,6 +42,11 @@ def load_model(name,dry_run=False):
         pairs start from 1 (residue-residue contacts for CA-CA 
             potentials). Get converted to starting from zero when 
             calling model.add_pairs
+        Default_Energy_parameters for angle bonds are assumed to be 
+            given in the gromacs way (/rad^2). Internally in the 
+            models/potentials package, it assumes the energy constant is 
+            given in /deg^2. It should be converted here on input, as it 
+            is re-converted in outputs accordingly.
     
     """
     
