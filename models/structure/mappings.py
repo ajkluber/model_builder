@@ -261,7 +261,7 @@ class CalphaCbetaMapping(object):
                     idx = res.index
                     cj = chain.residue(idx-1).atom(0)
                     ck = chain.residue(idx+1).atom(0)
-                    dih = (res.atom(0), cj, res.atom(1), ck)
+                    dih = (res.atom(0), cj, ck, res.atom(1))
                     self._improper_dihedrals.append(dih)
                         
     def add_atoms(self):
@@ -277,7 +277,7 @@ class CalphaCbetaMapping(object):
                     cg_atom = atom_types.CoarseGrainAtom(res.atom(0).index, "CA", 
                             res.index, res.name, 0.266, 1, 0)  
                     self.atoms.append(cg_atom)
-                    radii = atom_types.residue_radii[res.name]
+                    radii = atom_types.residue_cacb_effective_interaction[res.name]
                     name = "CB%s" % atom_types.residue_code[res.name]
                     cg_atom = atom_types.CoarseGrainAtom(res.atom(1).index, name, 
                             res.index, res.name, radii, 1, 0)
