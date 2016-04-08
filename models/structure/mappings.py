@@ -119,7 +119,40 @@ class CalphaMapping(object):
     
     def _add_pairs(self, pairs):
         self._contact_pairs = self._residue_to_atom_contacts(pairs)
-
+    
+    def add_disulfides(self, disulfides):
+        """ Add disulfide bonded interactions.
+        
+        Adds appropriate bond, angle and dihedral interactions.
+        
+        Args:
+            disulfides (list): List of disulfide pairs between the 
+                residues of the disulfides.
+                
+        """
+        
+        for pair in disulfides:
+            res1 = self.top.residue(pair[0])
+            res2 = self.top.residue(pair[1])
+            respre = self.top.residue(pair[0]-1)
+            respost = self.top.residue(pair[1]-1)
+            
+            #add c-alpha atoms
+            cys1 = res1.atom(0)
+            cys2 = res2.atom(0)
+            #add c-beta
+            ca1 = respre.atom(0)
+            ca2 = respost.atom(0)
+            
+            #add bond between c-alpha of the Cys residues
+            self.top.add_bond(cys1, cys2)
+            
+            #add angular constraints between CYS;s and previous c-alphas
+            self._angles.append((ca1, cys1, cys2))
+            self._angles.append((cys1, cys2, ca2))
+            
+            #add dihedral constraints between CYS's and previous c-alphas
+            self._dihedrals.append((ca1, cys1, cys2, ca2))
 
 class CalphaCbetaMapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""
