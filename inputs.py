@@ -7,7 +7,6 @@ import shutil
 import ConfigParser
 import mdtraj
 
-
 from models import StructureBasedModel as SBM
 
 #############################################################################
@@ -61,7 +60,7 @@ def load_model(name,dry_run=False):
     if modelopts["reference"] == None:
         traj = top
     else:
-        traj = md.load(modelopts["reference"])
+        traj = mdtraj.load(modelopts["reference"])
     model.set_reference(traj)
     
     ##add backbone and disulfides
