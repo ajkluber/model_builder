@@ -346,16 +346,12 @@ class StructureBasedHamiltonian(Hamiltonian):
             default_sbm_potentials_warning()
             self._use_sbm_default_potentials() 
 
-        Model.mapping._assign_sbm_angles()
-        Model.mapping._assign_sbm_dihedrals()
-
         self._add_sbm_bonds(Model)
         self._add_sbm_angles(Model)
         self._add_sbm_dihedrals(Model)
 
     def add_sbm_contacts(self, Model):
 
-        Model.mapping._assign_sbm_contacts(Model.ref_traj_aa)
         self._add_sbm_contacts(Model)
 
     def add_sbm_potentials(self, Model):

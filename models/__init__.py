@@ -51,7 +51,16 @@ class StructureBasedModel(Model):
         bead_repr : str [CA, CACB]
             A code specifying the desired coarse-grain mapping. The all-atom 
         to coarse-grain mapping.
-
+        
+        Methods
+        -------
+        assign_* : 
+            Methods assign which atoms have bonded constraints 
+        (angle potentials, dihedral, etc.)
+        
+        add_* :
+            Methods add potentials to the Hamiltonian.
+        
         """
 
     
@@ -78,7 +87,17 @@ class StructureBasedModel(Model):
             self.starting_traj.save(saveas)
         else:
             self.ref_traj.save(saveas)
-
+    
+    def assign_disulfides(self, disulfides):
+        self.mapping.add_disulfides(disulfides)
+        
+    def assign_backbone(self):
+        self.mapping._assign_sbm_angles()
+        self.mapping._assign_sbm_dihedrals()
+        
+    def assign_contacts(self):
+        self.mapping._assign_sbm_contacts(self.ref_traj_aa)
+        
     def add_sbm_potentials(self):
         self.Hamiltonian.add_sbm_potentials(self) 
         
@@ -87,4 +106,9 @@ class StructureBasedModel(Model):
         
     def add_sbm_contacts(self):
         self.Hamiltonian._add_sbm_contacts(self)    
+    
+    
+    
+    
+    
         

@@ -64,14 +64,24 @@ def load_model(name,dry_run=False):
         traj = md.load(modelopts["reference"])
     model.set_reference(traj)
     
+    ##add backbone and disulfides
+    model.assign_backbone()
+    #add disulfides
+    if "disulfides" in modelopts:
+        disulf = modelopts["disulfides"]
+        disulfides = []
+        for i in range(len(disulf)/2):
+            disulfides.append([disulf[2*i]-1, disulf[2*i+1]-1])
+    model.assign_disulfides(disulfides)
+    model.add_sbm_backbone()
+    
     #Check for pair options
     if modelopts["pairs"] == None:
         if modelopts["pairwise_params_file"] == None:
-            #Use default parameters for pair interactions
-            model.add_sbm_potentials()
+            model.assign_contacts()
+            model.add_sbm_contacts
         else:
             #use the modelopts["pairwise_params"] file
-            model.add_sbm_backbone()
             pairs, pairs_index_number, pairs_potential_type, pairs_args = parse_pairwise_params(modelopts["pairwise_params_file"])
             model.add_pairs(pairs)
             pairopts = []
@@ -95,7 +105,6 @@ def load_model(name,dry_run=False):
             model.Hamiltonian._add_pairs(pairopts)
     else:
         #use the modelopts["pairs"] file
-        model.add_sbm_backbone()
         model.add_pairs(np.loadtxt(modelopts["pairs"]).astype(int)-1)
         model.add_sbm_contacts()     
     

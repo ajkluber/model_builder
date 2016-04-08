@@ -263,6 +263,7 @@ class CalphaCbetaMapping(object):
                     ck = chain.residue(idx+1).atom(0)
                     dih = (res.atom(0), cj, ck, res.atom(1))
                     self._improper_dihedrals.append(dih)
+                    
     def add_disulfides(self, disulfides):
         """ Add disulfide bonded interactions.
         
@@ -273,36 +274,28 @@ class CalphaCbetaMapping(object):
                 residues of the disulfides.
                 
         """
-        cys = []
-        for chain in self.topology._chains:
-            for res in chain._residues:
-                if res.name == "CYS":
-                    cys.append(res)
-        num_cys = len(cys)
         
         for pair in disulfides:
-            cys_res_pair = [[],[]]
-            count = 0
-            found1 = False
-            found2 = False
-            go = True
-            while count < num_cys and go:
-                for res in cys:
-                    if (not found1) and res.index == pair[0]:
-                        found1 = True
-                        cys_res_pair[0] = res
-                    elif (not found2) and res.index == pair[1]:
-                        found2 = True
-                        cys_res_pair[1] = res         
-                    elif found1 and found2:
-                        go = False
-                        add_disfulides_between_residues(cys_res_pair)
-            if not (found1 and found2):
-                raise IOError("Residues specified for disulfide bonds not found. Pair: %s" %str(pair))
-    
-    def add_disfulides_between_residues(self, cys_res_pair):
-        pass     
-                                
+            res1 = self.top.residue(pair[0])
+            res2 = self.top.residue(pair[1])
+            
+            #add c-alpha atoms
+            ca1 = res1.atom(0)
+            ca2 = res2.atom(0)
+            #add c-beta
+            cb1 = res1.atom(1)
+            cb2 = res2.atom(1)
+            
+            #add bond between c-beta
+            self.top.add_bond(cb1, cb2)
+            
+            #add angular constraints
+            self._angles.append((ca1, cb1, cb2))
+            self._angles.append((cb1, cb2, ca2))
+            
+            #add dihedral constraints
+            self._dihedrals.append((ca1, cb1, cb2, ca2))
+                                        
     def add_atoms(self):
         self.atoms = []
         self.atomtypes = []
