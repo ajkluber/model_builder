@@ -77,7 +77,27 @@ class GromacsFiles(object):
         return table
 
     def write_simulation_files(self):
-        pass
+        # Write the Hamiltonian Gromacs input file: topol.top
+        self.generate_topology()
+
+        with open("topol.top", "w") as fout:
+            fout.write(self.topfile)
+
+        with open("index.ndx", "w") as fout:
+            fout.write(self.index_ndx)
+
+        np.savetxt("table.xvg", self.tablep, fmt="%16.15e")
+        np.savetxt("tablep.xvg", self.tablep, fmt="%16.15e")
+
+        # Save the starting configuration, but we have to fix the unitcell
+        # information.
+        self.model.ref_traj.save("conf.gro")
+        with open("conf.gro", "r") as fin:
+            temp = reduce(lambda x,y: x+y, fin.readlines()[:-1])
+            temp += "{:>10f}{:>10f}{:>10f}\n".format(20,20,20)
+
+        with open("conf.gro", "w") as fout:
+            fout.write(temp)
 
     def _get_atomtypes_top(self):
         """ Generate the [ atoms ] top."""
