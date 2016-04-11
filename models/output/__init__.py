@@ -76,7 +76,7 @@ class GromacsFiles(object):
         table[0,0] = 0
         return table
 
-    def write_simulation_files(self):
+    def write_simulation_files(self, path_to_tables="."):
         # Write the Hamiltonian Gromacs input file: topol.top
         self.generate_topology()
 
@@ -86,8 +86,7 @@ class GromacsFiles(object):
         with open("index.ndx", "w") as fout:
             fout.write(self.index_ndx)
 
-        np.savetxt("table.xvg", self.tablep, fmt="%16.15e")
-        np.savetxt("tablep.xvg", self.tablep, fmt="%16.15e")
+        self._write_table_files(path_to_tables)
 
         # Save the starting configuration, but we have to fix the unitcell
         # information.
@@ -98,6 +97,18 @@ class GromacsFiles(object):
 
         with open("conf.gro", "w") as fout:
             fout.write(temp)
+
+    def _write_table_files(self, path_to_tables):
+        """Save table files"""
+
+        if not os.path.exists("{}/table.xvg".format(path_to_tables)):
+            np.savetxt("{}/table.xvg".format(path_to_tables), self.tablep, fmt="%16.15e")
+        if not os.path.exists("{}/tablep.xvg".format(path_to_tables)):
+            np.savetxt("{}/tablep.xvg".format(path_to_tables), self.tablep, fmt="%16.15e")
+
+        for i in range(self._n_tables):
+            if not os.path.exists("{}/{}".format(path_to_tables,self._tablenames[i])):
+                np.savetxt("{}/{}".format(path_to_tables,self._tablenames[i]), self._tables[i])
 
     def _get_atomtypes_top(self):
         """ Generate the [ atoms ] top."""
