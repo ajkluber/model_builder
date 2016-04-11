@@ -57,7 +57,7 @@ def load_model(name,dry_run=False):
     model = SBM(top.topology, bead_repr=modelopts["bead_repr"])
     
     #load a reference set to base a model off of
-    if modelopts["reference"] == None:
+    if modelopts["reference"] is None:
         traj = top
     else:
         traj = mdtraj.load(modelopts["reference"])
@@ -66,12 +66,12 @@ def load_model(name,dry_run=False):
     ##add backbone and disulfides
     model.assign_backbone()
     #add disulfides
-    if "disulfides" in modelopts:
+    if modelopts["disulfides"] is not None:
         disulf = modelopts["disulfides"]
         disulfides = []
         for i in range(len(disulf)/2):
             disulfides.append([disulf[2*i]-1, disulf[2*i+1]-1])
-    model.assign_disulfides(disulfides)
+        model.assign_disulfides(disulfides)
     model.add_sbm_backbone()
     
     #Check for pair options
