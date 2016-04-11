@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 SUPPORTED_VERSIONS = ["4.5.4","4.5.4_sbm","4.6.5","4.6.5_sbm"]
