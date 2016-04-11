@@ -271,22 +271,30 @@ def parse_pairwise_params(pairwise_file):
     pairs_index_number = []
     pairs_potential_type = []
     pairs_args = []
-    fopen.readline()
+    key={"8":"LJ12GAUSSIAN", "4": "GAUSSIAN", "2":"LJ1210", "5":"TANHREP"}
+    wordkeys = [key[i] for i in key]
+    count = 0
     for line in fopen:
+        count += 1
         data = line.strip().split()
-        pairs.append([int(data[0])-1, int(data[1])-1]) #convert to pythonic indices
-        pairs_index_number.append(int(data[2]))
-        try:
-            #convert old file format number codes into word codes
-            test = int(data[3])
-            key={"8":"LJ12GAUSSIAN", "4": "GAUSSIAN", "2":"LJ1210", "5":"TANHREP"}
-            pot_type = key[data[3]] 
-        except:
-            pot_type = data[3]
-        
-        pairs_potential_type.append(pot_type)
-        
-        pairs_args.append([float(val) for val in data[4:]])
+        if not data[0][0] is "#":
+            #convert to pythonic indices
+            pairs.append([int(data[0])-1, int(data[1])-1]) 
+            pairs_index_number.append(int(data[2]))
+            
+            if data[3] in key:
+                #using number keys for functions, convert to Word key
+                pot_type = key[data[3]] 
+            elif data[3] in wordkeys:
+                #check if using word keys
+                pot_type = data[3]
+            else:
+                print "Unknown function type for param: %s %s\n" %(data[0], data[1])
+                print "See line %d"
+            
+            pairs_potential_type.append(pot_type)
+            
+            pairs_args.append([float(val) for val in data[4:]])
     
     return pairs, pairs_index_number, pairs_potential_type, pairs_args
     
