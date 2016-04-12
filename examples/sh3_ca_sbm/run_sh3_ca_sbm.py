@@ -80,7 +80,9 @@ Potential
 HERE""", shell=True)
 
 if __name__ == "__main__":
-    model = sh3_ca_sbm()
+    #model = sh3_ca_sbm()
+
+    model, fitopts = mdb.inputs.load_model("SH3.ini")
     startingtraj = model.ref_traj
 
     ##################################
