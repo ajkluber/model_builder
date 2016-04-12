@@ -8,20 +8,6 @@ import model_builder as mdb
 import simulation.mdp
 import plot_eng
 
-def sh3_ca_sbm():
-    # Load all-atom pdb structure.
-    name = "SH3"
-    traj = md.load(name + ".pdb")
-
-    # Create CA structure-based model.
-    model = mdb.models.StructureBasedModel(traj.top, bead_repr="CA")
-
-    # Create the Hamiltonian based off of the reference structure.
-    model.set_reference(traj)
-    model.add_sbm_potentials()
-
-    return model
-
 def save_top_file(model, traj):
 
     # Write the Hamiltonian Gromacs input file: topol.top
@@ -80,8 +66,6 @@ Potential
 HERE""", shell=True)
 
 if __name__ == "__main__":
-    #model = sh3_ca_sbm()
-
     model, fitopts = mdb.inputs.load_model("SH3.ini")
     startingtraj = model.ref_traj
 
