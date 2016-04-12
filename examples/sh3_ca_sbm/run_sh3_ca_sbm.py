@@ -58,9 +58,9 @@ HERE""", shell=True)
     sb.call("""g_energy_sbm -f ener.edr -s topol.tpr -xvg none -o Edih_gmx.xvg << HERE
 Proper-Dih.
 HERE""", shell=True)
-#    sb.call("""g_energy_sbm -f ener.edr -s topol.tpr -xvg none -o Edih_gmx.xvg << HERE
-#LJ-14
-#HERE""", shell=True)
+    sb.call("""g_energy_sbm -f ener.edr -s topol.tpr -xvg none -o Epair_gmx.xvg << HERE
+LJ-14
+HERE""", shell=True)
     sb.call("""g_energy_sbm -f ener.edr -s topol.tpr -xvg none -o Epot_gmx.xvg << HERE
 Potential
 HERE""", shell=True)
@@ -84,11 +84,10 @@ if __name__ == "__main__":
     # Save remaining simulation files
     save_top_file(model, startingtraj)
     run_and_analyze()
-    #plot_eng.plot_energy_terms(model, display=True)
+    plot_eng.plot_energy_terms(model, display=True)
 
     os.chdir("..")
 
-    raise SystemExit
     #######################################
     # Run a constant temperature simulation
     #######################################
