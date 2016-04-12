@@ -239,7 +239,7 @@ class Hamiltonian(object):
         sum : bool (opt.)
             If sum=True return the total energy.
         """
-        theta = (180./np.pi)*md.compute_angles(traj, self._angle_idxs)
+        theta = md.compute_angles(traj, self._angle_idxs)
         if sum:
             Eangle = np.zeros(traj.n_frames, float)
         else:

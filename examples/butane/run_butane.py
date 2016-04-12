@@ -47,10 +47,10 @@ def butane_toy_model():
 
     # Add angle interactions
     model.Hamiltonian._add_angle("HARMONIC_ANGLE", top.atom(0), top.atom(1),
-                                    top.atom(2), 20*(np.pi/180)**2, 90)
+                                    top.atom(2), 20, np.pi/2)
 
     model.Hamiltonian._add_angle("HARMONIC_ANGLE", top.atom(1), top.atom(2),
-                                    top.atom(3), 20*(np.pi/180)**2, 90)
+                                    top.atom(3), 20, np.pi/2)
 
     # Add dihedral interaction
     model.Hamiltonian._add_dihedral("COSINE_DIHEDRAL", top.atom(0), top.atom(1),
