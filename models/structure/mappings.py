@@ -118,7 +118,11 @@ class CalphaMapping(object):
         self._contact_pairs = self._residue_to_atom_contacts(residue_contacts)
     
     def _add_pairs(self, pairs):
-        self._contact_pairs = self._residue_to_atom_contacts(pairs)
+        self._contact_pairs = []
+        for n, k in pairs:
+            natom = self.top.atom(n)
+            katom = self.top.atom(k)
+            self._contact_pairs.append([natom, katom])
     
     def add_disulfides(self, disulfides):
         """ Add disulfide bonded interactions.
