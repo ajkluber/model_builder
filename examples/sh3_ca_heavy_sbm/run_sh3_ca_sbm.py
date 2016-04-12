@@ -29,24 +29,33 @@ class HeavyStructureBasedModel(mdb.models.StructureBasedModel):
         self.Hamiltonian = ptl.StructureBasedHamiltonian()
         self.mapping.add_atoms(mass=mass)
 
-        self._default_parameters = {"kb":5., # kJ/(mol nm^2)
+        self.Hamiltonian._default_parameters = {"kb":5., # kJ/(mol nm^2)
                                     "ka":2.*((np.pi/180.)**2),  # kJ/(mol deg^2)
                                     "kd":1.,     # kJ/mol
                                     "eps":1}     # kJ/(mol nm)
 
+        self.Hamiltonian._default_potentials = {"bond":"HARMONIC_BOND",
+                                "angle":"HARMONIC_ANGLE",
+                                "dihedral":"COSINE_DIHEDRAL",
+                                "improper_dihedral":"HARMONIC_DIHEDRAL",
+                                "contact":"LJ1210"}
 
 def sh3_ca_sbm():
     # Load all-atom pdb structure.
-    name = "SH3"
-    traj = md.load(name + ".pdb")
+    traj = md.load("SH3.pdb")
 
     # Create CA structure-based model.
     model = HeavyStructureBasedModel(traj.top, 100, bead_repr="CA")
     #model = mdb.models.StructureBasedModel(traj.top, bead_repr="CA")
 
     # Create the Hamiltonian based off of the reference structure.
-    model.set_reference(traj)
-    model.add_sbm_potentials()
+    model.set_reference(md.load("SH3.pdb"))
+
+    model.assign_backbone()
+    model.add_sbm_backbone()
+
+    model.add_pairs(np.loadtxt("SH3.contacts", dtype=int) - 1)
+    model.add_sbm_contacts()
 
     return model
 
