@@ -75,8 +75,8 @@ def load_model(name,dry_run=False):
     model.add_sbm_backbone()
     
     #Check for pair options
-    if modelopts["pairs"] == None:
-        if modelopts["pairwise_params_file"] == None:
+    if modelopts["pairs"] is None:
+        if modelopts["pairwise_params_file"] is None:
             model.assign_contacts()
             model.add_sbm_contacts
         else:
@@ -105,8 +105,8 @@ def load_model(name,dry_run=False):
             model.Hamiltonian._add_pairs(pairopts)
     else:
         #use the modelopts["pairs"] file
-        model.add_pairs(np.loadtxt(modelopts["pairs"]).astype(int)-1)
-        model.add_sbm_contacts()     
+        model.add_pairs(np.loadtxt(modelopts["pairs"]).astype(int) - 1)
+        model.add_sbm_contacts()
     
     
     return model,fittingopts
