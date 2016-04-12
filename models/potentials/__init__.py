@@ -351,7 +351,6 @@ class StructureBasedHamiltonian(Hamiltonian):
         self._add_sbm_dihedrals(Model)
 
     def add_sbm_contacts(self, Model):
-
         self._add_sbm_contacts(Model)
 
     def add_sbm_potentials(self, Model):
