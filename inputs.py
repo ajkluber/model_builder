@@ -84,11 +84,14 @@ def load_model(name,dry_run=False):
             pairs, pairs_index_number, pairs_potential_type, pairs_args = parse_pairwise_params(modelopts["pairwise_params_file"])
             model.add_pairs(pairs)
             pairopts = []
-            if os.path.exists(modelopts["model_params_file"]):
-                epsilons = np.loadtxt(modelopts["model_params_file"], comments=["#"])
-            else:
+            if modelopts["model_params_file"] is None:
                 print "Warning: No model_params_file specified. Defaulting all epsilons to 1"
                 epsilons = np.ones(np.shape(pairs)[0])
+            else:
+                if os.path.exists(modelopts["model_params_file"]):
+                    epsilons = np.loadtxt(modelopts["model_params_file"], comments=["#"])
+                else:
+                    raise IOError("{} does not exist!".format(modelopts["model_params_file"]))
 
             if not np.shape(epsilons)[0] == len(pairs):
                 raise IOError("Number of model params not equal to number of pairwise params")
