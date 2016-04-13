@@ -18,7 +18,7 @@ def plot_energy(ax, data1, data2, xlabel, ylabel, title="", ls='', withxy=False)
 
         # calculate R^2 value
         r2 = np.mean((data1 - data1.mean())*(data2 - data2.mean()))/(np.std(data1)*np.std(data2))
-        ax.annotate("$r^2 = {:.5f}$".format(r2), xy=(0,0), xytext=(0.1,0.8),
+        ax.annotate("$r^2 = {:.5f}$".format(r2), xy=(0,0), xytext=(0.1,0.8), xycoords="axes fraction",
                     textcoords="axes fraction",fontsize=18)
 
     if ls == '':
