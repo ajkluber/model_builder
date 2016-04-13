@@ -89,7 +89,7 @@ def load_model(name,dry_run=False):
                 epsilons = np.ones(np.shape(pairs)[0])
             else:
                 if os.path.exists(modelopts["model_params_file"]):
-                    epsilons = np.loadtxt(modelopts["model_params_file"], comments=["#"])
+                    epsilons = np.loadtxt(modelopts["model_params_file"], comments="#")
                 else:
                     raise IOError("{} does not exist!".format(modelopts["model_params_file"]))
 
