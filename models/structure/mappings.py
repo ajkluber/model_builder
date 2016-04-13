@@ -397,9 +397,9 @@ class HeavyAtomMapping(object):
             for residue in chain.residues:
                 newResidue = newTopology.add_residue(residue.name, newChain, res_idx)
                 for atom in residue.atoms:  
-                    if not ("H" in atom.name):
+                    if "H" != atom.element.symbol:
                         new_atom = newTopology.add_atom(atom.name, 
-                                            md.core.element.get_by_symbol('C'),
+                                            md.core.element.get_by_symbol(atom.element.symbol),
                                             newResidue, serial=atm_idx)
                         atom_mapping[atom] = new_atom
                         heavy_atom_idxs.append([atom.index, new_atom.index])
@@ -408,12 +408,17 @@ class HeavyAtomMapping(object):
         
         # Add new bonds
         for atm1, atm2 in topology.bonds:
-            new_atm1 = atom_mapping[atm1]
-            new_atm2 = atom_mapping[atm2]
-            newTopology.add_bond(new_atm1, new_atm2)
+            if (atm1 in atom_mapping) and (atm2 in atom_mapping):
+                new_atm1 = atom_mapping[atm1]
+                new_atm2 = atom_mapping[atm2]
+                newTopology.add_bond(new_atm1, new_atm2)
 
         self._heavy_atom_idxs = np.array(heavy_atom_idxs)
         self.topology = newTopology
+
+    @property
+    def top(self):
+        return self.topology
 
     def map_traj(self, traj):
         """Create new trajectory"""
