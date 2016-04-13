@@ -233,7 +233,7 @@ class GromacsFiles(object):
                     elif pot.prefix_label == "LJ12GAUSSIAN":
                         func = 6
                         params = "{:>18.9e}{:>18.9e}{:>18.9e}{:>18.9e}".format(
-                                    pot.eps, pot.r0, pot.width, pot.rNC)
+                                    pot.eps, pot.r0, pot.width, pot.rNC**12)
                     else:
                         print "Warning: interaction is not supported: {}".format(pot.describe())
                     pairs_top += "{}{:>2}{}\n".format(atm_idxs, func, params)
