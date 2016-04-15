@@ -274,7 +274,7 @@ def parse_pairwise_params(pairwise_file):
     pairs_index_number = []
     pairs_potential_type = []
     pairs_args = []
-    key={"8":"LJ12GAUSSIAN", "4": "GAUSSIAN", "2":"LJ1210", "5":"TANHREP"}
+    key={"8":"LJ12GAUSSIAN", "4": "GAUSSIAN", "2":"LJ1210", "5":"LJ12TANHREP"}
     wordkeys = [key[i] for i in key]
     count = 0
     for line in fopen:
