@@ -51,7 +51,7 @@ class GromacsFiles(object):
             if pot.prefix_label not in self._supported_pair_potentials:
                 self._tabled_pots.append(pot)
 
-                table_name = "table_b{}.xvg".format(len(self._tabled_pots) + 1)
+                table_name = "table_b{}.xvg".format(len(self._tabled_pots))
                 self._tablenames.append(table_name)
 
                 table = np.zeros((r.shape[0], 3), float)
