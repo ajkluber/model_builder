@@ -57,7 +57,9 @@ class CalphaMapping(object):
                 if prev_ca is None:
                     prev_ca = new_ca
                 else:
-                    newTopology.add_bond(prev_ca, new_ca)
+                    if prev_ca.residue.chain.index == new_ca.residue.chain.index:
+                        # Only bond atoms in same chain 
+                        newTopology.add_bond(prev_ca, new_ca)
                     prev_ca = new_ca
                 new_atm_idx += 1
 
