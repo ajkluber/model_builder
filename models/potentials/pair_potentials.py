@@ -275,16 +275,16 @@ class FlatBottomWell(PairPotential):
         self.r0 = r0
 
     def V(self, r):
-        V = np.empty(r.shape[0])
-        V[r < self.r0] = (rNC/r[r < self.r0])**12
-        V[r >= self.r0] = 0.5*(r[r >= self.r0] - self.r0)**2
+        V = np.zeros(r.shape[0])
+        V[r < self.r0] = (self.rNC/r[r < self.r0])**12
+        V[r >= self.r0] = 0.5*self.kb*((r[r >= self.r0] - self.r0)**2)
         return V
 
-    def V(r, kb, rNC, r0):
-        V = np.empty(r.shape[0])
-        V[r < r0] = (rNC/r[r < r0])**12
-        V[r >= r0] = 0.5*kb*((r[r >= r0] - r0)**2)
-        return V
+    def dVdr(self, r):
+        dVdr = np.zeros(r.shape[0])
+        dVdr[r < self.r0] = -(12./self.rNC)*((self.rNC/r[r < self.r0])**13)
+        dVdr[r >= self.r0] = self.kb*(r[r >= self.r0] - self.r0)
+        return dVdr
 
 PAIR_POTENTIALS = {"LJ1210":LJ1210Potential,
                 "GAUSSIAN":GaussianPotential,
