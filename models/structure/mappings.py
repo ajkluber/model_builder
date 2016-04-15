@@ -198,7 +198,8 @@ class CalphaCbetaMapping(object):
                     self._sidechain_mass.append([])
                 else:
                     # map CB
-                    new_cb = newTopology.add_atom('CB', get_by_symbol('C'), 
+                    cb_name = "CB%s" % atom_types.residue_code[residue.name]
+                    new_cb = newTopology.add_atom(cb_name, get_by_symbol('C'), 
                                         newResidue, serial=new_atm_idx)
 
                     newTopology.add_bond(new_cb, new_ca)
