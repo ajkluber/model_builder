@@ -148,7 +148,7 @@ class TanhRepPotential(PairPotential):
         self.width = width
 
     def V(self,r):
-        return self.eps*dVdeps(r) 
+        return self.eps*self.dVdeps(r) 
 
     def dVdeps(self, r):
         alpha = 1./self.width
@@ -156,7 +156,40 @@ class TanhRepPotential(PairPotential):
         return 0.5*(np.tanh(-alpha*(r - r0prime)) + 1.)
 
     def dVdr(self, r):
-        return self.eps*d2Vdrdeps(r) 
+        return self.eps*self.d2Vdrdeps(r) 
+
+    def d2Vdrdeps(self, r):
+        alpha = 1./self.width      
+        r0prime = self.r0 + self.width
+        return -0.5*alpha*(1. - (np.tanh(-alpha*(r - r0prime)))**2)
+
+    def __hash__(self):
+        hash_value = PairPotential.__hash__(self)
+        hash_value ^= hash(self.eps)
+        hash_value ^= hash(self.r0)
+        hash_value ^= hash(self.width)
+        return hash_value
+
+class LJ12TanhRepPotential(PairPotential):
+    
+    def __init__(self, atmi, atmj, eps, rNC, r0, width):
+        PairPotential.__init__(self, atmi, atmj)
+        self.prefix_label = "LJ12TANHREP"
+        self.eps = eps
+        self.rNC = rNC
+        self.r0 = r0
+        self.width = width
+
+    def V(self,r):
+        return self.eps*self.dVdeps(r) + (self.rNC/r)**12
+
+    def dVdeps(self, r):
+        alpha = 1./self.width
+        r0prime = self.r0 + self.width
+        return 0.5*(np.tanh(-alpha*(r - r0prime)) + 1.)
+
+    def dVdr(self, r):
+        return self.eps*self.d2Vdrdeps(r) - (12./self.rNC)*((self.rNC/r)**13)
 
     def d2Vdrdeps(self, r):
         alpha = 1./self.width      
@@ -232,7 +265,30 @@ class LJ12GaussianPotential(PairPotential):
         hash_value ^= hash(self.width)
         return hash_value
 
+class FlatBottomWell(PairPotential):
+
+    def __init__(self, atmi, atmj, kb, rNC, r0):
+        PairPotential.__init__(self, atmi, atmj)
+        self.prefix_label = "FLATWELL"
+        self.kb = kb
+        self.rNC = rNC
+        self.r0 = r0
+
+    def V(self, r):
+        V = np.empty(r.shape[0])
+        V[r < self.r0] = (rNC/r[r < self.r0])**12
+        V[r >= self.r0] = 0.5*(r[r >= self.r0] - self.r0)**2
+        return V
+
+    def V(r, kb, rNC, r0):
+        V = np.empty(r.shape[0])
+        V[r < r0] = (rNC/r[r < r0])**12
+        V[r >= r0] = 0.5*kb*((r[r >= r0] - r0)**2)
+        return V
+
 PAIR_POTENTIALS = {"LJ1210":LJ1210Potential,
                 "GAUSSIAN":GaussianPotential,
                 "LJ12GAUSSIAN":LJ12GaussianPotential,
-                "TANHREP":TanhRepPotential}
+                "TANHREP":TanhRepPotential,
+                "LJ12TANHREP":LJ12TanhRepPotential,
+                "FLATWELL":FlatBottomWell}
