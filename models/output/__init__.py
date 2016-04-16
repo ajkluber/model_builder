@@ -285,27 +285,20 @@ class GromacsFiles(object):
 
 class LammpsFiles(object):
 
-    def __init__(self, model):
+    def __init__(self, model, version=""):
         self.model = model
         self.version = version
 
-        # check compatibility of interactions with this version
-        # of gromacs
-
-        # check for interactions that need to be tabled.
-
         # determine the right lookup numbers for each interactions 
-        self._bond_funcs = {"HARMONIC_BOND":1}
-        self._angle_funcs = {"HARMONIC_ANGLE":1}
-        self._dihedral_funcs = {"COSINE_DIHEDRAL":1,
-                                "HARMONIC_DIHEDRAL":2}
+        #self._bond_funcs = {"HARMONIC_BOND":1}
+        #self._angle_funcs = {"HARMONIC_ANGLE":1}
+        #self._dihedral_funcs = {"COSINE_DIHEDRAL":1,
+        #                        "HARMONIC_DIHEDRAL":2}
 
-        self._supported_pair_potentials = ["LJ12", "LJ1210",
-                                            "GAUSSIAN", "LJ12GAUSSIAN"]
+        #self._supported_pair_potentials = ["LJ12", "LJ1210",
+        #                                    "GAUSSIAN", "LJ12GAUSSIAN"]
 
     def generate_topology(self):
-
-        # 
 
         mapping = self.model.mapping
         top = self.model.mapping.top
