@@ -319,14 +319,14 @@ class LammpsFiles(object):
         top_string += "{:>12d}  atom types\n".format(mapping.n_atomtypes)
         top_string += "{:>12d}  bond types\n\n".format(top.n_bonds)
 
-        top_string += "{:8.1f}{:8.1f}xlo xhi\n".format(-200., 200.)
-        top_string += "{:8.1f}{:8.1f}ylo yhi\n".format(-200., 200.)
-        top_string += "{:8.1f}{:8.1f}zlo zhi\n\n".format(-200., 200.)
+        top_string += "{:<8.1f} {:<8.1f}xlo xhi\n".format(-200., 200.)
+        top_string += "{:<8.1f} {:<8.1f}ylo yhi\n".format(-200., 200.)
+        top_string += "{:<8.1f} {:<8.1f}zlo zhi\n\n".format(-200., 200.)
 
         top_string += "Masses\n\n"
         atomtype_map = {}
         for i in range(mapping.n_atomtypes):
-            atomtype_map[mapping.atomtypes[i]] = i + 1
+            atomtype_map[mapping.atomtypes[i].name] = i + 1
             top_string += "{:>12d}    {:.2f}\n".format(i + 1, mapping.atomtypes[i].mass)
         
         top_string += "\n"
@@ -336,22 +336,23 @@ class LammpsFiles(object):
             atom_type = mapping.atoms[i]
             mass = atom_type.mass
             charge = atom_type.charge
-            type_idx = atomtype_map[atom_type]
-            top_string += "{:>12d}{:>5d}{:>5d}{:>5d}{:>6f} {:>10f}{:>10f}{:>10f}\n".format(
+            type_idx = atomtype_map[atom_type.name]
+            top_string += "{:>12d}{:>5d}{:>5d}{:>5d} {:>6f} {:>10f} {:>10f} {:>10f}\n".format(
                         i + 1, atom.residue.chain.index + 1, atom.residue.index + 1, 
                         type_idx, charge, xyz[i,0], xyz[i,1], xyz[i,2])
         top_string += "\n"
 
         top_string += "Bond Coeffs\n"
-        for i in range(self.model.Hamiltonian._bonds):
+        for i in range(self.model.Hamiltonian.n_bonds):
+            # CHECK UNITS
             bond = self.model.Hamiltonian._bonds[i]
-            top_string += "{:>12d}{:>6f}{:>6f}\n".format(i + 1, bond.kb, bond.r0*10.)
+            top_string += "{:>12d} {:>6.3f} {:>6.3f}\n".format(i + 1, bond.kb, bond.r0*10.)
         top_string += "\n"
 
         top_string += "Bonds\n"
-        for i in range(self.model.Hamiltonian._bonds):
+        for i in range(self.model.Hamiltonian.n_bonds):
             bond = self.model.Hamiltonian._bonds[i]
-            top_string += "{:>12d}{:>5d}{:>5d}{:>5d}\n".format(i + 1, i + 1, bond.atmj.index + 1, bond.atmj.index + 1)
+            top_string += "{:>11d} {:>5d} {:>5d} {:>5d}\n".format(i + 1, i + 1, bond.atmi.index + 1, bond.atmj.index + 1)
         top_string += "\n"
 
         self.topfile = top_string
