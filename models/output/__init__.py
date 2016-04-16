@@ -302,10 +302,10 @@ class LammpsFiles(object):
 
         mapping = self.model.mapping
         top = self.model.mapping.top
-        if hasattr(model, "starting_traj"):
-            xyz = model.starting_traj.xyz[0]
-        elif hasattr(model, "ref_traj"):
-            xyz = model.ref_traj.xyz[0]
+        if hasattr(self.model, "starting_traj"):
+            xyz = self.model.starting_traj.xyz[0]
+        elif hasattr(self.model, "ref_traj"):
+            xyz = self.model.ref_traj.xyz[0]
         else:
             raise AttributeError("need to set intial conditions (ref_traj or starting_traj) to write")
         
@@ -343,14 +343,14 @@ class LammpsFiles(object):
         top_string += "\n"
 
         top_string += "Bond Coeffs\n"
-        for i in range(model.Hamiltonian._bonds):
-            bond = model.Hamiltonian._bonds[i]
+        for i in range(self.model.Hamiltonian._bonds):
+            bond = self.model.Hamiltonian._bonds[i]
             top_string += "{:>12d}{:>6f}{:>6f}\n".format(i + 1, bond.kb, bond.r0*10.)
         top_string += "\n"
 
         top_string += "Bonds\n"
-        for i in range(model.Hamiltonian._bonds):
-            bond = model.Hamiltonian._bonds[i]
+        for i in range(self.model.Hamiltonian._bonds):
+            bond = self.model.Hamiltonian._bonds[i]
             top_string += "{:>12d}{:>5d}{:>5d}{:>5d}\n".format(i + 1, i + 1, bond.atmj.index + 1, bond.atmj.index + 1)
         top_string += "\n"
 
