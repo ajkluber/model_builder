@@ -75,6 +75,10 @@ class CalphaMapping(object):
         ca_xyz = traj.xyz[:,self._ca_idxs[:,0],:]
         return md.Trajectory(ca_xyz, self.topology)
 
+    @property
+    def n_atomtypes(self):
+        return len(self.atomtypes)
+
     def add_atoms(self, mass=1, radius=0.4, charge=0):
         name = "CA"
         mass = mass # amu
@@ -336,6 +340,10 @@ class CalphaCbetaMapping(object):
             
             #add dihedral constraints
             self._dihedrals.append((ca1, cb1, cb2, ca2))
+
+    @property
+    def n_atomtypes(self):
+        return len(self.atomtypes)
                                         
     def add_atoms(self):
         self.atoms = []
