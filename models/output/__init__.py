@@ -309,7 +309,7 @@ class LammpsFiles(object):
         else:
             raise AttributeError("need to set intial conditions (ref_traj or starting_traj) to write")
         
-        top_string = "LAMMPS written by model_builder\n"
+        top_string = "LAMMPS written by model_builder\n\n"
         top_string += "{:>12d}  atoms\n".format(top.n_atoms)
         top_string += "{:>12d}  bonds\n".format(top.n_bonds)
         top_string += "{:>12d}  angles\n".format(0)
@@ -342,14 +342,14 @@ class LammpsFiles(object):
                         type_idx, charge, xyz[i,0], xyz[i,1], xyz[i,2])
         top_string += "\n"
 
-        top_string += "Bond Coeffs\n"
+        top_string += "Bond Coeffs\n\n"
         for i in range(self.model.Hamiltonian.n_bonds):
             # CHECK UNITS
             bond = self.model.Hamiltonian._bonds[i]
             top_string += "{:>12d} {:>6.3f} {:>6.3f}\n".format(i + 1, bond.kb, bond.r0*10.)
         top_string += "\n"
 
-        top_string += "Bonds\n"
+        top_string += "Bonds\n\n"
         for i in range(self.model.Hamiltonian.n_bonds):
             bond = self.model.Hamiltonian._bonds[i]
             top_string += "{:>11d} {:>5d} {:>5d} {:>5d}\n".format(i + 1, i + 1, bond.atmi.index + 1, bond.atmj.index + 1)
