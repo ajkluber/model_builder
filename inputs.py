@@ -110,7 +110,14 @@ def load_model(name,dry_run=False):
         #use the modelopts["pairs"] file
         model.add_pairs(np.loadtxt(modelopts["pairs"]).astype(int) - 1)
         model.add_sbm_contacts()
+        
+    #Assign epsilons for fitting. Default: All pair interactions
+    if modelopts["parameters_to_fit_file"] is None:
+        parameters_to_fit = np.arange(np.shape(model.Hamiltonian._pairs)[0])
+    else:
+        parameters_to_fit = np.loadtxt(modelopts["parameters_to_fit_file"], comments="#").astype(int)
     
+    model.assign_fitted_epsilons(parameters_to_fit)
     
     return model,fittingopts
 
@@ -262,7 +269,7 @@ def _empty_model_opts():
             "pairs","pairwise_other_parameters",
             "pairwise_param_assignment","n_processors",
             "pairwise_type","verbose","dry_run",
-            "using_sbm_gmx","umbrella", "topology", "reference"] 
+            "using_sbm_gmx","umbrella", "topology", "reference", "parameters_to_fit_file"] 
     modelopts = { opt:None for opt in opts }
     return modelopts
 

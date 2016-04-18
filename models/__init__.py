@@ -36,8 +36,26 @@ class Model(object):
         self.starting_traj = traj
         
     def add_pairs(self, pairs):
-        self.mapping._add_pairs(pairs)    
-
+        self.mapping._add_pairs(pairs)
+    
+    def assign_fitted_epsilons(self, params_to_fit_indices):
+        self.params_to_fit_indices = params_to_fit_indices
+        self.fitted_epsilons = []
+        for i in params_to_fit_indices:
+            self.fitted_epsilons.append(self.Hamiltonian._epsilons[i])   
+    
+    def output_epsilons(self):
+        params = self.Hamiltonian._epsilons
+        for idx, i in enumerate(self.params_to_fit_indices):
+            params[i] = self.fitted_epsilons[idx]
+        
+        f = open("params", "w")
+        f.write("# Fitted Parameters\n")
+        for param in params:
+            f.write("%f\n"%param)
+        f.close()
+            
+        
 class StructureBasedModel(Model):
 
     def __init__(self, topology, bead_repr=None):
