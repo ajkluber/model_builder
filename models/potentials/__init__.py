@@ -63,6 +63,7 @@ class Hamiltonian(object):
         self._pairs = []
         self._default_parameters = {}
         self._default_potentials = {}
+        self._epsilons = []
 
     def __str__(self):
         return "<%s>" % (self._string_summary_basic())
@@ -162,6 +163,7 @@ class Hamiltonian(object):
         p = pair_potentials.PAIR_POTENTIALS[code](atm1, atm2, *args)
         if p not in self._pairs:
             self._pairs.append(p)
+            self._epsilons.append(p.eps)
         else:
             interaction_exists_warning(p)
 
