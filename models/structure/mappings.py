@@ -14,7 +14,6 @@ import mdtraj as md
 
 import mdtraj as md
 from mdtraj.core.topology import Topology
-from mdtraj.core.element import get_by_symbol
 
 import contacts as cts
 import atom_types
@@ -49,7 +48,7 @@ class CalphaMapping(object):
                 resSeq = getattr(residue, 'resSeq', None) or residue.index
                 newResidue = newTopology.add_residue(residue.name, newChain, resSeq)
                 # map CA
-                new_ca = newTopology.add_atom('CA', get_by_symbol('C'), 
+                new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'), 
                                     newResidue, serial=new_atm_idx)
 
                 ca_idxs.append([[ atm.index for atm in residue.atoms if \
@@ -185,7 +184,7 @@ class CalphaCbetaMapping(object):
                 newResidue = newTopology.add_residue(residue.name, newChain,
                                                      resSeq)
                 # map CA
-                new_ca = newTopology.add_atom('CA', get_by_symbol('C'), 
+                new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'), 
                                     newResidue, serial=new_atm_idx)
                 if prev_ca is None:
                     prev_ca = new_ca
@@ -203,7 +202,7 @@ class CalphaCbetaMapping(object):
                 else:
                     # map CB
                     cb_name = "CB%s" % atom_types.residue_code[residue.name]
-                    new_cb = newTopology.add_atom(cb_name, get_by_symbol('C'), 
+                    new_cb = newTopology.add_atom(cb_name, md.core.element.get_by_symbol('C'), 
                                         newResidue, serial=new_atm_idx)
 
                     newTopology.add_bond(new_cb, new_ca)
@@ -436,8 +435,66 @@ class HeavyAtomMapping(object):
         hvy_xyz = traj.xyz[:,self._heavy_atom_idxs[:,0],:]
         return md.Trajectory(hvy_xyz, self.topology)
 
+class AwsemMapping(object):
+    """Calpha Cbeta center-of-mass representation mapping"""
 
-MAPPINGS = {"CA":CalphaMapping, "CACB":CalphaCbetaMapping, "All-Atom":HeavyAtomMapping}
+    def __init__(self, topology):
+        self._ref_topology = topology.copy()
+
+        # weights for creating glycine hydrogens (H-beta).
+        self.aH = -0.946747
+        self.bH = 2.50352
+        self.cH = -0.620388
+
+        # Build new topology
+        newTopology = Topology()
+        new_atm_idx = 0 
+        prev_ca = None
+        ca_idxs = []
+        self._sidechain_idxs = []
+        self._sidechain_mass = []
+        for chain in topology._chains:
+            newChain = newTopology.add_chain()
+            for residue in chain._residues:
+                resSeq = getattr(residue, 'resSeq', None) or residue.index
+                newResidue = newTopology.add_residue(residue.name, newChain,
+                                                     resSeq)
+                # map backbone
+                new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'), 
+                                    newResidue, serial=new_atm_idx)
+                new_o = newTopology.add_atom('O', md.core.element.get_by_symbol('O'), 
+                                    newResidue, serial=new_atm_idx)
+                if prev_ca is None:
+                    prev_ca = new_ca
+                else:
+                    newTopology.add_bond(prev_ca, new_ca)
+                    prev_ca = new_ca
+
+                ca_idxs.append([[ atm.index for atm in residue.atoms if \
+                            (atm.name == "CA") ][0], new_atm_idx ])
+                new_atm_idx += 1
+
+                if residue.name == 'GLY':
+                    self._sidechain_idxs.append([])
+                    self._sidechain_mass.append([])
+                else:
+                    # map CB
+                    cb_name = "CB%s" % atom_types.residue_code[residue.name]
+                    new_cb = newTopology.add_atom(cb_name, md.core.element.get_by_symbol('C'), 
+                                        newResidue, serial=new_atm_idx)
+
+                    newTopology.add_bond(new_cb, new_ca)
+
+                    self._sidechain_idxs.append([[ atm.index for atm in residue.atoms if \
+                                (atm.is_sidechain) and (atm.element.symbol != "H") ], new_atm_idx ])
+                    self._sidechain_mass.append(np.array([ atm.element.mass for atm in residue.atoms if \
+                                (atm.is_sidechain) and (atm.element.symbol != "H") ]))
+                    new_atm_idx += 1
+
+        self._ca_idxs = np.array(ca_idxs)
+        self.topology = newTopology
+
+MAPPINGS = {"CA":CalphaMapping, "CACB":CalphaCbetaMapping, "All-Atom":HeavyAtomMapping, "AWSEM":AwsemMapping}
 
 def assign_mapping(code, topology):
     return MAPPINGS[code](topology)
