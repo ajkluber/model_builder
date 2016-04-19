@@ -462,6 +462,7 @@ class AwsemMapping(object):
                 # map backbone
                 new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'), 
                                     newResidue, serial=new_atm_idx)
+                new_atm_idx += 1
                 new_o = newTopology.add_atom('O', md.core.element.get_by_symbol('O'), 
                                     newResidue, serial=new_atm_idx)
                 if prev_ca is None:
@@ -475,6 +476,8 @@ class AwsemMapping(object):
                 new_atm_idx += 1
 
                 if residue.name == 'GLY':
+                    new_ca = newTopology.add_atom('HB', md.core.element.get_by_symbol('H'), 
+                                        newResidue, serial=new_atm_idx)
                     self._sidechain_idxs.append([])
                     self._sidechain_mass.append([])
                 else:
