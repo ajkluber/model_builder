@@ -496,8 +496,8 @@ class AwsemMapping(object):
                     prev_ca = new_ca
                     prev_o = new_o
                 else:
-                    newTopology.add_bond(new_ca, prev_ca)
-                    newTopology.add_bond(new_ca, prev_o)
+                    newTopology.add_bond(prev_ca, new_ca)
+                    newTopology.add_bond(prev_o, new_ca)
                     prev_ca = new_ca
                     prev_o = new_o
 
