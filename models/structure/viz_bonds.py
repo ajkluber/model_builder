@@ -40,17 +40,14 @@ def write_bonds_conect(bond_idxs, outfile="conect.pdb"):
 
 def check_bond_idxs(thing):
     if type(thing) == Topology:
-        bond_iter = thing.bonds
+        bond_idxs = array([ [atm1.serial, atm2.serial] for atm1, atm2 in thing.bonds ])
     elif type(thing) == Trajectory:
-        bonds_iter = thing.top.bonds
-        bond_idxs = array([ [atm1.serial, atm2.serial] for atm1, atm2 in  ])
+        bond_idxs = array([ [atm1.serial, atm2.serial] for atm1, atm2 in thing.top.bonds ])
     elif type(thing) == ndarray:
         if topology.shape[1] != 2:
             raise IOError("array must be size (n_bonds, 2). Inputted: {}".format(topology.shape))
         else:
             bond_idxs = thing
-
-        bond_idxs = array([ [atm1.serial, atm2.serial] for atm1, atm2 in  ])
          
     return bond_idxs
 
