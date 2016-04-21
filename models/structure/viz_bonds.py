@@ -21,7 +21,7 @@ $sel setbonds [list $bond1 $bond2]
 $sel delete'''.format(molid, idx1, idx2)
 
     tclstring = ''
-    for idx1, idx2 in topology.bonds:  
+    for idx1, idx2 in bond_idxs:
         tclstring += bondstring(molid, idx1, idx2) + "\n"
 
     with open(outfile, 'w') as fout:
@@ -40,14 +40,17 @@ def write_bonds_conect(bond_idxs, outfile="conect.pdb"):
 
 def check_bond_idxs(thing):
     if type(thing) == Topology:
-        bond_idxs = array([ [atm1.serial, atm2.serial] for atm1, atm2 in thing.bonds ])
+        bond_iter = thing.bonds
     elif type(thing) == Trajectory:
-        bond_idxs = array([ [atm1.serial, atm2.serial] for atm1, atm2 in thing.top.bonds ])
+        bonds_iter = thing.top.bonds
+        bond_idxs = array([ [atm1.serial, atm2.serial] for atm1, atm2 in  ])
     elif type(thing) == ndarray:
         if topology.shape[1] != 2:
             raise IOError("array must be size (n_bonds, 2). Inputted: {}".format(topology.shape))
         else:
             bond_idxs = thing
+
+        bond_idxs = array([ [atm1.serial, atm2.serial] for atm1, atm2 in  ])
          
     return bond_idxs
 
