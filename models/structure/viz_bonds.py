@@ -33,16 +33,16 @@ def write_bonds_conect(bond_idxs, outfile="conect.pdb"):
  
     conectstring = ''
     for idx1, idx2 in bond_idxs:
-        conectstring += "CONECT{:5d}{:5d}\n".format(idx1 + 1, idx2 + 1)
+        conectstring += "CONECT{:5d}{:5d}\n".format(idx1, idx2)
 
     with open(outfile, 'w') as fout:
         fout.write(conectstring)
 
 def check_bond_idxs(thing):
     if type(thing) == Topology:
-        bond_idxs = array([ [atm1.index, atm2.index] for atm1, atm2 in thing.bonds ])
+        bond_idxs = array([ [atm1.serial, atm2.serial] for atm1, atm2 in thing.bonds ])
     elif type(thing) == Trajectory:
-        bond_idxs = array([ [atm1.index, atm2.index] for atm1, atm2 in thing.top.bonds ])
+        bond_idxs = array([ [atm1.serial, atm2.serial] for atm1, atm2 in thing.top.bonds ])
     elif type(thing) == ndarray:
         if topology.shape[1] != 2:
             raise IOError("array must be size (n_bonds, 2). Inputted: {}".format(topology.shape))
