@@ -445,9 +445,15 @@ class AwsemMapping(object):
         self._ref_topology = topology.copy()
 
         # weights for creating glycine hydrogens (H-Beta, HB).
-        self.HB_coeff_N = -0.946747
-        self.HB_coeff_CA = 2.50352
-        self.HB_coeff_O = -0.620388
+        # These weights are from Aram's scripts
+        #self.HB_coeff_N = -0.946747
+        #self.HB_coeff_CA = 2.50352
+        #self.HB_coeff_C = -0.620388
+
+        # There was something weird with the HB placement with Aram's
+        # coefficients, so I have a simple solution of subtracting the center
+        # of geometry of the N, CA, C atoms from the CA atom with some weight.
+        self._HB_w = 3
 
         # Build new topology
         newTopology = Topology()
@@ -483,7 +489,8 @@ class AwsemMapping(object):
                     new_hb = newTopology.add_atom('HB', md.core.element.get_by_symbol('H'), 
                                                 newResidue, serial=atm_idx)
                     N_idx = [ atm.index for atm in residue.atoms if (atm.name == "N") ][0]
-                    HB_idxs.append([N_idx, CA_idx, O_idx, new_hb.index])
+                    C_idx = [ atm.index for atm in residue.atoms if (atm.name == "C") ][0]
+                    HB_idxs.append([N_idx, CA_idx, C_idx, new_hb.index])
                     newTopology.add_bond(new_ca, new_hb)
                 else:
                     new_cb = newTopology.add_atom('CB', md.core.element.get_by_symbol('C'), 
@@ -497,8 +504,11 @@ class AwsemMapping(object):
                     prev_ca = new_ca
                     prev_o = new_o
                 else:
-                    newTopology.add_bond(prev_ca, new_ca)
-                    newTopology.add_bond(prev_o, new_ca)
+                    # Only bond atoms in the same chain
+                    if prev_ca.residue.chain.index == new_ca.residue.chain.index:
+                        newTopology.add_bond(prev_ca, new_ca)
+                    if prev_o.residue.chain.index == new_ca.residue.chain.index:
+                        newTopology.add_bond(prev_o, new_ca)
                     prev_ca = new_ca
                     prev_o = new_o
 
@@ -520,9 +530,10 @@ class AwsemMapping(object):
         # Direct slicing for CA, CB, O. HB is interpolated from other atoms
         cacbo_xyz = np.zeros((traj.n_frames, self.topology.n_atoms, 3))
         cacbo_xyz[:, self._CACBO_idxs[:,1], :] = traj.xyz[:, self._CACBO_idxs[:,0], :]
-        cacbo_xyz[:, self._HB_idxs[:,3], :] = self.HB_coeff_N*traj.xyz[:, self._HB_idxs[:,0], :] +\
-                                              self.HB_coeff_CA*traj.xyz[:, self._HB_idxs[:,1], :] +\
-                                              self.HB_coeff_O*traj.xyz[:, self._HB_idxs[:,2], :]
+        cacbo_xyz[:, self._HB_idxs[:,3], :] = (1. + (1. - (1./3))*self._HB_w)*traj.xyz[:, self._HB_idxs[:,1], :] -\
+                                              (self._HB_w/3.)*traj.xyz[:, self._HB_idxs[:,0], :] -\
+                                              (self._HB_w/3.)*traj.xyz[:, self._HB_idxs[:,2], :]
+
         return md.Trajectory(cacbo_xyz, self.top)
 
     def set_atom(self):
