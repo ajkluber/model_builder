@@ -1,6 +1,8 @@
 import os
 import numpy as np
 
+import mdtraj as md
+
 SUPPORTED_VERSIONS = ["4.5.4","4.5.4_sbm","4.6.5","4.6.5_sbm"]
 
 class GromacsFiles(object):
@@ -453,19 +455,32 @@ class AWSEMLammpsFiles(object):
 
         self.topfile = top_string
 
-    def write_simulation_files(self, topfilename, seqfilename):
+    def write_simulation_files(self, topfilename, seqfilename, sec_struct_filename=None):
 
         self.generate_topology()
 
-        if hasattr(self.model, "starting_traj"):
-            traj = self.model.starting_traj
-        elif hasattr(self.model, "ref_traj"):
+        if hasattr(self.model, "ref_traj"):
             traj = self.model.ref_traj
+        elif hasattr(self.model, "starting_traj"):
+            traj = self.model.starting_traj
         else:
             raise AttributeError("need to set intial conditions (ref_traj or starting_traj) to write")
 
+        fasta = traj.top.to_fasta()
+
         with open("{}".format(seqfilename),"w") as fout:
-            fout.write(traj.top.to_fasta()[0])
+            for line in fasta:
+                fout.write("{}\n".format(line))
+
+        if not (sec_struct_filename is None):
+            dssp = ("".join(md.compute_dssp(traj)[0])).replace("C","-")
+            with open("{}".format(sec_struct_filename), "w") as fout:
+                start = 0
+                for i in range(len(fasta)):
+                    chain_length = len(fasta[i]) 
+                    fout.write("{}\n".format(fasta[i]))
+                    fout.write("{}\n".format(dssp[start:start+chain_length]))
+                    start += chain_length
 
         with open("{}".format(topfilename),"w") as fout:
             fout.write(self.topfile)
