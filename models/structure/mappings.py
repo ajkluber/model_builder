@@ -173,6 +173,7 @@ class CalphaCbetaMapping(object):
         # Build new topology
         newTopology = Topology()
         new_atm_idx = 0 
+        res_idx = 1
         prev_ca = None
         ca_idxs = []
         self._sidechain_idxs = []
@@ -180,9 +181,8 @@ class CalphaCbetaMapping(object):
         for chain in topology._chains:
             newChain = newTopology.add_chain()
             for residue in chain._residues:
-                resSeq = getattr(residue, 'resSeq', None) or residue.index
-                newResidue = newTopology.add_residue(residue.name, newChain,
-                                                     resSeq)
+                #resSeq = getattr(residue, 'resSeq', None) or residue.index
+                newResidue = newTopology.add_residue(residue.name, newChain, res_idx)
                 # map CA
                 new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'), 
                                     newResidue, serial=new_atm_idx)
@@ -214,6 +214,7 @@ class CalphaCbetaMapping(object):
                     self._sidechain_mass.append(np.array([ atm.element.mass for atm in residue.atoms if \
                                 (atm.is_sidechain) and (atm.element.symbol != "H") ]))
                     new_atm_idx += 1
+                res_idx += 1
 
         self._ca_idxs = np.array(ca_idxs)
         self.topology = newTopology
@@ -402,7 +403,7 @@ class HeavyAtomMapping(object):
         atom_mapping = {}
 
         atm_idx = 0
-        res_idx = 0
+        res_idx = 1
         heavy_atom_idxs = []
         for chain in topology.chains:
             newChain = newTopology.add_chain()
