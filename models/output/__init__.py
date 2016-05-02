@@ -482,6 +482,19 @@ class AWSEMLammpsFiles(object):
                     fout.write("{}\n".format(dssp[start:start+chain_length]))
                     start += chain_length
 
+            with open("ssweight", "w") as fout:
+                for ss in dssp:
+                    if ss == "H": 
+                        helix = 1.
+                        sheet = 0.
+                    elif ss == "E":
+                        helix = 0.
+                        sheet = 1.
+                    else:
+                        helix = 0.
+                        sheet = 0.
+                    fout.write("{:.1f} {:.1f}\n".format(helix, sheet))
+
         with open("{}".format(topfilename),"w") as fout:
             fout.write(self.topfile)
 
