@@ -455,7 +455,7 @@ class AWSEMLammpsFiles(object):
 
         self.topfile = top_string
 
-    def write_simulation_files(self, topfilename, seqfilename, sec_struct_filename=None):
+    def write_simulation_files(self, topfilename, seqfilename):
 
         self.generate_topology()
 
@@ -485,28 +485,28 @@ class AWSEMLammpsFiles(object):
                         pass
                     res_idx += 1
 
-        if not (sec_struct_filename is None):
-            dssp = ("".join(md.compute_dssp(traj)[0])).replace("C","-")
-            with open("{}".format(sec_struct_filename), "w") as fout:
-                start = 0
-                for i in range(len(fasta)):
-                    chain_length = len(fasta[i]) 
-                    fout.write("{}\n".format(fasta[i]))
-                    fout.write("{}\n".format(dssp[start:start+chain_length]))
-                    start += chain_length
+        dssp = ("".join(md.compute_dssp(traj)[0])).replace("C","-")
+        with open("ssweight", "w") as fout:
+            for ss in dssp:
+                if ss == "H": 
+                    helix = 1.
+                    sheet = 0.
+                elif ss == "E":
+                    helix = 0.
+                    sheet = 1.
+                else:
+                    helix = 0.
+                    sheet = 0.
+                fout.write("{:.1f} {:.1f}\n".format(helix, sheet))
 
-            with open("ssweight", "w") as fout:
-                for ss in dssp:
-                    if ss == "H": 
-                        helix = 1.
-                        sheet = 0.
-                    elif ss == "E":
-                        helix = 0.
-                        sheet = 1.
-                    else:
-                        helix = 0.
-                        sheet = 0.
-                    fout.write("{:.1f} {:.1f}\n".format(helix, sheet))
+        with open("jpred", "w") as fout:
+            start = 0
+            for i in range(len(fasta)):
+                chain_length = len(fasta[i]) 
+                fout.write("{}\n".format(fasta[i]))
+                fout.write("{}\n".format(dssp[start:start+chain_length]))
+                start += chain_length
+
 
         with open("{}".format(topfilename),"w") as fout:
             fout.write(self.topfile)
