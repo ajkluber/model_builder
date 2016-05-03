@@ -472,6 +472,19 @@ class AWSEMLammpsFiles(object):
             for line in fasta:
                 fout.write("{}\n".format(line))
 
+        with open("charge_on_residues.dat", "w") as fout:
+            res_idx = 1
+            for chain in fasta:
+                for residue in chain:
+                    if residue in ["R", "K"]:
+                        fout.write("{:6d}   {:8.4f}\n".format(res_idx, 1.0))
+                    elif residue in ["E", "D"]:
+                        fout.write("{:6d}   {:8.4f}\n".format(res_idx, -1.0))
+                    else:
+                        #fout.write("{:6d}   {:8.4f}\n".format(res_idx, 0.))
+                        pass
+                    res_idx += 1
+
         if not (sec_struct_filename is None):
             dssp = ("".join(md.compute_dssp(traj)[0])).replace("C","-")
             with open("{}".format(sec_struct_filename), "w") as fout:
