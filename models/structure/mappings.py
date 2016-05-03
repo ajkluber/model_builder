@@ -536,9 +536,65 @@ class AwsemMapping(object):
 
         return md.Trajectory(cacbo_xyz, self.top)
 
-    def set_atom(self):
-        pass
-        
+    def mutate(self, mut_res_idx, mut_new_resname):
+        """Mutate residue
+
+        Parameters 
+        ----------
+        mut_res_idx : int
+            Index of residue to mutate.
+        mut_new_resname : str
+            Three-letter code of residue to mutate to.
+        """
+
+        # Build new topology
+        newTopology = Topology()
+        for chain in self.topology.chains:
+            newChain = newTopology.add_chain()
+            for residue in chain._residues:
+                res_idx = residue.index
+                if res_idx == mut_ref_idx:
+                    # mutate
+                    newResidue = newTopology.add_residue(mut_new_resname, newChain, res_idx)
+                    for atom in residues.atoms:
+                        if atom.name in ["CA", "O"]: 
+                            # Copy over backbone atoms
+                            newTopology.add_atom(atom.name,
+                                    md.core.element.get_by_symbol(atom.element.symbol),
+                                    newResidue, serial=atom.index)
+                        else:
+                            # Mutate sidechain atom if necessary
+                            if (newResidue == "GLY") and (residue.name != "GLY"):
+                                newTopology.add_atom("HB",
+                                        md.core.element.get_by_symbol("H"),
+                                        newResidue, serial=atom.index)
+                            elif ((newResidue != "GLY") and (residue.name == "GLY")) or ((newResidue != "GLY") and (residue.name != "GLY")):
+                                newTopology.add_atom("CB",
+                                        md.core.element.get_by_symbol("C"),
+                                        newResidue, serial=atom.index)
+                            else:
+                                # mutating glycine to glycine. silly. 
+                                newTopology.add_atom("HB",
+                                        md.core.element.get_by_symbol("H"),
+                                        newResidue, serial=atom.index)
+
+                else:
+                    # copy
+                    newResidue = newTopology.add_residue(residue.name, newChain, res_idx)
+                    for atom in residues.atoms:
+                        newTopology.add_atom(atom.name, 
+                                    md.core.element.get_by_symbol(atom.element.symbol), 
+                                    newResidue, serial=atom.index)
+
+        # The bond connectivity should stay identical
+        for atm1, atm2 in self.topology._bonds:
+            new_atm1 = newTopology.atom(atm1.index)
+            new_atm2 = newTopology.atom(atm2.index)
+            newTopology.add_bond(new_atm1, new_atm2)
+
+        self._prev_topology = self.topology.copy()
+        self.topology = newTopology
+
 
 MAPPINGS = {"CA":CalphaMapping, "CACB":CalphaCbetaMapping, "All-Atom":HeavyAtomMapping, "AWSEM":AwsemMapping}
 
