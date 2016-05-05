@@ -473,6 +473,10 @@ class AWSEMLammpsFiles(object):
                 fout.write("{}\n".format(line))
 
         with open("charge_on_residues.dat", "w") as fout:
+            all_fasta = "".join(fasta)
+            charged_count = all_fasta.count("R") + all_fasta.count("K") + 
+                            all_fasta.count("E") + all_fasta.count("D")
+            fout.write("{}\n".format(charged_count))
             res_idx = 1
             for chain in fasta:
                 for residue in chain:
