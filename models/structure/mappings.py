@@ -4,9 +4,6 @@
 
 """
 
-# TODO: 
-# - Finish CACB mapping.
-
 
 import numpy as np
 
@@ -459,6 +456,7 @@ class AwsemMapping(object):
         newTopology = Topology()
         CACBO_idxs = []
         HB_idxs = []
+        res_charges = []
         chain_idx = 1
         res_idx = 1
         atm_idx = 0
@@ -467,7 +465,9 @@ class AwsemMapping(object):
         for chain in topology._chains:
             newChain = newTopology.add_chain()
             for residue in chain._residues:
-                newResidue = newTopology.add_residue(residue.name, newChain, res_idx)
+                res_name = self._fix_nonstandard_resnames(residue, res_charges)
+                
+                newResidue = newTopology.add_residue(res_name, newChain, res_idx)
 
                 # Add atoms for residue 
                 new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'), 
@@ -516,7 +516,7 @@ class AwsemMapping(object):
                 res_idx += 1
             chain_idx += 1
 
-
+        self._charged_residues = res_charges
         self._HB_idxs = np.array(HB_idxs)
         self._CACBO_idxs = np.array(CACBO_idxs)
         self.topology = newTopology
@@ -535,6 +535,29 @@ class AwsemMapping(object):
                                               (self._HB_w/3.)*traj.xyz[:, self._HB_idxs[:,2], :]
 
         return md.Trajectory(cacbo_xyz, self.top)
+
+    def _fix_nonstandard_resnames(self, residue, res_charges):
+        """Convert non-standard residue names (that indicate charge state) to standard names"""
+        standard_names = {"ARN":"ARG", "ASH":"ASP", "GLH":"GLU", "LYN":"LYS"}
+        res_name = residue.name
+        if res_name in ["ARG", "LYS"]:
+            res_charges.append([residue.index + 1, 1])
+            new_res_name = res_name
+        elif res_name in ["GLU", "ASP"]:
+            res_charges.append([residue.index + 1, -1])
+            new_res_name = res_name
+        elif res_name in ["HIE", "HIS"]:
+            res_charges.append([residue.index + 1, 1])
+            new_res_name = "HIS"
+        elif res_name in ["HIP"]:
+            res_charges.append([residue.index + 1, 2])
+            new_res_name = "HIS"
+        elif res_name in standard_names.keys():
+            new_res_name = standard_names[res_name]
+        else:
+            new_res_name = res_name
+
+        return new_res_name
 
     def mutate(self, mut_res_idx, mut_new_resname):
         """Mutate residue
