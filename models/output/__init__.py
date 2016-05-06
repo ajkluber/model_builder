@@ -455,7 +455,7 @@ class AWSEMLammpsFiles(object):
 
         self.topfile = top_string
 
-    def write_simulation_files(self, topfilename, seqfilename):
+    def write_simulation_files(self, ref_traj_aa, topfilename, seqfilename):
 
         self.generate_topology()
 
@@ -473,23 +473,13 @@ class AWSEMLammpsFiles(object):
                 fout.write("{}\n".format(line))
 
         with open("charge_on_residues.dat", "w") as fout:
-            all_fasta = "".join(fasta)
-            charged_count = all_fasta.count("R") + all_fasta.count("K") +\
-                            all_fasta.count("E") + all_fasta.count("D")
-            fout.write("{}\n".format(charged_count))
-            res_idx = 1
-            for chain in fasta:
-                for residue in chain:
-                    if residue in ["R", "K"]:
-                        fout.write("{:6d}   {:8.4f}\n".format(res_idx, 1.0))
-                    elif residue in ["E", "D"]:
-                        fout.write("{:6d}   {:8.4f}\n".format(res_idx, -1.0))
-                    else:
-                        #fout.write("{:6d}   {:8.4f}\n".format(res_idx, 0.))
-                        pass
-                    res_idx += 1
+            fout.write("{:d}\n".format(len(self.model.mapping._charged_residues)))
+            for res in self.model.mapping._charged_residues:
+                fout.write("{:6d}   {:8.4f}\n".format(res[0], res[1]))
 
-        dssp = ("".join(md.compute_dssp(traj)[0])).replace("C","-")
+        # compute secondary structure from a reference structure
+        dssp = ("".join(md.compute_dssp(ref_traj_aa)[0])).replace("C","-")
+        assert len(dssp) == sum([ len(x) for x in fasta ]), "Number of residues in reference different than expected"
         with open("ssweight", "w") as fout:
             for ss in dssp:
                 if ss == "H": 
