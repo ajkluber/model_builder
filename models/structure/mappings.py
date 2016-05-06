@@ -530,7 +530,8 @@ class AwsemMapping(object):
         # Direct slicing for CA, CB, O. HB is interpolated from other atoms
         cacbo_xyz = np.zeros((traj.n_frames, self.topology.n_atoms, 3))
         cacbo_xyz[:, self._CACBO_idxs[:,1], :] = traj.xyz[:, self._CACBO_idxs[:,0], :]
-        cacbo_xyz[:, self._HB_idxs[:,3], :] = (1. + (1. - (1./3))*self._HB_w)*traj.xyz[:, self._HB_idxs[:,1], :] -\
+        if not (len(self._HB_idxs) == 0):
+            cacbo_xyz[:, self._HB_idxs[:,3], :] = (1. + (1. - (1./3))*self._HB_w)*traj.xyz[:, self._HB_idxs[:,1], :] -\
                                               (self._HB_w/3.)*traj.xyz[:, self._HB_idxs[:,0], :] -\
                                               (self._HB_w/3.)*traj.xyz[:, self._HB_idxs[:,2], :]
 
