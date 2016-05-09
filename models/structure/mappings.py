@@ -15,6 +15,10 @@ from mdtraj.core.topology import Topology
 import contacts as cts
 import atom_types
 
+
+global STANDARD_RESNAMES
+STANDARD_RESNAMES = {"ARN":"ARG", "ASH":"ASP", "GLH":"GLU", "LYN":"LYS"}
+
 class CalphaMapping(object):
     r"""Calpha representation mapping"""
 
@@ -544,7 +548,6 @@ class AwsemMapping(object):
 
     def _fix_nonstandard_resnames(self, residue, res_charges):
         """Convert non-standard residue names (that indicate charge state) to standard names"""
-        standard_names = {"ARN":"ARG", "ASH":"ASP", "GLH":"GLU", "LYN":"LYS"}
         res_name = residue.name
         if res_name in ["ARG", "LYS"]:
             res_charges.append([residue.index + 1, 1])
@@ -558,8 +561,8 @@ class AwsemMapping(object):
         elif res_name in ["HIP"]:
             res_charges.append([residue.index + 1, 2])
             new_res_name = "HIS"
-        elif res_name in standard_names.keys():
-            new_res_name = standard_names[res_name]
+        elif res_name in STANDARD_RESNAMES.keys():
+            new_res_name = STANDARD_RESNAMES[res_name]
         else:
             new_res_name = res_name
 
@@ -646,19 +649,12 @@ class AwsemBackboneUnmapping(object):
     def __init__(self, topology):
         self._ref_topology = topology.copy()
 
-        # CA_i-1, CA_i, O_i-1
-        self._N_coeff = np.array([0.48318, 0.70328, -0.18643])
-
-        # CA_i, CA_i+1, O_i
-        self._C_coeff = np.array([0.44365, 0.23520, 0.32115])
-
-        # CA_i-1, CA_i, O_i-1
-        self._H_coeff = np.array([0.84100, 0.89296, -0.73389])
+        self._N_coeff = np.array([0.48318, 0.70328, -0.18643])  # CA_i-1, CA_i, O_i-1
+        self._C_coeff = np.array([0.44365, 0.23520, 0.32115])   # CA_i, CA_i+1, O_i
+        self._H_coeff = np.array([0.84100, 0.89296, -0.73389])  # CA_i-1, CA_i, O_i-1
 
         newTopology = Topology()
-        CACBO_idxs = []
-        N_idxs = []
-        C_idxs = []
+        CACBO_idxs = []; N_idxs = []; C_idxs = []; H_idxs = []
         res_idx = 1
         atm_idx = 0
         prev_ca = None
@@ -666,22 +662,24 @@ class AwsemBackboneUnmapping(object):
         for chain in topology._chains:
             newChain = newTopology.add_chain()
             for residue in chain._residues:
-                newTopology, atm_idx, res_idx = self._add_residue(newTopology, newChain, residue, res_idx, atm_idx, N_idxs, C_idxs, CACBO_idxs, prev_ca, prev_o)
+                newTopology, atm_idx, res_idx = self._add_residue(newTopology, 
+                        newChain, residue, chain, res_idx, atm_idx, 
+                        N_idxs, C_idxs, H_idxs, CACBO_idxs, prev_ca, prev_o)
 
-        self._charged_residues = res_charges
-        self._HB_idxs = np.array(HB_idxs)
         self._CACBO_idxs = np.array(CACBO_idxs)
+        self._N_idxs = np.array(N_idxs)
+        self._C_idxs = np.array(C_idxs)
+        self._H_idxs = np.array(H_idxs)
         self.topology = newTopology
 
-    def _add_residue(self, newTopology, newChain, residue, res_idx, atm_idx, CACBO_idxs, HB_idxs, prev_ca, prev_o):
+    def _add_residue(self, newTopology, newChain, residue, chain, 
+                res_idx, atm_idx, N_idxs, C_idxs, H_idxs, CACBO_idxs, prev_ca, prev_o):
 
         res_name = self._fix_nonstandard_resnames(residue, [])
         
-        #if residue.index == 0:
-
         newResidue = newTopology.add_residue(res_name, newChain, res_idx)
 
-        # Add atoms for residue 
+        # Add atoms that are directly mapped 
         new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'), 
                                     newResidue, serial=atm_idx)
         CA_idx = [ atm.index for atm in residue.atoms if (atm.name == "CA") ][0]
@@ -692,24 +690,56 @@ class AwsemBackboneUnmapping(object):
                                     newResidue, serial=atm_idx)
         O_idx = [ atm.index for atm in residue.atoms if (atm.name == "O") ][0]
         CACBO_idxs.append([O_idx, new_o.index])
-
         newTopology.add_bond(new_ca, new_o)
-
         atm_idx += 1
-        
+
+        if residue.index > chain.residue(0).index:
+            # add N atom if not the N-terminus 
+            prev_res = chain.residue(residue.index - 1)
+            new_n = newTopology.add_atom('N', md.core.element.get_by_symbol('N'), 
+                                        newResidue, serial=atm_idx)
+            
+            prev_CA_idx = [ atm.index for atm in prev_res.atoms if (atm.name == "CA") ][0]
+            prev_O_idx = [ atm.index for atm in prev_res.atoms if (atm.name == "O") ][0]
+            N_idxs.append([prev_CA_idx, CA_idx, prev_O_idx, new_n.index])
+
+            prev_c = [ atm for atm in newTopology.residue(newResidue.index - 1).atoms if (atm.name == "C") ][0]
+            newTopology.add_bond(new_n, new_ca)
+            newTopology.add_bond(new_n, prev_c)
+            atm_idx += 1
+
+            new_h = newTopology.add_atom('H', md.core.element.get_by_symbol('H'), 
+                                        newResidue, serial=atm_idx)
+            H_idxs.append([prev_CA_idx, CA_idx, prev_O_idx, new_h.index])
+            newTopology.add_bond(new_n, new_h)
+
+            atm_idx += 1
+
+        if residue.index < chain.residue(chain.n_residues - 1).index:
+            # add C atom if not the C-terminus
+            next_res = chain.residue(residue.index + 1)
+            new_c = newTopology.add_atom('C', md.core.element.get_by_symbol('C'), 
+                                        newResidue, serial=atm_idx)
+            next_CA_idx = [ atm.index for atm in next_res.atoms if (atm.name == "CB") ][0]
+            C_idxs.append([CA_idx, next_CA_idx, O_idx, new_c.index])
+            newTopology.add_bond(new_c, new_ca)
+            newTopology.add_bond(new_c, new_o)
+            atm_idx += 1
+
         if residue.name == 'GLY':
             new_hb = newTopology.add_atom('HB', md.core.element.get_by_symbol('H'), 
                                         newResidue, serial=atm_idx)
-            N_idx = [ atm.index for atm in residue.atoms if (atm.name == "N") ][0]
-            C_idx = [ atm.index for atm in residue.atoms if (atm.name == "C") ][0]
-            HB_idxs.append([N_idx, CA_idx, C_idx, new_hb.index])
+            H_idx = [ atm.index for atm in residue.atoms if (atm.name == "HB") ][0]
+            CACBO_idxs.append([H_idx, new_hb.index])
             newTopology.add_bond(new_ca, new_hb)
+            atm_idx += 1
         else:
             new_cb = newTopology.add_atom('CB', md.core.element.get_by_symbol('C'), 
                                         newResidue, serial=atm_idx)
             CB_idx = [ atm.index for atm in residue.atoms if (atm.name == "CB") ][0]
             CACBO_idxs.append([CB_idx, new_cb.index])
             newTopology.add_bond(new_ca, new_cb)
+            atm_idx += 1
 
         # Add bonds to previous CA and O
         if (prev_ca is None) and (prev_o is None):
@@ -729,10 +759,44 @@ class AwsemBackboneUnmapping(object):
 
         return newTopology, atm_idx, res_idx
 
+    def _fix_nonstandard_resnames(self, residue, res_charges):
+        """Convert non-standard residue names (that indicate charge state) to standard names"""
+        res_name = residue.name
+        if res_name in ["ARG", "LYS"]:
+            res_charges.append([residue.index + 1, 1])
+            new_res_name = res_name
+        elif res_name in ["GLU", "ASP"]:
+            res_charges.append([residue.index + 1, -1])
+            new_res_name = res_name
+        elif res_name in ["HIE", "HIS"]:
+            res_charges.append([residue.index + 1, 1])
+            new_res_name = "HIS"
+        elif res_name in ["HIP"]:
+            res_charges.append([residue.index + 1, 2])
+            new_res_name = "HIS"
+        elif res_name in STANDARD_RESNAMES.keys():
+            new_res_name = STANDARD_RESNAMES[res_name]
+        else:
+            new_res_name = res_name
+
+        return new_res_name
 
     def map_traj(self, traj):
-        pass
-        # 
+        """Map coarse-grained coordinates to all-atom backbone coordinates"""
+        newxyz = np.zeros((traj.n_frames, self.topology.n_atoms, 3))
+        newxyz[:,self._CACBO_idxs[:,1],:] = traj.xyz[:,self._CACBO_idxs[:,0]]
+
+        # interpolate N, C, and H
+        newxyz[:, self._N_idxs[:,3], :] = self._N_coeff[0]*traj.xyz[:, self._N_idxs[:,0], :] +\
+                                        self._N_coeff[1]*traj.xyz[:, self._N_idxs[:,1], :] +\
+                                        self._N_coeff[2]*traj.xyz[:, self._N_idxs[:,2], :]
+        newxyz[:, self._C_idxs[:,3], :] = self._C_coeff[0]*traj.xyz[:, self._C_idxs[:,0], :] +\
+                                        self._C_coeff[1]*traj.xyz[:, self._C_idxs[:,1], :] +\
+                                        self._C_coeff[2]*traj.xyz[:, self._C_idxs[:,2], :]
+        newxyz[:, self._H_idxs[:,3], :] = self._H_coeff[0]*traj.xyz[:, self._H_idxs[:,0], :] +\
+                                        self._H_coeff[1]*traj.xyz[:, self._H_idxs[:,1], :] +\
+                                        self._H_coeff[2]*traj.xyz[:, self._H_idxs[:,2], :]
+        return md.Trajectory(newxyz, self.topology)
 
 MAPPINGS = {"CA":CalphaMapping, "CACB":CalphaCbetaMapping, "All-Atom":HeavyAtomMapping, "AWSEM":AwsemMapping}
 
