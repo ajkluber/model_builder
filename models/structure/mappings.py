@@ -482,47 +482,39 @@ class AwsemMapping(object):
         newResidue = newTopology.add_residue(res_name, newChain, res_idx)
 
         # Add atoms for residue 
-        new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'), 
-                                    newResidue, serial=atm_idx)
+        new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'), newResidue, serial=atm_idx)
         CA_idx = [ atm.index for atm in residue.atoms if (atm.name == "CA") ][0]
         CACBO_idxs.append([CA_idx, new_ca.index])
         atm_idx += 1
 
-        new_o = newTopology.add_atom('O', md.core.element.get_by_symbol('O'), 
-                                    newResidue, serial=atm_idx)
+        new_o = newTopology.add_atom('O', md.core.element.get_by_symbol('O'), newResidue, serial=atm_idx)
         O_idx = [ atm.index for atm in residue.atoms if (atm.name == "O") ][0]
         CACBO_idxs.append([O_idx, new_o.index])
-
-        newTopology.add_bond(new_ca, new_o)
-
         atm_idx += 1
         
         if residue.name == 'GLY':
-            new_hb = newTopology.add_atom('HB', md.core.element.get_by_symbol('H'), 
-                                        newResidue, serial=atm_idx)
+            new_hb = newTopology.add_atom('HB', md.core.element.get_by_symbol('H'), newResidue, serial=atm_idx)
             N_idx = [ atm.index for atm in residue.atoms if (atm.name == "N") ][0]
             C_idx = [ atm.index for atm in residue.atoms if (atm.name == "C") ][0]
             HB_idxs.append([N_idx, CA_idx, C_idx, new_hb.index])
-            newTopology.add_bond(new_ca, new_hb)
         else:
-            new_cb = newTopology.add_atom('CB', md.core.element.get_by_symbol('C'), 
-                                        newResidue, serial=atm_idx)
+            new_cb = newTopology.add_atom('CB', md.core.element.get_by_symbol('C'), newResidue, serial=atm_idx)
             CB_idx = [ atm.index for atm in residue.atoms if (atm.name == "CB") ][0]
             CACBO_idxs.append([CB_idx, new_cb.index])
-            newTopology.add_bond(new_ca, new_cb)
 
         # Add bonds to previous CA and O
-        if (prev_ca is None) and (prev_o is None):
-            prev_ca = new_ca
-            prev_o = new_o
+        newTopology.add_bond(new_ca, new_o)
+
+        if residue.name == "GLY":
+            newTopology.add_bond(new_ca, new_hb)
         else:
-            # Only bond atoms in the same chain
-            if prev_ca.residue.chain.index == new_ca.residue.chain.index:
-                newTopology.add_bond(prev_ca, new_ca)
-            if prev_o.residue.chain.index == new_ca.residue.chain.index:
-                newTopology.add_bond(prev_o, new_ca)
-            prev_ca = new_ca
-            prev_o = new_o
+            newTopology.add_bond(new_ca, new_cb)
+
+        if residue.index > newChain.residue(0).index:
+            prev_ca = [ atm for atm in newChain.residue(residue.index - 1).atoms if (atm.name == "CA")][0]
+            prev_o = [ atm for atm in newChain.residue(residue.index - 1).atoms if (atm.name == "O")][0]
+            newTopology.add_bond(prev_ca, new_ca)
+            newTopology.add_bond(prev_o, new_ca)
 
         atm_idx += 1
         res_idx += 1
