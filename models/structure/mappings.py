@@ -457,7 +457,6 @@ class AwsemMapping(object):
         CACBO_idxs = []
         HB_idxs = []
         res_charges = []
-        chain_idx = 1
         res_idx = 1
         atm_idx = 0
         prev_ca = None
@@ -465,61 +464,66 @@ class AwsemMapping(object):
         for chain in topology._chains:
             newChain = newTopology.add_chain()
             for residue in chain._residues:
-                res_name = self._fix_nonstandard_resnames(residue, res_charges)
-                
-                newResidue = newTopology.add_residue(res_name, newChain, res_idx)
-
-                # Add atoms for residue 
-                new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'), 
-                                            newResidue, serial=atm_idx)
-                CA_idx = [ atm.index for atm in residue.atoms if (atm.name == "CA") ][0]
-                CACBO_idxs.append([CA_idx, new_ca.index])
-                atm_idx += 1
-
-                new_o = newTopology.add_atom('O', md.core.element.get_by_symbol('O'), 
-                                            newResidue, serial=atm_idx)
-                O_idx = [ atm.index for atm in residue.atoms if (atm.name == "O") ][0]
-                CACBO_idxs.append([O_idx, new_o.index])
-
-                newTopology.add_bond(new_ca, new_o)
-
-                atm_idx += 1
-                
-                if residue.name == 'GLY':
-                    new_hb = newTopology.add_atom('HB', md.core.element.get_by_symbol('H'), 
-                                                newResidue, serial=atm_idx)
-                    N_idx = [ atm.index for atm in residue.atoms if (atm.name == "N") ][0]
-                    C_idx = [ atm.index for atm in residue.atoms if (atm.name == "C") ][0]
-                    HB_idxs.append([N_idx, CA_idx, C_idx, new_hb.index])
-                    newTopology.add_bond(new_ca, new_hb)
-                else:
-                    new_cb = newTopology.add_atom('CB', md.core.element.get_by_symbol('C'), 
-                                                newResidue, serial=atm_idx)
-                    CB_idx = [ atm.index for atm in residue.atoms if (atm.name == "CB") ][0]
-                    CACBO_idxs.append([CB_idx, new_cb.index])
-                    newTopology.add_bond(new_ca, new_cb)
-
-                # Add bonds to previous CA and O
-                if (prev_ca is None) and (prev_o is None):
-                    prev_ca = new_ca
-                    prev_o = new_o
-                else:
-                    # Only bond atoms in the same chain
-                    if prev_ca.residue.chain.index == new_ca.residue.chain.index:
-                        newTopology.add_bond(prev_ca, new_ca)
-                    if prev_o.residue.chain.index == new_ca.residue.chain.index:
-                        newTopology.add_bond(prev_o, new_ca)
-                    prev_ca = new_ca
-                    prev_o = new_o
-
-                atm_idx += 1
-                res_idx += 1
-            chain_idx += 1
+                newTopology, atm_idx, res_idx = self._add_residue(newTopology, newChain, residue, res_charges, res_idx, atm_idx, CACBO_idxs, HB_idxs, prev_ca, prev_o)
 
         self._charged_residues = res_charges
         self._HB_idxs = np.array(HB_idxs)
         self._CACBO_idxs = np.array(CACBO_idxs)
         self.topology = newTopology
+
+    def _add_residue(self, newTopology, newChain, residue, res_charges, res_idx, atm_idx, CACBO_idxs, HB_idxs, prev_ca, prev_o):
+
+        res_name = self._fix_nonstandard_resnames(residue, res_charges)
+        
+        newResidue = newTopology.add_residue(res_name, newChain, res_idx)
+
+        # Add atoms for residue 
+        new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'), 
+                                    newResidue, serial=atm_idx)
+        CA_idx = [ atm.index for atm in residue.atoms if (atm.name == "CA") ][0]
+        CACBO_idxs.append([CA_idx, new_ca.index])
+        atm_idx += 1
+
+        new_o = newTopology.add_atom('O', md.core.element.get_by_symbol('O'), 
+                                    newResidue, serial=atm_idx)
+        O_idx = [ atm.index for atm in residue.atoms if (atm.name == "O") ][0]
+        CACBO_idxs.append([O_idx, new_o.index])
+
+        newTopology.add_bond(new_ca, new_o)
+
+        atm_idx += 1
+        
+        if residue.name == 'GLY':
+            new_hb = newTopology.add_atom('HB', md.core.element.get_by_symbol('H'), 
+                                        newResidue, serial=atm_idx)
+            N_idx = [ atm.index for atm in residue.atoms if (atm.name == "N") ][0]
+            C_idx = [ atm.index for atm in residue.atoms if (atm.name == "C") ][0]
+            HB_idxs.append([N_idx, CA_idx, C_idx, new_hb.index])
+            newTopology.add_bond(new_ca, new_hb)
+        else:
+            new_cb = newTopology.add_atom('CB', md.core.element.get_by_symbol('C'), 
+                                        newResidue, serial=atm_idx)
+            CB_idx = [ atm.index for atm in residue.atoms if (atm.name == "CB") ][0]
+            CACBO_idxs.append([CB_idx, new_cb.index])
+            newTopology.add_bond(new_ca, new_cb)
+
+        # Add bonds to previous CA and O
+        if (prev_ca is None) and (prev_o is None):
+            prev_ca = new_ca
+            prev_o = new_o
+        else:
+            # Only bond atoms in the same chain
+            if prev_ca.residue.chain.index == new_ca.residue.chain.index:
+                newTopology.add_bond(prev_ca, new_ca)
+            if prev_o.residue.chain.index == new_ca.residue.chain.index:
+                newTopology.add_bond(prev_o, new_ca)
+            prev_ca = new_ca
+            prev_o = new_o
+
+        atm_idx += 1
+        res_idx += 1
+
+        return newTopology, atm_idx, res_idx
 
     @property
     def top(self):
@@ -527,9 +531,10 @@ class AwsemMapping(object):
 
     def map_traj(self, traj):
         """Return new Trajectory object with AWSEM topology and xyz"""
-        # Direct slicing for CA, CB, O. HB is interpolated from other atoms
+        # Direct slicing for CA, CB, O. 
         cacbo_xyz = np.zeros((traj.n_frames, self.topology.n_atoms, 3))
         cacbo_xyz[:, self._CACBO_idxs[:,1], :] = traj.xyz[:, self._CACBO_idxs[:,0], :]
+        # HB is interpolated from other atoms.
         if not (len(self._HB_idxs) == 0):
             cacbo_xyz[:, self._HB_idxs[:,3], :] = (1. + (1. - (1./3))*self._HB_w)*traj.xyz[:, self._HB_idxs[:,1], :] -\
                                               (self._HB_w/3.)*traj.xyz[:, self._HB_idxs[:,0], :] -\
@@ -559,6 +564,22 @@ class AwsemMapping(object):
             new_res_name = res_name
 
         return new_res_name
+
+    def _residue_to_atom_contacts(self, residue_contacts):
+        atm_contacts = []
+        for n,k in residue_contacts: 
+            nres = self.topology.residue(n)
+            kres = self.topology.residue(k)
+            # Calpha-Calpha contact
+            ca_n = nres.atom(0)
+            ca_k = kres.atom(0)
+            atm_contacts.append([ca_n, ca_k])
+            if (nres.name != "GLY") and (kres.name != "GLY"): 
+                # Cbeta-Cbeta contact
+                cb_n = nres.atom(2)
+                cb_k = kres.atom(2)
+                atm_contacts.append([cb_n, cb_k])
+        return atm_contacts
 
     def mutate(self, mut_res_idx, mut_new_resname):
         """Mutate residue
@@ -619,6 +640,99 @@ class AwsemMapping(object):
         self._prev_topology = self.topology.copy()
         self.topology = newTopology
 
+class AwsemBackboneUnmapping(object):
+    """Calpha Cbeta center-of-mass representation mapping"""
+
+    def __init__(self, topology):
+        self._ref_topology = topology.copy()
+
+        # CA_i-1, CA_i, O_i-1
+        self._N_coeff = np.array([0.48318, 0.70328, -0.18643])
+
+        # CA_i, CA_i+1, O_i
+        self._C_coeff = np.array([0.44365, 0.23520, 0.32115])
+
+        # CA_i-1, CA_i, O_i-1
+        self._H_coeff = np.array([0.84100, 0.89296, -0.73389])
+
+        newTopology = Topology()
+        CACBO_idxs = []
+        N_idxs = []
+        C_idxs = []
+        res_idx = 1
+        atm_idx = 0
+        prev_ca = None
+        prev_o = None
+        for chain in topology._chains:
+            newChain = newTopology.add_chain()
+            for residue in chain._residues:
+                newTopology, atm_idx, res_idx = self._add_residue(newTopology, newChain, residue, res_idx, atm_idx, N_idxs, C_idxs, CACBO_idxs, prev_ca, prev_o)
+
+        self._charged_residues = res_charges
+        self._HB_idxs = np.array(HB_idxs)
+        self._CACBO_idxs = np.array(CACBO_idxs)
+        self.topology = newTopology
+
+    def _add_residue(self, newTopology, newChain, residue, res_idx, atm_idx, CACBO_idxs, HB_idxs, prev_ca, prev_o):
+
+        res_name = self._fix_nonstandard_resnames(residue, [])
+        
+        #if residue.index == 0:
+
+        newResidue = newTopology.add_residue(res_name, newChain, res_idx)
+
+        # Add atoms for residue 
+        new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'), 
+                                    newResidue, serial=atm_idx)
+        CA_idx = [ atm.index for atm in residue.atoms if (atm.name == "CA") ][0]
+        CACBO_idxs.append([CA_idx, new_ca.index])
+        atm_idx += 1
+
+        new_o = newTopology.add_atom('O', md.core.element.get_by_symbol('O'), 
+                                    newResidue, serial=atm_idx)
+        O_idx = [ atm.index for atm in residue.atoms if (atm.name == "O") ][0]
+        CACBO_idxs.append([O_idx, new_o.index])
+
+        newTopology.add_bond(new_ca, new_o)
+
+        atm_idx += 1
+        
+        if residue.name == 'GLY':
+            new_hb = newTopology.add_atom('HB', md.core.element.get_by_symbol('H'), 
+                                        newResidue, serial=atm_idx)
+            N_idx = [ atm.index for atm in residue.atoms if (atm.name == "N") ][0]
+            C_idx = [ atm.index for atm in residue.atoms if (atm.name == "C") ][0]
+            HB_idxs.append([N_idx, CA_idx, C_idx, new_hb.index])
+            newTopology.add_bond(new_ca, new_hb)
+        else:
+            new_cb = newTopology.add_atom('CB', md.core.element.get_by_symbol('C'), 
+                                        newResidue, serial=atm_idx)
+            CB_idx = [ atm.index for atm in residue.atoms if (atm.name == "CB") ][0]
+            CACBO_idxs.append([CB_idx, new_cb.index])
+            newTopology.add_bond(new_ca, new_cb)
+
+        # Add bonds to previous CA and O
+        if (prev_ca is None) and (prev_o is None):
+            prev_ca = new_ca
+            prev_o = new_o
+        else:
+            # Only bond atoms in the same chain
+            if prev_ca.residue.chain.index == new_ca.residue.chain.index:
+                newTopology.add_bond(prev_ca, new_ca)
+            if prev_o.residue.chain.index == new_ca.residue.chain.index:
+                newTopology.add_bond(prev_o, new_ca)
+            prev_ca = new_ca
+            prev_o = new_o
+
+        atm_idx += 1
+        res_idx += 1
+
+        return newTopology, atm_idx, res_idx
+
+
+    def map_traj(self, traj):
+        pass
+        # 
 
 MAPPINGS = {"CA":CalphaMapping, "CACB":CalphaCbetaMapping, "All-Atom":HeavyAtomMapping, "AWSEM":AwsemMapping}
 
