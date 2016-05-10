@@ -411,7 +411,7 @@ class HeavyAtomMapping(object):
             for residue in chain.residues:
                 newResidue = newTopology.add_residue(residue.name, newChain, res_idx)
                 for atom in residue.atoms:  
-                    if "H" != atom.element.symbol:
+                    if atom.element.symbol not in ["H", "D"]:
                         new_atom = newTopology.add_atom(atom.name, 
                                             md.core.element.get_by_symbol(atom.element.symbol),
                                             newResidue, serial=atm_idx)
