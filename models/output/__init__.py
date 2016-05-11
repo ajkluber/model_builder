@@ -366,14 +366,18 @@ class AWSEMLammpsFiles(object):
         self.model = model
         self.version = version
 
-        self._bond_coeffs = [[200.,3.77], 
-                            [200.,2.41],
-                            [200.,2.50],
-                            [200.,1.54],
-                            [200.,1.54]]
+        self._bond_coeffs = [["harmonic", 200.,3.77], 
+                            ["harmonic", 200.,2.41],
+                            ["harmonic", 200.,2.50],
+                            ["harmonic", 200.,1.54],
+                            ["harmonic", 200.,1.54]]
+
+        self._disulfide_bond_coeffs = ["harmonic", 200., 3.72]
 
         self._bond_type_idxs = {"CACA":1, "CAO":2, "OCA":3, 
-                                "CACB":4, "CBCA":4, "CAHB":5, "HBCA":5}
+                                "CACB":4, "CBCA":4, "CAHB":5, "HBCA":5,
+                                "disulfide":6}
+
 
         self._masses = [27., 14., 28., 60., 2.]
 
@@ -382,15 +386,20 @@ class AWSEMLammpsFiles(object):
     def _get_header_string(self, box_xyz_lo_hi):
         top = self.model.mapping.top
 
+        n_disulfides = len(self.model.mapping._disulfides)
+
         header_string = "LAMMPS written by model_builder\n\n"
         header_string += "{:>12d}  atoms\n".format(top.n_atoms)
-        header_string += "{:>12d}  bonds\n".format(top.n_bonds)
+        header_string += "{:>12d}  bonds\n".format(top.n_bonds + n_disulfides)
         header_string += "{:>12d}  angles\n".format(0)
         header_string += "{:>12d}  dihedrals\n".format(0)
         header_string += "{:>12d}  impropers\n\n".format(0)
 
         header_string += "{:>12d}  atom types\n".format(5)
-        header_string += "{:>12d}  bond types\n".format(5)
+        if n_disulfides > 0:
+            header_string += "{:>12d}  bond types\n".format(6)
+        else:
+            header_string += "{:>12d}  bond types\n".format(5)
         header_string += "{:>12d}  angle types\n".format(0)
         header_string += "{:>12d}  dihedral types\n".format(0)
         header_string += "{:>12d}  improper types\n\n".format(0)
@@ -430,7 +439,12 @@ class AWSEMLammpsFiles(object):
         bond_coeff_string = "Bond Coeffs\n\n"
         for i in range(len(self._bond_coeffs)):
             bond_coeff_string += "{:>12d} {:>6.3f} {:>6.3f}\n".format(i + 1, 
-                            self._bond_coeffs[i][0], self._bond_coeffs[i][1])
+                   self._bond_coeffs[i][1], self._bond_coeffs[i][2])
+
+        if len(self.model.mapping._disulfides) > 0:
+            bond_coeff_string += "{:>12d} {:>6.3f} {:>6.3f}\n".format(i + 2, 
+                    self._disulfide_bond_coeffs[1], self._disulfide_bond_coeffs[2])
+
         bond_coeff_string += "\n"
         return bond_coeff_string
 
@@ -441,6 +455,15 @@ class AWSEMLammpsFiles(object):
             bond_type = self._bond_type_idxs[atmi.name + atmj.name]
             bond_string += "{:>11d} {:>5d} {:>5d} {:>5d}\n".format(i + 1, 
                             bond_type, atmi.index + 1, atmj.index + 1)
+
+        if len(self.model.mapping._disulfides) > 0:
+            start_idx = i + 2
+            for i in range(len(self.model.mapping._disulfides)):
+                atmi, atmj = self.model.mapping._disulfides[i]
+                bond_type = self._bond_type_idxs["disulfide"]
+                bond_string += "{:>11d} {:>5d} {:>5d} {:>5d}\n".format(
+                        start_idx + i, bond_type, atmi.index + 1, atmj.index + 1)
+
         bond_string += "\n"
         return bond_string
 
