@@ -456,6 +456,8 @@ class AwsemMapping(object):
         # of geometry of the N, CA, C atoms from the CA atom with some weight.
         self._HB_w = 3
 
+        self._disulfides = []
+
         # Build new topology
         newTopology = Topology()
         CACBO_idxs = []
@@ -520,6 +522,21 @@ class AwsemMapping(object):
         res_idx += 1
 
         return newTopology, atm_idx, res_idx
+
+    def add_disulfides(self, disulfides):
+        for pair in disulfides:
+            res1 = self.top.residue(pair[0] - 1)
+            res2 = self.top.residue(pair[1] - 1)
+
+            print res1, res2
+
+            cb1 = [ atom for atom in res1.atoms if (atom.name == "CB") ][0]
+            cb2 = [ atom for atom in res2.atoms if (atom.name == "CB") ][0]
+
+            self._disulfides.append([cb1, cb2])
+
+        # add new bond between CB's
+        # should be at the 2.02 Ang distance.
 
     @property
     def top(self):
