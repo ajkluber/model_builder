@@ -465,19 +465,20 @@ class AwsemMapping(object):
         res_charges = []
         res_idx = 1
         atm_idx = 0
-        prev_ca = None
-        prev_o = None
         for chain in topology._chains:
             newChain = newTopology.add_chain()
             for residue in chain._residues:
-                newTopology, atm_idx, res_idx = self._add_residue(newTopology, newChain, residue, res_charges, res_idx, atm_idx, CACBO_idxs, HB_idxs, prev_ca, prev_o)
+                newTopology, atm_idx, res_idx = self._add_residue(newTopology,
+                        newChain, residue, res_charges, res_idx, atm_idx,
+                        CACBO_idxs, HB_idxs)
 
         self._charged_residues = res_charges
         self._HB_idxs = np.array(HB_idxs)
         self._CACBO_idxs = np.array(CACBO_idxs)
         self.topology = newTopology
 
-    def _add_residue(self, newTopology, newChain, residue, res_charges, res_idx, atm_idx, CACBO_idxs, HB_idxs, prev_ca, prev_o):
+    def _add_residue(self, newTopology, newChain, residue, res_charges,
+                            res_idx, atm_idx, CACBO_idxs, HB_idxs):
 
         res_name = self._fix_nonstandard_resnames(residue, res_charges)
         
@@ -513,8 +514,10 @@ class AwsemMapping(object):
             newTopology.add_bond(new_ca, new_cb)
 
         if residue.index > newChain.residue(0).index:
-            prev_ca = [ atm for atm in newChain.residue(residue.index - 1).atoms if (atm.name == "CA")][0]
-            prev_o = [ atm for atm in newChain.residue(residue.index - 1).atoms if (atm.name == "O")][0]
+            prev_ca = [ atm for atm in newChain.residue(residue.index - 1 -\
+                         newChain.residue(0).index).atoms if (atm.name == "CA") ][0]
+            prev_o = [ atm for atm in newChain.residue(residue.index - 1 -\
+                         newChain.residue(0).index).atoms if (atm.name == "O") ][0]
             newTopology.add_bond(prev_ca, new_ca)
             newTopology.add_bond(prev_o, new_ca)
 
