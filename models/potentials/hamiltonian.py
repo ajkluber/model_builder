@@ -2,8 +2,8 @@ import numpy as np
 
 import mdtraj as md
 
-import pair_potentials 
-import bonded_potentials
+import pairwise 
+import bonded
 
 import util
 
@@ -106,7 +106,7 @@ class Hamiltonian(object):
     
     def _add_bond(self, code, atm1, atm2, *args):
         """Add a bond interaction"""
-        b = bonded_potentials.BOND_POTENTIALS[code](atm1, atm2, *args)
+        b = bonded.BOND_POTENTIALS[code](atm1, atm2, *args)
         if b not in self._bonds:
             self._bonds.append(b)
         else:
@@ -114,7 +114,7 @@ class Hamiltonian(object):
 
     def _add_angle(self, code, atm1, atm2, atm3, *args):
         """Add an angle interaction"""
-        ang = bonded_potentials.ANGLE_POTENTIALS[code](atm1, atm2, atm3, *args)
+        ang = bonded.ANGLE_POTENTIALS[code](atm1, atm2, atm3, *args)
         if ang not in self._angles:
             self._angles.append(ang)
         else:
@@ -122,7 +122,7 @@ class Hamiltonian(object):
 
     def _add_dihedral(self, code, atm1, atm2, atm3, atm4, *args):
         """Add a dihedral interaction"""
-        dih = bonded_potentials.DIHEDRAL_POTENTIALS[code](atm1, atm2, atm3, atm4, *args)
+        dih = bonded.DIHEDRAL_POTENTIALS[code](atm1, atm2, atm3, atm4, *args)
         if dih not in self._dihedrals:
             self._dihedrals.append(dih)
         else:
@@ -130,7 +130,7 @@ class Hamiltonian(object):
 
     def _add_pair(self, code, atm1, atm2, *args):
         """Add a pair interaction"""
-        p = pair_potentials.PAIR_POTENTIALS[code](atm1, atm2, *args)
+        p = pairwise.PAIR_POTENTIALS[code](atm1, atm2, *args)
         if p not in self._pairs:
             self._pairs.append(p)
             self._epsilons.append(p.eps)

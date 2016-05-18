@@ -2,8 +2,6 @@ import numpy as np
 
 import mdtraj as md
 
-import pair_potentials 
-import bonded_potentials
 import util
 
 from hamiltonian import Hamiltonian

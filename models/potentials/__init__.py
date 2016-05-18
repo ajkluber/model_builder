@@ -2,6 +2,6 @@
 from hamiltonian import Hamiltonian
 from sbmhamiltonian import StructureBasedHamiltonian
 
-import pair_potentials
-import bonded_potentials
-import awsem_potentials
+import pairwise
+import bonded
+import awsem
