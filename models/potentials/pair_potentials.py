@@ -46,12 +46,6 @@ class LJPotential(PairPotential):
         self.eps = eps
         self.r0 = r0
 
-    def __hash__(self):
-        hash_value = PairPotential.__hash__(self)
-        hash_value ^= hash(self.eps)
-        hash_value ^= hash(self.r0)
-        return hash_value
-
 class LJ12Potential(LJPotential):
 
     def __init__(self, atmi, atmj, eps, r0):
@@ -163,13 +157,6 @@ class TanhRepPotential(PairPotential):
         r0prime = self.r0 + self.width
         return -0.5*alpha*(1. - (np.tanh(-alpha*(r - r0prime)))**2)
 
-    def __hash__(self):
-        hash_value = PairPotential.__hash__(self)
-        hash_value ^= hash(self.eps)
-        hash_value ^= hash(self.r0)
-        hash_value ^= hash(self.width)
-        return hash_value
-
 class LJ12TanhRepPotential(PairPotential):
     
     def __init__(self, atmi, atmj, eps, rNC, r0, width):
@@ -196,13 +183,6 @@ class LJ12TanhRepPotential(PairPotential):
         r0prime = self.r0 + self.width
         return -0.5*alpha*(1. - (np.tanh(-alpha*(r - r0prime)))**2)
 
-    def __hash__(self):
-        hash_value = PairPotential.__hash__(self)
-        hash_value ^= hash(self.eps)
-        hash_value ^= hash(self.r0)
-        hash_value ^= hash(self.width)
-        return hash_value
-
 class GaussianPotential(PairPotential):
 
     def __init__(self, atmi, atmj, eps, r0, width):
@@ -223,13 +203,6 @@ class GaussianPotential(PairPotential):
 
     def d2Vdrdeps(self, r):
         return ((r - self.r0)/(self.width**2))*np.exp(-((r - self.r0)**2)/(2.*(self.width**2)))
-
-    def __hash__(self):
-        hash_value = PairPotential.__hash__(self)
-        hash_value ^= hash(self.eps)
-        hash_value ^= hash(self.r0)
-        hash_value ^= hash(self.width)
-        return hash_value
 
 class LJ12GaussianPotential(PairPotential):
 
@@ -257,14 +230,6 @@ class LJ12GaussianPotential(PairPotential):
     def d2Vdrdeps(self, r):
         return self.gaussian.d2Vdrdeps(self, r)
 
-    def __hash__(self):
-        hash_value = PairPotential.__hash__(self)
-        hash_value ^= hash(self.eps)
-        hash_value ^= hash(self.rNC)
-        hash_value ^= hash(self.r0)
-        hash_value ^= hash(self.width)
-        return hash_value
-
 class FlatBottomWell(PairPotential):
 
     def __init__(self, atmi, atmj, kb, rNC, r0):
@@ -286,9 +251,66 @@ class FlatBottomWell(PairPotential):
         dVdr[r >= self.r0] = self.kb*(r[r >= self.r0] - self.r0)
         return dVdr
 
+class AwsemDirectContact(PairPotential):
+
+    def __init__(self, atmi, atmj, gamma_direct, nu=0.5, r_min=0.45, r_max=0.65):
+        PairPotential.__init__(self, atmi, atmj)
+        self.prefix_label = "AWSEMDIRECT"
+        self.gamma_direct = gamma_direct
+        self.nu = nu
+        self.r_min = r_min
+        self.r_max = r_max
+
+    def V(self, r): 
+        return self.gamma_direct*self.theta_I(r)
+
+    def theta_I(self, r):
+        return 0.25*(1. + np.tanh(self.nu*(r - self.r_min)))*(1. + np.tanh(self.nu*(r - self.r_max)))
+
+class AwsemWaterMediatedContact(PairPotential):
+
+    def __init__(self, atmi, atmj, gamma_water, gamma_protein, nu=0.5, nu_sigma=0.7, r_min=0.65, r_max=0.95):
+        PairPotential.__init__(self, atmi, atmj)
+        self.prefix_label = "AWSEMWATER"
+        self.gamma_water = gamma_water
+        self.gamma_protein = gamma_protein
+        self.nu = nu
+        self.nu_sigma = nu_sigma
+        self.r_min = r_min
+        self.r_max = r_max
+
+    def V(self, r, rhoi, rhoj): 
+        return self.gamma_water*self.dVdgamma_water(r, rhoi, rhoj) +\
+            self.gamma_protein*self.dVdgamma_protein(r, rhoi, rhoj)
+
+    def dVdgamma_water(self, r, rhoi, rhoj):
+        return self.theta_II(r)*self.sigma_water(rhoi, rhoj)
+
+    def dVdgamma_protein(self, r, rhoi, rhoj):
+        return self.theta_II(r)*(1. - self.sigma_water(rhoi, rhoj))
+
+    def theta_II(self, r):
+        return 0.25*(1. + np.tanh(self.nu*(r - self.r_min)))*(1. + np.tanh(self.nu*(r - self.r_max)))
+
+    def sigma_water(self, rhoi, rhoj):
+        return 0.25*(1. - np.tanh(self.nu_sigma*(rhoi - self.rho_0)))*(1. - np.tanh(self.nu_sigma*(rhoj - self.rho_0)))
+    
+class AwsemBurial(object):
+    """Technically a one-body potential"""
+    def __init__(self, atmi):
+        self.atmi = atmi
+
+    def V(self, r, rhoi):
+        
+        pass
+
+
 PAIR_POTENTIALS = {"LJ1210":LJ1210Potential,
                 "GAUSSIAN":GaussianPotential,
                 "LJ12GAUSSIAN":LJ12GaussianPotential,
                 "TANHREP":TanhRepPotential,
                 "LJ12TANHREP":LJ12TanhRepPotential,
-                "FLATWELL":FlatBottomWell}
+                "FLATWELL":FlatBottomWell,
+                "AWSEMDIRECT":AwsemDirectContact,
+                "AWSEMWATER":AwsemWaterMediatedContact,
+                "AWSEMBURIAL":AwsemBurial}
