@@ -5,6 +5,7 @@ from mdtraj.core.topology import Topology
 
 import util
 import atom_types
+        
 
 class AwsemMapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""
@@ -224,7 +225,7 @@ class AwsemMapping(object):
         
 
 class AwsemBackboneUnmapping(object):
-    """Full backbone and Cbeta representation"""
+    """Calpha Cbeta center-of-mass representation mapping"""
 
     def __init__(self, topology):
         self._ref_topology = topology.copy()
@@ -363,37 +364,4 @@ class AwsemBackboneUnmapping(object):
                                         self._H_coeff[1]*traj.xyz[:, self._H_idxs[:,1], :] +\
                                         self._H_coeff[2]*traj.xyz[:, self._H_idxs[:,2], :]
         return md.Trajectory(newxyz, self.topology)
-
-    
-
-if __name__ == "__main__":
-    from model_builder.models.structure.viz_bonds import write_bonds_conect, write_bonds_tcl
-
-    #name = "1JDP"
-    name = "2KJV"
-    traj = md.load(name+'.pdb')
-
-    # test CA
-    mapping = CalphaMapping(traj.top)
-    #ca_traj = mapping.map_traj(traj)
-    #ca_traj[0].save_pdb('ca_{}.pdb'.format(name))
-    #ca_traj.save_xtc('ca_{}.xtc'.format(name))
-    #write_bonds_tcl(mapping.topology, outfile="{}_cabonds.tcl".format(name))
-    #write_bonds_conect(mapping.topology, outfile="{}_cabonds.conect".format(name))
-
-    # Calculate contacts
-    contacts = get_CA_contacts(mapping, traj)
-    contacts2 = residue_contacts(mapping, traj)
-    #C = np.zeros((traj.n_residues, traj.n_residues))
-    #for p in contacts:
-    #    C[p[3], p[1]] = 1
-    #import matplotlib.pyplot as plt
-    #plt.pcolormesh(C)
-    #plt.show()
-
-    # test CACB
-    #mapping = CalphaCbetaMapping(traj.top)
-    #cacb_traj = mapping.map_traj(traj)
-    #cacb_traj[0].save_pdb('cacb_{}.pdb'.format(name))
-    #cacb_traj.save_xtc('cacb_{}.xtc'.format(name))
 
