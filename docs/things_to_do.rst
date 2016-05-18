@@ -21,30 +21,3 @@ Our overall coding goals (in roughly decreasing importance):
 
 3. Eventually write code that is efficient with time and memory, but only after #1 & #2.
 
-Things To Do
-------------
-
-Things to be improved, tested, or implemented for the first time.
-
-General Objectives
-^^^^^^^^^^^^^^^^^^
-
-1. Generally, we want to minimize our dependence on outside packages.
-
-2. Descriptive and concise docstrings in all modules. Decide on essentials
-   for docstrings.
-
-3. Figure out how to grab source code docstrings into Sphinx documentation.
-
-4. Write a simple example document.
-
-Models
-^^^^^^
-
-1. Determine a quick way to evaluate the energies of contacts. Cython?
-
-2. Allow for multiple chains in the topology.
-
-3. Allow options for sidechain volumes for CACB model. Either all the same or flavored. DONE
-
-4. Allow for topol format to use with gmx, SBM hack. DONE

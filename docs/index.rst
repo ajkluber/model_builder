@@ -6,7 +6,7 @@
 Model Builder
 =============
 
-Model Builder is a package for generating Gromacs topology files for coarse-grain models.
+Model Builder is a package for constructing coarse-grain models. 
 
 
 
