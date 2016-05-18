@@ -446,7 +446,7 @@ class AwsemMapping(object):
         self._ref_topology = topology.copy()
 
         # weights for creating glycine hydrogens (H-Beta, HB).
-        # These weights are from Aram's scripts
+        # These weights are from Aram's scripts. 
         #self.HB_coeff_N = -0.946747
         #self.HB_coeff_CA = 2.50352
         #self.HB_coeff_C = -0.620388
@@ -603,6 +603,13 @@ class AwsemMapping(object):
             Three-letter code of residue to mutate to.
         """
 
+        assert (self.topology.residue(mut_res_idx).name != mut_new_resname), "mutating the residue to itself!"
+
+        # copy all residues except the mutated residue.
+        # special cases: mutating to/from GLY.
+        #   - mutating to GLY: need to rename CB -> HB 
+        #   - mutating from GLY: rename HB -> CB. Also need to fix it's coordinates.
+
         # Build new topology
         newTopology = Topology()
         for chain in self.topology.chains:
@@ -610,7 +617,7 @@ class AwsemMapping(object):
             for residue in chain._residues:
                 res_idx = residue.index
                 if res_idx == mut_ref_idx:
-                    # mutate
+                    # mutate residue
                     newResidue = newTopology.add_residue(mut_new_resname, newChain, res_idx)
                     for atom in residues.atoms:
                         if atom.name in ["CA", "O"]: 
@@ -625,9 +632,17 @@ class AwsemMapping(object):
                                         md.core.element.get_by_symbol("H"),
                                         newResidue, serial=atom.index)
                             elif ((newResidue != "GLY") and (residue.name == "GLY")) or ((newResidue != "GLY") and (residue.name != "GLY")):
-                                newTopology.add_atom("CB",
-                                        md.core.element.get_by_symbol("C"),
-                                        newResidue, serial=atom.index)
+                                cb_atom = newTopology.add_atom("CB",
+                                            md.core.element.get_by_symbol("C"),
+                                            newResidue, serial=atom.index)
+                                if ((newResidue != "GLY") and (residue.name == "GLY")):
+                                    # TODO:
+                                    # need new solution
+                                    #HB_to_CB_idxs = [] 
+                                    #N_idx = [ atm.index for atm in newResidue.atoms if (atm.name == "N") ][0]
+                                    #C_idx = [ atm.index for atm in newResidue.atoms if (atm.name == "C") ][0]
+                                    #HB_to_CB_idxs.append([N_ cb_atom.index])
+
                             else:
                                 # mutating glycine to glycine. silly. 
                                 newTopology.add_atom("HB",
@@ -635,7 +650,7 @@ class AwsemMapping(object):
                                         newResidue, serial=atom.index)
 
                 else:
-                    # copy
+                    # copy old residue atoms directly
                     newResidue = newTopology.add_residue(residue.name, newChain, res_idx)
                     for atom in residues.atoms:
                         newTopology.add_atom(atom.name, 
@@ -650,6 +665,10 @@ class AwsemMapping(object):
 
         self._prev_topology = self.topology.copy()
         self.topology = newTopology
+
+    def recenter_sidechains(self, traj, res_idxs):
+
+        
 
 class AwsemBackboneUnmapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""
