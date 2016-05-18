@@ -32,7 +32,7 @@ def cb_cutoff(ires, jres, ref_xyz, contacts, cutoff):
     dist = np.linalg.norm(cb1_xyz - cb2_xyz)
 
     if dist <= cutoff:
-        contacts.append((ires.index, jres.index))
+        contacts.append((ires, jres))
 
 def residue_contacts(traj, cutoff=0.5, exclude_neighbors=4, method="heavy_atom_cutoff"):
     """Return indices of residues that are in contact"""
