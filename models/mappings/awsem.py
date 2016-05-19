@@ -177,11 +177,12 @@ class AwsemMapping(object):
             for residue in chain._residues:
                 res_idx = residue.index
                 if res_idx == mut_res_idx:
-                    self._add_mutated_residue(mut_new_resname, newChain, res_idx)
+                    # create mutated residue
+                    self._add_mutated_residue(mut_new_resname, newTopology, newChain, res_idx, residue)
                 else:
                     # copy old residue atoms directly
                     newResidue = newTopology.add_residue(residue.name, newChain, res_idx)
-                    for atom in residues.atoms:
+                    for atom in residue.atoms:
                         newTopology.add_atom(atom.name, 
                                     md.core.element.get_by_symbol(atom.element.symbol), 
                                     newResidue, serial=atom.index)
@@ -195,10 +196,10 @@ class AwsemMapping(object):
         self._prev_topology = self.topology.copy()
         self.topology = newTopology
 
-    def _add_mutated_residue(self, mut_new_resname, newChain, res_idx):
+    def _add_mutated_residue(self, mut_new_resname, newTopology, newChain, res_idx, residue):
         # mutate residue
         newResidue = newTopology.add_residue(mut_new_resname, newChain, res_idx)
-        for atom in residues.atoms:
+        for atom in residue.atoms:
             if atom.name in ["CA", "O"]: 
                 # Copy over backbone atoms
                 newTopology.add_atom(atom.name,
