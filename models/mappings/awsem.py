@@ -7,21 +7,32 @@ import util
 import atom_types
         
 
+# weights for creating glycine hydrogens (H-Beta, HB).
+# These weights are from Aram's scripts. 
+# There was something weird with the HB placement with Aram's
+# coefficients, so I have a simple solution of subtracting the center
+# of geometry of the N, CA, C atoms from the CA atom with some weight.
+
+#self.HB_coeff_N = -0.946747
+#self.HB_coeff_CA = 2.50352
+#self.HB_coeff_C = -0.620388
+
 class AwsemMapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""
 
     def __init__(self, topology):
         self._ref_topology = topology.copy()
 
-        # weights for creating glycine hydrogens (H-Beta, HB).
-        # These weights are from Aram's scripts. 
-        #self.HB_coeff_N = -0.946747
-        #self.HB_coeff_CA = 2.50352
-        #self.HB_coeff_C = -0.620388
+        # Used for recentering sidechain atom.
+        self._N_CB_dist = 0.2470955 # distance from N_i to CB_i
+        self._CA_CB_dist = 0.1533931 # distance from CA_i to CB_i
+        self._C_CB_dist = 0.2510052 # distance from C_i to CB_i
 
-        # There was something weird with the HB placement with Aram's
-        # coefficients, so I have a simple solution of subtracting the center
-        # of geometry of the N, CA, C atoms from the CA atom with some weight.
+        self._N_coeff = np.array([0.48318, 0.70328, -0.18643])  # CA_i-1, CA_i, O_i-1
+        self._C_coeff = np.array([0.44365, 0.23520, 0.32115])   # CA_i, CA_i+1, O_i
+        self._H_coeff = np.array([0.84100, 0.89296, -0.73389])  # CA_i-1, CA_i, O_i-1
+
+        # Used for positioning HB's for the moment.
         self._HB_w = 3
 
         self._disulfides = []
@@ -159,50 +170,14 @@ class AwsemMapping(object):
 
         assert (self.topology.residue(mut_res_idx).name != mut_new_resname), "mutating the residue to itself!"
 
-        # copy all residues except the mutated residue.
-        # special cases: mutating to/from GLY.
-        #   - mutating to GLY: need to rename CB -> HB 
-        #   - mutating from GLY: rename HB -> CB. Also need to fix it's coordinates.
-
         # Build new topology
         newTopology = Topology()
         for chain in self.topology.chains:
             newChain = newTopology.add_chain()
             for residue in chain._residues:
                 res_idx = residue.index
-                if res_idx == mut_ref_idx:
-                    # mutate residue
-                    newResidue = newTopology.add_residue(mut_new_resname, newChain, res_idx)
-                    for atom in residues.atoms:
-                        if atom.name in ["CA", "O"]: 
-                            # Copy over backbone atoms
-                            newTopology.add_atom(atom.name,
-                                    md.core.element.get_by_symbol(atom.element.symbol),
-                                    newResidue, serial=atom.index)
-                        else:
-                            # Mutate sidechain atom if necessary
-                            if (newResidue == "GLY") and (residue.name != "GLY"):
-                                newTopology.add_atom("HB",
-                                        md.core.element.get_by_symbol("H"),
-                                        newResidue, serial=atom.index)
-                            elif ((newResidue != "GLY") and (residue.name == "GLY")) or ((newResidue != "GLY") and (residue.name != "GLY")):
-                                cb_atom = newTopology.add_atom("CB",
-                                            md.core.element.get_by_symbol("C"),
-                                            newResidue, serial=atom.index)
-                                if ((newResidue != "GLY") and (residue.name == "GLY")):
-                                    # TODO:
-                                    # need new solution
-                                    #HB_to_CB_idxs = [] 
-                                    #N_idx = [ atm.index for atm in newResidue.atoms if (atm.name == "N") ][0]
-                                    #C_idx = [ atm.index for atm in newResidue.atoms if (atm.name == "C") ][0]
-                                    #HB_to_CB_idxs.append([N_ cb_atom.index])
-
-                            else:
-                                # mutating glycine to glycine. silly. 
-                                newTopology.add_atom("HB",
-                                        md.core.element.get_by_symbol("H"),
-                                        newResidue, serial=atom.index)
-
+                if res_idx == mut_res_idx:
+                    self._add_mutated_residue(mut_new_resname, newChain, res_idx)
                 else:
                     # copy old residue atoms directly
                     newResidue = newTopology.add_residue(residue.name, newChain, res_idx)
@@ -220,11 +195,76 @@ class AwsemMapping(object):
         self._prev_topology = self.topology.copy()
         self.topology = newTopology
 
+    def _add_mutated_residue(self, mut_new_resname, newChain, res_idx):
+        # mutate residue
+        newResidue = newTopology.add_residue(mut_new_resname, newChain, res_idx)
+        for atom in residues.atoms:
+            if atom.name in ["CA", "O"]: 
+                # Copy over backbone atoms
+                newTopology.add_atom(atom.name,
+                        md.core.element.get_by_symbol(atom.element.symbol),
+                        newResidue, serial=atom.index)
+            else:
+                # Mutate sidechain atom if necessary
+                if (newResidue == "GLY") and (residue.name != "GLY"):
+                    newTopology.add_atom("HB",
+                            md.core.element.get_by_symbol("H"),
+                            newResidue, serial=atom.index)
+                elif ((newResidue != "GLY") and (residue.name == "GLY")) or ((newResidue != "GLY") and (residue.name != "GLY")):
+                    cb_atom = newTopology.add_atom("CB",
+                                md.core.element.get_by_symbol("C"),
+                                newResidue, serial=atom.index)
+                else:
+                    # mutating glycine to glycine. silly. 
+                    newTopology.add_atom("HB",
+                            md.core.element.get_by_symbol("H"),
+                            newResidue, serial=atom.index)
+
     def recenter_sidechains(self, traj, res_idxs):
+        """ Recenter sidechain atom
 
+        Parameters
+        ----------
+        traj : obj, mdtraj.Trajectory
+            Trajectory for to apply sidechain atom recentering.
+        res_idxs : list
+            List of residue indices (starting from 0) to recenter the sidechain atom (CB or HB) of.
+        """
+
+        # solve for backbone N and C atoms.
+        N_idxs = np.array([[ self.topology.select("resid {} and name CA".format(res_idxs[i] - 1))[0] for i in range(len(res_idxs)) ],
+                           [ self.topology.select("resid {} and name CA".format(res_idxs[i]))[0] for i in range(len(res_idxs)) ],
+                           [ self.topology.select("resid {} and name O".format(res_idxs[i] - 1))[0] for i in range(len(res_idxs)) ]]).T
+
+        C_idxs = np.array([[ self.topology.select("resid {} and name CA".format(res_idxs[i]))[0] for i in range(len(res_idxs)) ],
+                           [ self.topology.select("resid {} and name CA".format(res_idxs[i] + 1))[0] for i in range(len(res_idxs)) ],
+                           [ self.topology.select("resid {} and name O".format(res_idxs[i]))[0] for i in range(len(res_idxs)) ]]).T
+
+        CA_idxs = np.array([ self.topology.select("resid {} and name CA".format(res_idxs[i]))[0] for i in range(len(res_idxs)) ])
+
+        # interpolate N, C, and H
+        N_xyz = self._N_coeff[0]*traj.xyz[:, N_idxs[:,0], :] +\
+                self._N_coeff[1]*traj.xyz[:, N_idxs[:,1], :] +\
+                self._N_coeff[2]*traj.xyz[:, N_idxs[:,2], :]
+
+        C_xyz = self._C_coeff[0]*traj.xyz[:, C_idxs[:,0], :] +\
+                self._C_coeff[1]*traj.xyz[:, C_idxs[:,1], :] +\
+                self._C_coeff[2]*traj.xyz[:, C_idxs[:,2], :]
+
+        CA_xyz = traj.xyz[:, CA_idxs, :]
         
+        CB_idxs = np.array([ self.topology.select("resid {} and ((name CB) or (name HB))".format(res_idxs[i]))[0] for i in range(len(res_idxs)) ])
 
-class AwsemBackboneUnmapping(object):
+        newtraj = md.Trajectory(traj.xyz, self.topology)
+        for n in range(traj.n_frames):
+            # for each frame recenter sidechain atoms
+            new_CB_xyz = np.array([ util.trilaterate(N_xyz[n,i,:], CA_xyz[n,i,:], C_xyz[n,i,:], 
+                         self._N_CB_dist, self._CA_CB_dist, self._C_CB_dist) for i in range(len(res_idxs)) ])
+            newtraj.xyz[n,CB_idxs,:] = new_CB_xyz
+
+        return newtraj
+
+class AwsemBackboneMapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""
 
     def __init__(self, topology):
@@ -364,4 +404,49 @@ class AwsemBackboneUnmapping(object):
                                         self._H_coeff[1]*traj.xyz[:, self._H_idxs[:,1], :] +\
                                         self._H_coeff[2]*traj.xyz[:, self._H_idxs[:,2], :]
         return md.Trajectory(newxyz, self.topology)
+
+if __name__ == "__main__":
+
+    _N_CB_dist = 0.2470955 # distance from N_i to CB_i
+    _CA_CB_dist = 0.1533931 # distance from CA_i to CB_i
+    _C_CB_dist = 0.2510052 # distance from C_i to CB_i
+
+    _N_coeff = np.array([0.48318, 0.70328, -0.18643])  # CA_i-1, CA_i, O_i-1
+    _C_coeff = np.array([0.44365, 0.23520, 0.32115])   # CA_i, CA_i+1, O_i
+    _H_coeff = np.array([0.84100, 0.89296, -0.73389])  # CA_i-1, CA_i, O_i-1
+
+
+    # solve for backbone N and C atoms.
+    N_idxs = np.array([[ traj.topology.select("resid {} and name CA".format(res_idxs[i] - 1))[0] for i in range(len(res_idxs)) ],
+                       [ traj.topology.select("resid {} and name CA".format(res_idxs[i]))[0] for i in range(len(res_idxs)) ],
+                       [ traj.topology.select("resid {} and name O".format(res_idxs[i] - 1))[0] for i in range(len(res_idxs)) ]]).T
+
+    C_idxs = np.array([[ traj.topology.select("resid {} and name CA".format(res_idxs[i]))[0] for i in range(len(res_idxs)) ],
+                       [ traj.topology.select("resid {} and name CA".format(res_idxs[i] + 1))[0] for i in range(len(res_idxs)) ],
+                       [ traj.topology.select("resid {} and name O".format(res_idxs[i]))[0] for i in range(len(res_idxs)) ]]).T
+
+    CA_idxs = np.array([ traj.topology.select("resid {} and name CA".format(res_idxs[i]))[0] for i in range(len(res_idxs)) ])
+
+    # interpolate N, C, and H
+    N_xyz = _N_coeff[0]*traj.xyz[:, N_idxs[:,0], :] +\
+            _N_coeff[1]*traj.xyz[:, N_idxs[:,1], :] +\
+            _N_coeff[2]*traj.xyz[:, N_idxs[:,2], :]
+
+    C_xyz = _C_coeff[0]*traj.xyz[:, C_idxs[:,0], :] +\
+            _C_coeff[1]*traj.xyz[:, C_idxs[:,1], :] +\
+            _C_coeff[2]*traj.xyz[:, C_idxs[:,2], :]
+
+    CA_xyz = traj.xyz[:, CA_idxs, :]
+    
+    CB_idxs = np.array([ traj.topology.select("resid {} and ((name CB) or (name HB))".format(res_idxs[i]))[0] for i in range(len(res_idxs)) ])
+
+
+    newtraj = md.Trajectory(traj.xyz, traj.top)
+
+    # for each frame recenter sidechain atoms
+    for n in range(newtraj.n_frames):
+        new_CB_xyz = np.array([ trilaterate(N_xyz[n,i,:], CA_xyz[n,i,:], C_xyz[n,i,:], 
+                     _N_CB_dist, _CA_CB_dist, _C_CB_dist) for i in range(len(res_idxs)) ])
+        newtraj.xyz[n,CB_idxs,:] = new_CB_xyz
+
 

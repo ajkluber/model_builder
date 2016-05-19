@@ -1,5 +1,5 @@
 from model import Model
-from structurebasedmodel import StructureBaseModel
+from structurebasedmodel import StructureBasedModel
     
 import mappings 
 import potentials 

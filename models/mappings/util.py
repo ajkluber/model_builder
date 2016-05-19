@@ -68,7 +68,7 @@ def _standard_resname_and_charge(res_name):
         charge = 0
 
     # change name if needed.
-    if resn_name in std_resnames.keys():
+    if res_name in std_resnames.keys():
         new_res_name = std_resnames[res_names] 
     else:
         new_res_name = res_name

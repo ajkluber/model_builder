@@ -44,6 +44,14 @@ residue_code = {'ALA': 'A', 'ARG': 'R', 'ASN': 'N',
                 'SER': 'S', 'THR': 'T', 'TRP': 'W',
                 'TYR': 'Y', 'VAL': 'V'}
 
+residue_code_1_to_3 = {'A': 'ALA', 'C': 'CYS', 'D': 'ASP',
+                     'E': 'GLU', 'F': 'PHE', 'G': 'GLY',
+                     'H': 'HIS', 'I': 'ILE', 'K': 'LYS',
+                     'L': 'LEU', 'M': 'MET', 'N': 'ASN',
+                     'P': 'PRO', 'Q': 'GLN', 'R': 'ARG',
+                     'S': 'SER', 'T': 'THR', 'V': 'VAL',
+                     'W': 'TRP', 'Y': 'TYR'}
+
 """Source: Partial molar volumes of proteins: amino acid side-chain
 contributions derived from the partial molar volumes of some tripeptide
 Atomic radii in nanometers"""

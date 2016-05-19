@@ -1,4 +1,4 @@
 
-import gromacs
-import lammps
-import awsem
+from gromacs import GromacsFiles
+from lammps import LammpsFiles 
+from awsem import AWSEMLammpsFiles
