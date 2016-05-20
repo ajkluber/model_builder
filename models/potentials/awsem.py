@@ -10,6 +10,25 @@ def theta(r, nu, r_min, r_max):
 ##############################################################################
 # Backbone terms
 ##############################################################################
+
+class Spring(object):
+    def __init__(self, k, r0):
+        """Harmonic potential 
+        
+        Used for V_connectivity and V_chain to maintain backbone geometry.
+        
+        Parameters
+        ----------
+        k : float
+            Spring constant.
+        r0 : float
+            Equilibrium distance"""
+        self.k = k
+        self.r0 = r0
+
+    def V(self, r):
+        return self.k*((r - self.r0)**2)
+
 class Chi(object):
 
     def __init__(self, lambda_chi=1., chi_0=-0.83):
@@ -38,9 +57,33 @@ class Chi(object):
         N_xyz : np.ndarray (3)
             Coordinates of the backbone N atom.
         """
-        v1 = CA_xyz - C_xyz; v2 = N_xyz - CA_xyz; v3 = CA_xyz - CB_xyz
-        chi = np.dot(np.cross(v1, v2), v3)
+
+        v1 = CA_xyz - C_xyz
+        v2 = N_xyz - CA_xyz 
+        v3 = CA_xyz - CB_xyz
+        chi = np.dot(np.cross(v1, v2), v3) # Does this work vectorized?
         return self.lambda_chi*((chi - chi_0)**2)
+
+class Rama(object):
+
+    def __init__(self, lambda_rama=2., 
+            W=[1.3149, 1.32016, 1.0264], sigma=[15.398, 49.0521, 49.0954],
+            omega_phi=[0.15, 0.25, 0.65], phi0=[-1.74, -1.265, 1.041], 
+            omega_psi=[0.65, 0.45, 0.25], psi0=[2.138, -0.318, 0.78]):
+        self.lambda_rama = lambda_rama
+        self.sigma = sigma
+        self.omega_phi = omega_phi
+        self.phi0 = phi0
+        self.omega_psi = omega_psi
+        self.psi0 = psi0
+
+    def V(self, phi, psi):
+        V = np.zeros(phi.shape[0], float)
+        for i in range(len(self.W)):
+            V += -self.lambda_rama*W[i]*np.exp(-sigma[i]*(
+                    self.omega_phi[i]*(np.cos(phi - self.phi0[i]) - 1.)**2 +\
+                    self.omega_psi[i]*(np.cos(psi - self.psi0[i]) - 1.)**2))
+        return V
 
 ##############################################################################
 # Contact terms
@@ -49,6 +92,21 @@ class Chi(object):
 class DirectContact(object):
 
     def __init__(self, lambda_direct=1, nu=50., r_min=0.45, r_max=0.65):
+        """Direct contact interaction
+        
+        Parameters
+        ----------
+        lambda_direct : opt, float
+            The overall strength of the term in the Hamiltonian.
+        nu : opt, float
+            Coefficient that sets how quickly the contact well switches
+            between on and off.
+        r_min : opt, float
+            The minimum of the contact well.
+        r_max : opt, float
+            The maximum of the contact well.
+            
+        """
         self.lambda_direct = lambda_direct
         self.nu = nu
         self.r_min = r_min
@@ -73,16 +131,16 @@ class WaterMediatedContact(object):
         lambda_water : opt, float
             The overall strength of the term in the Hamiltonian.
         nu : opt, float
-            Coefficient that sets how quickly the mediated well switches
+            Coefficient that sets how quickly the contact well switches
             between on and off.
         nu_sigma : opt, float
             Coefficient that sets how fast the contact switches from 
             water-mediated to protein-mediated based on the local densities of
             the residues involved.
         r_min : opt, float
-            The minimum of the mediated well.
+            The minimum of the contact well.
         r_max : opt, float
-            The maximum of the mediated well.
+            The maximum of the contact well.
             
         """
         self.lambda_water = lambda_water
@@ -92,7 +150,7 @@ class WaterMediatedContact(object):
         self.r_max = r_max
 
     def V(self, r, rhoi, rhoj, gamma_water, gamma_protein): 
-        """"Water- or protein-mediated contact interaction
+        """Water- or protein-mediated contact interaction
         
         Parameters
         ----------
@@ -110,7 +168,7 @@ class WaterMediatedContact(object):
             The strength of the protein-mediated interaction between residues i
             and j.
         
-        """"
+        """
         return self.lambda_water*(gamma_water*self.dVdgamma_water(r, rhoi, rhoj) +\
                                 gamma_protein*self.dVdgamma_protein(r, rhoi, rhoj))
 
@@ -160,7 +218,8 @@ class Burial(object):
         rhoi : np.ndarray 
             Vector that contains the local protein density at site i.
         gamma_burials : list (3)
-            Residue specific burial coefficients for residue type i.
+            Residue specific burial coefficients for residue type i to be in
+            low-, medium-, or high-density environment.
     
         """
         V = np.zeros(rho.shape[0])
