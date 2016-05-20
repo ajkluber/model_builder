@@ -8,6 +8,8 @@ import awsem
 
 from hamiltonian import Hamiltonian
 
+from model_builder.models.mappings import AwsemBackboneMapping
+
 class StructureBasedHamiltonian(Hamiltonian):
 
     def __init__(self):
@@ -16,6 +18,8 @@ class StructureBasedHamiltonian(Hamiltonian):
                                'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 
                                'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
                                'SER', 'THR', 'TRP', 'TYR', 'VAL']
+
+        self.potential_forms = {"DIRECT":awsem
 
     def _source_parameters(self, param_path, fix_backbone_path):
         self._param_path = param_path 
@@ -46,23 +50,41 @@ class StructureBasedHamiltonian(Hamiltonian):
         self.gamma_water = gamma_water 
         self.gamma_protein = gamma_protein 
 
+    def set_topology(self, topology):
+
+        self.back_mapping = AwsemBackboneMapping(topology)
+        self.topology = self.back_mapping.topology
+        self.top = self.back_mapping.topology
+
+        #contact_idxs = [ atom.index for atom in self.top.atoms if \
+        #            ((atom.residue.name == "GLY") and (atom.name == "CA")) or\
+        #            ((atom.residue.name != "GLY") and (atom.name == "CB")) ]
+
+        contact_pairs = []
+        for i in range(self.top.n_residues):
+            if self.top.residue(i).name == "GLY":
+                idx1 = self.top.select("resid {} and name CA".format(i))[0]
+            else:
+                idx1 = self.top.select("resid {} and name CB".format(i))[0]
+            for j in range(self.top.n_residues):
+                if i != j:
+                    if self.top.residue(j).name == "GLY":
+                        idx2 = self.top.select("resid {} and name CA".format(j))[0]
+                    else:
+                        idx2 = self.top.select("resid {} and name CB".format(j))[0]
+                    contact_pairs.append([idx1, idx2])
+        self.contact_pairs = np.array(contact_pairs)
+
+        # indices for hydrogen bonding terms 
+
+    @property
+    def top(self):  
+        return self.topology
+        
+
     def calculate_local_density(traj):
         #TODO
         # all contact pairs
-        contact_pairs = []
-        for i in range(traj.n_residues):
-            if traj.top.residue(i).name == "GLY":
-                idx1 = traj.top.select("resid {} and name CA".format(i))[0]
-            else:
-                idx1 = traj.top.select("resid {} and name CB".format(i))[0]
-            for j in range(traj.n_residues):
-                if i != j:
-                    if traj.top.residue(j).name == "GLY":
-                        idx2 = traj.top.select("resid {} and name CA".format(j))[0]
-                    else:
-                        idx2 = traj.top.select("resid {} and name CB".format(j))[0]
-                    contact_pairs.append([idx1, idx2])
-        contact_pairs = np.array(contact_pairs)
 
         contact_dists = md.compute_distances(traj, contact_pairs)[0]
         contacts = awsem.theta_I(contact_dists)
@@ -73,3 +95,5 @@ class StructureBasedHamiltonian(Hamiltonian):
     def calculate_energy(self):
         pass
 
+if __name__ == "__main__":
+    pass
