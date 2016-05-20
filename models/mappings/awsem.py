@@ -56,6 +56,10 @@ class AwsemMapping(object):
         self._CACBO_idxs = np.array(CACBO_idxs)
         self.topology = newTopology
 
+    @property
+    def top(self):
+        return self.topology
+
     def _add_residue(self, newTopology, newChain, residue, res_charges,
                             res_idx, atm_idx, CACBO_idxs, HB_idxs):
 
@@ -116,9 +120,6 @@ class AwsemMapping(object):
 
             self._disulfides.append([cb1, cb2])
 
-    @property
-    def top(self):
-        return self.topology
 
     def map_traj(self, traj):
         """Return new Trajectory object with AWSEM topology and xyz"""
@@ -294,6 +295,10 @@ class AwsemBackboneMapping(object):
         self._H_idxs = np.array(H_idxs)
         self.topology = newTopology
 
+    @property
+    def top(self):
+        return self.topology
+
     def _add_residue(self, newTopology, newChain, residue, chain, 
                 res_idx, atm_idx, N_idxs, C_idxs, H_idxs, CACBO_idxs, prev_ca, prev_o):
 
@@ -342,7 +347,7 @@ class AwsemBackboneMapping(object):
             next_res = chain.residue(residue.index + 1)
             new_c = newTopology.add_atom('C', md.core.element.get_by_symbol('C'), 
                                         newResidue, serial=atm_idx)
-            next_CA_idx = [ atm.index for atm in next_res.atoms if (atm.name == "CB") ][0]
+            next_CA_idx = [ atm.index for atm in next_res.atoms if (atm.name == "CA") ][0]
             C_idxs.append([CA_idx, next_CA_idx, O_idx, new_c.index])
             newTopology.add_bond(new_c, new_ca)
             newTopology.add_bond(new_c, new_o)
