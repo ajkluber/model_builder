@@ -18,11 +18,16 @@ class AwsemHamiltonian(Hamiltonian):
                                'SER', 'THR', 'TRP', 'TYR', 'VAL']
 
         self.potential_types = [ "DIRECT", "WATER", "BURIAL" ]
+        self.potential_gen = [ awsem.AWSEM_POTENTIALS[x] for x in self.potential_types ]
         self.potential_forms = { x:None for x in self.potential_types }
 
     def _potential_is_parameterized(self, code):
         if self.potential_forms[code] is None:
-            print "Potential {} is not parameterized!".format(code)
+            #print "Potential {} is not parameterized!".format(code)
+            status = False
+        else:
+            status = True
+        return True
 
     def _source_parameters(self, param_path):
         self._param_path = param_path 
@@ -45,35 +50,54 @@ class AwsemHamiltonian(Hamiltonian):
         Distance units need to be converted from Ang. to nm.
         """
         with open("{}/fix_backbone_coeff.data".format(self._param_path), "r") as fin: 
-        #with open("fix_backbone_coeff.data", "r") as fin: 
-            while True:
-                line = fin.readline()
+            all_lines = fin.readlines()
+            for i in range(len(all_lines)):
+                line = all_lines[i]
                 if line == "[Water]\n":
-                    # parameterize water potential form. Convert distance units from Angs to nm.  
-                    lambda_water = lambda_direct = float(fin.readline())
-                    nu, nu_sigma = [ 10.*float(x) for x in fin.readline().split() ]
-                    fin.readline(); fin.readline(); fin.readline()
-                    direct_r_min, direct_r_max, dum = [ float(x)/10. for x in fin.readline.split() ]
-                    water_r_min, water_r_max, dum = [ float(x)/10. for x in fin.readline.split() ]
-                    self.potentials["DIRECT"] = awsem.AWSEM_POTENTIALS["DIRECT"](
-                            lambda_direct=lambda_direct, nu=nu, 
-                            r_min=direct_r_min, r_max=direct_r_max)
-
-                    self.potentials["WATER"] = awsem.AWSEM_POTENTIALS["WATER"](
-                            lambda_water=lambda_water, nu=nu, nu_sigma=nu_sigma,
-                            r_min=water_r_min, r_max=water_r_max)
-                    break
+                    self._source_water_params(all_lines[i + 1:i + 8])
                 elif line == "[Burial]\n":
-                    pass
-                    #break
+                    self._source_burial_params(all_lines[i + 1:i + 6])
+                # TODO:
+                # - source helix params
+                # - source rama params
+                # - source dssp params
+                # - source debye params
+
+    def _source_water_params(self, lines):
+        """Parameterize the form of the direct and water interaction"""
+        # Convert distance units from Ang. to nm.  
+        lambda_water = lambda_direct = float(lines[0])
+        nu, nu_sigma = [ 10.*float(x) for x in lines[1].split() ]
+        direct_r_min, direct_r_max, dum = [ float(x)/10. for x in lines[5].split() ]
+        water_r_min, water_r_max, dum = [ float(x)/10. for x in lines[6].split() ]
+
+        self.potential_forms["DIRECT"] = awsem.AWSEM_POTENTIALS["DIRECT"](
+                lambda_direct=lambda_direct, nu=nu, 
+                r_min=direct_r_min, r_max=direct_r_max)
+
+        self.potential_forms["WATER"] = awsem.AWSEM_POTENTIALS["WATER"](
+                lambda_water=lambda_water, nu=nu, nu_sigma=nu_sigma, 
+                r_min=water_r_min, r_max=water_r_max)
+
+    def _source_burial_params(self, lines):
+        """Parameterize the form of the burial interaction"""
+        # parameterize the burial interaction.                    
+        lambda_burial = float(lines[0])
+        nu = float(lines[1])
+        rho1_lims = [ float(x) for x in lines[2].split() ]
+        rho2_lims = [ float(x) for x in lines[3].split() ]
+        rho3_lims = [ float(x) for x in lines[4].split() ]
+
+        self.potential_forms["BURIAL"] = awsem.AWSEM_POTENTIALS["BURIAL"](
+                lambda_burial=lambda_burial, nu=nu, rho1_lims=rho1_lims, 
+                rho2_lims=rho2_lims, rho3_lims=rho3_lims)
 
     def _source_gammas(self):
         """Extract contact and burial gamma parameters from file"""
 
         self.gamma_burial = np.loadtxt("{}/burial_gamma.dat".format(self._param_path))
 
-        #with open("{}/gamma.dat".format(self._param_path), "r") as fin:
-        with open("gamma.dat", "r") as fin:
+        with open("{}/gamma.dat".format(self._param_path), "r") as fin:
             gamma_direct = np.zeros((20,20))
             for i in range(20):
                 for j in range(i, 20):
@@ -92,7 +116,6 @@ class AwsemHamiltonian(Hamiltonian):
         self.gamma_direct = gamma_direct 
         self.gamma_water = gamma_water 
         self.gamma_protein = gamma_protein 
-
 
     def set_topology(self, topology, parameterize=False):
         """Set the topology used to construct Hamiltonian parameters
@@ -221,6 +244,8 @@ class AwsemHamiltonian(Hamiltonian):
         pass
 
 if __name__ == "__main__":
+
+    name = "SH3"
 
     param_path = "/home/alex/packages/awsemmd/parameters"
     H = AwsemHamiltonian()
