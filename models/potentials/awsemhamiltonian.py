@@ -230,7 +230,7 @@ class AwsemHamiltonian(object):
                 Vdirect[:,i] = direct.V(r[:,i], self.contact_gamma_direct[i])
         return Vdirect 
 
-    def calculate_burial_energy(self, traj, sum=True):
+    def calculate_water_energy(self, traj, local_density=None, sum=True):
         """Calculate the one-body burial potential
         
         Parameters
@@ -241,40 +241,55 @@ class AwsemHamiltonian(object):
             If true (default) return the sum of the burial potentials. If
             false, return the burial energy of each individual residue.
         """
+        pass
 
-        bb_traj = self.backbone_mapping.map_traj(traj)
-        res_local_density = self._calculate_local_density(bb_traj)
+    def calculate_burial_energy(self, traj, local_density=None, sum=True):
+        """Calculate the one-body burial potential
+        
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            Trajectory to calculate energy over.
+        local_density : np.ndarray (traj.n_frames, traj.n_residues)
+            Local protein density around each residue for all frames in traj. 
+        sum : opt, bool
+            If true (default) return the sum of the burial potentials. If
+            false, return the burial energy of each individual residue.
+        """
+
+        if local_density is None:
+            bb_traj = self.backbone_mapping.map_traj(traj)
+            res_local_density = self._calculate_local_density(bb_traj)
+        else:
+            res_local_density = local_density
 
         if sum:
             Vburial = np.zeros(traj.n_frames, float)
         else:
             Vburial = np.zeros((traj.n_frames, self.top.n_residues), float)
 
+        burial = self.potential_forms["BURIAL"]
         for i in range(self.top.n_residues):
             if sum:
-                Vburial += self.Vburial(res_local_density[i], self.res_gamma_burial[i])
+                Vburial += burial.V(res_local_density[:,i], self.res_gamma_burial[i])
             else:
-                Vburial[:,i] = self.Vburial(res_local_density[i], self.res_gamma_burial[i])
+                Vburial[:,i] = burial.V(res_local_density[:,i], self.res_gamma_burial[i])
 
         return Vburial
 
-    def _calculate_local_density(traj):
+    def _calculate_local_density(self, traj):
         """Calculate local protein density around each residue"""
 
+        direct = self.potential_forms["DIRECT"]
         contact_dists = md.compute_distances(traj, self.contact_pairs)
-        contacts = awsem.theta_I(contact_dists)
-        contact_matrix = contacts.reshape((traj.n_residues, traj.n_residues - 1))
-        local_density = np.sum(contact_matrix, axis=1)
+        contacts = direct.theta_I(contact_dists)
+        contact_matrix = contacts.reshape((traj.n_frames, traj.n_residues, traj.n_residues - 1))
+        local_density = np.sum(contact_matrix, axis=2)
+
         return local_density
 
     def calculate_energy(self):
         pass
 
 if __name__ == "__main__":
-
-    name = "SH3"
-
-    param_path = "/home/alex/packages/awsemmd/parameters"
-    H = AwsemHamiltonian()
-
-    H._source_parameters(param_path)
+    pass

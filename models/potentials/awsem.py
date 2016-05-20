@@ -222,7 +222,7 @@ class Burial(object):
             low-, medium-, or high-density environment.
     
         """
-        V = np.zeros(rho.shape[0])
+        V = np.zeros(rhoi.shape[0])
         for i in range(3):
             V += -self.lambda_burial*gamma_burials[i]*self.burial_theta(
                         rhoi, self.nu, self.rho_lims[i][0], self.rho_lims[i][1])
