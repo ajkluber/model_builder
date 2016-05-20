@@ -256,7 +256,4 @@ PAIR_POTENTIALS = {"LJ1210":LJ1210Potential,
                 "LJ12GAUSSIAN":LJ12GaussianPotential,
                 "TANHREP":TanhRepPotential,
                 "LJ12TANHREP":LJ12TanhRepPotential,
-                "FLATWELL":FlatBottomWell,
-                "AWSEMDIRECT":AwsemDirectContact,
-                "AWSEMWATER":AwsemWaterMediatedContact,
-                "AWSEMBURIAL":AwsemBurial}
+                "FLATWELL":FlatBottomWell}
