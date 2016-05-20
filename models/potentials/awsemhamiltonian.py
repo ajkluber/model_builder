@@ -2,16 +2,15 @@ import numpy as np
 
 import mdtraj as md
 
-from hamiltonian import Hamiltonian
+#from hamiltonian import Hamiltonian
 from model_builder.models.mappings import AwsemBackboneMapping
 
 import util
 import awsem
 
-class AwsemHamiltonian(Hamiltonian):
+class AwsemHamiltonian(object):
 
     def __init__(self):
-        Hamiltonian.__init__(self)
         self.gamma_residues = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 
                                'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 
                                'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
@@ -20,6 +19,10 @@ class AwsemHamiltonian(Hamiltonian):
         self.potential_types = [ "DIRECT", "WATER", "BURIAL" ]
         self.potential_gen = [ awsem.AWSEM_POTENTIALS[x] for x in self.potential_types ]
         self.potential_forms = { x:None for x in self.potential_types }
+
+    @property
+    def top(self):  
+        return self.topology
 
     def _potential_is_parameterized(self, code):
         if self.potential_forms[code] is None:
@@ -57,6 +60,7 @@ class AwsemHamiltonian(Hamiltonian):
                     self._source_water_params(all_lines[i + 1:i + 8])
                 elif line == "[Burial]\n":
                     self._source_burial_params(all_lines[i + 1:i + 6])
+
                 # TODO:
                 # - source helix params
                 # - source rama params
@@ -127,7 +131,6 @@ class AwsemHamiltonian(Hamiltonian):
         """
         self.backbone_mapping = AwsemBackboneMapping(topology)
         self.topology = self.backbone_mapping.topology
-        self.top = self.backbone_mapping.topology
 
         if parameterize:
             # Set the contact, burial potentials using this topology.
@@ -159,12 +162,12 @@ class AwsemHamiltonian(Hamiltonian):
         # Pre-allocate?
         n_pairs = self.top.n_residues*(self.top.n_residues - 1)
         contact_pairs = []
-        contact_resnames = []
         contact_gamma_direct = []
         contact_gamma_water = []
         contact_gamma_protein = []
         for i in range(self.top.n_residues):
             resi = self.top.residue(i)
+            res_idx1 = self.gamma_residues.index(resi.name)
             if resi.name == "GLY":
                 idx1 = self.top.select("resid {} and name CA".format(i))[0]
             else:
@@ -180,7 +183,6 @@ class AwsemHamiltonian(Hamiltonian):
 
                     # track the atom indices involved in the contact.
                     contact_pairs.append([idx1, idx2])
-                    contact_resnames([resi.name, resj.name])
 
                     res_idx2 = self.gamma_residues.index(resj.name)
 
@@ -193,23 +195,48 @@ class AwsemHamiltonian(Hamiltonian):
         self.contact_gamma_direct = np.array(contact_gamma_direct)
         self.contact_gamma_water = np.array(contact_gamma_water)
         self.contact_gamma_protein = np.array(contact_gamma_protein)
-
+        self.n_pairs = len(self.contact_pairs) 
 
     def _parameterize_alpha_helical(self):
         # indices for alpha helical hydrogen bonding terms and their strengths
         pass
 
-    @property
-    def top(self):  
-        return self.topology
+
+    def calculate_direct_energy(self, traj, sum=True):
+        """Calculate the two-body direct contact potential
         
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            Trajectory to calculate energy over.
+        sum : opt, bool
+            If true (default) return the sum of the burial potentials. If
+            false, return the burial energy of each individual residue.
+        """
+
+        bb_traj = self.backbone_mapping.map_traj(traj)
+        direct = self.potential_forms["DIRECT"] 
+        r = md.compute_distances(bb_traj, self.contact_pairs)
+
+        if sum:
+            Vdirect = np.zeros(bb_traj.n_frames, float)
+        else:
+            Vdirect = np.zeros((bb_traj.n_frames, self.n_pairs), float)
+
+        for i in range(self.n_pairs):
+            if sum:
+                Vdirect += direct.V(r[:,i], self.contact_gamma_direct[i])
+            else:
+                Vdirect[:,i] = direct.V(r[:,i], self.contact_gamma_direct[i])
+        return Vdirect 
+
     def calculate_burial_energy(self, traj, sum=True):
         """Calculate the one-body burial potential
         
         Parameters
         ----------
         traj : mdtraj.Trajectory
-            Trajectory to calculate the residue
+            Trajectory to calculate energy over.
         sum : opt, bool
             If true (default) return the sum of the burial potentials. If
             false, return the burial energy of each individual residue.
