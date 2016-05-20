@@ -119,7 +119,7 @@ class DirectContact(object):
         return self.theta_I(r)
 
     def theta_I(self, r):
-        return theta(r, self.nu, self.r_min, self.max)
+        return theta(r, self.nu, self.r_min, self.r_max)
 
 class WaterMediatedContact(object):
     
