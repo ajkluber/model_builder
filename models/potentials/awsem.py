@@ -7,7 +7,7 @@ import numpy as np
 def theta(r, nu, r_min, r_max):
     return 0.25*(1. + np.tanh(nu*(r - r_min)))*(1. + np.tanh(nu*(r_max - r)))
 
-def sigma_water(self, rhoi, rhoj, nu_sigma, rho_0):
+def sigma_water(rhoi, rhoj, nu_sigma, rho_0):
     return 0.25*(1. - np.tanh(nu_sigma*(rhoi - rho_0)))*(1. - np.tanh(nu_sigma*(rhoj - rho_0)))
 
 ##############################################################################
@@ -151,7 +151,7 @@ class DirectContact(object):
         self.r_max = r_max
 
     def V(self, r, gamma_direct): 
-        return gamma_direct*self.theta_I(r)
+        return -self.lambda_direct*gamma_direct*self.theta_I(r)
 
     def dVdgamma_direct(self, r):
         return self.theta_I(r)
@@ -161,7 +161,7 @@ class DirectContact(object):
 
 class WaterMediatedContact(object):
     
-    def __init__(self, lambda_water=1., nu=50., nu_sigma=70., r_min=0.65, r_max=0.95):
+    def __init__(self, lambda_water=1., nu=50., nu_sigma=7., r_min=0.65, r_max=0.95, rho_0=2.6):
         """Water- or protein-mediated contact interaction
         
         Parameters
@@ -186,6 +186,7 @@ class WaterMediatedContact(object):
         self.nu_sigma = nu_sigma
         self.r_min = r_min
         self.r_max = r_max
+        self.rho_0 = rho_0
 
     def V(self, r, rhoi, rhoj, gamma_water, gamma_protein): 
         """Water- or protein-mediated contact interaction
@@ -207,7 +208,7 @@ class WaterMediatedContact(object):
             and j.
         
         """
-        return self.lambda_water*(gamma_water*self.dVdgamma_water(r, rhoi, rhoj) +\
+        return -self.lambda_water*(gamma_water*self.dVdgamma_water(r, rhoi, rhoj) +\
                                 gamma_protein*self.dVdgamma_protein(r, rhoi, rhoj))
 
     def dVdgamma_water(self, r, rhoi, rhoj):
