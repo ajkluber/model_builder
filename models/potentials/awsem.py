@@ -92,26 +92,27 @@ class Rama(object):
 class Helix(object):
 
     def __init__(self, lambda_helix=1.5,
-            gamma_protein=2., gamma_water=-1., nu=70. nu_sigma=7.,
-            rho_0=3., r_ON=0.298, r_OH=0.206, sigma_ON=0.068, sigma_OH=0.076)
-    """Alpha helical interaction
+            gamma_protein=2., gamma_water=-1., nu=70., nu_sigma=7.,
+            rho_0=3., r_ON=0.298, r_OH=0.206, sigma_ON=0.068, sigma_OH=0.076):
+        """Alpha helical interaction
     
-    Parameters
-    ----------
-    lambda_direct : opt, float
-        The overall strength of the term in the Hamiltonian.
-    
-    """
-    self.lambda_helix = lambda_helix
-    self.gamma_protein = gamma_protein
-    self.gamma_water = gamma_water
-    self.nu = nu
-    self.nu_sigma = nu_sigma
-    self.rho_0 = rho_0
-    self.r_ON_0 = r_ON
-    self.r_OH_0 = r_OH
-    self.sigma_ON = sigma_ON
-    self.sigma_OH = sigma_OH
+        Parameters
+        ----------
+        lambda_direct : opt, float
+            The overall strength of the term in the Hamiltonian.
+        
+        """
+
+        self.lambda_helix = lambda_helix
+        self.gamma_protein = gamma_protein
+        self.gamma_water = gamma_water
+        self.nu = nu
+        self.nu_sigma = nu_sigma
+        self.rho_0 = rho_0
+        self.r_ON_0 = r_ON
+        self.r_OH_0 = r_OH
+        self.sigma_ON = sigma_ON
+        self.sigma_OH = sigma_OH
 
     def V(self, r_ON, r_OH, rhoi, rhoj, res_avg_helix):
         return res_avg_helix*self.gauss_well(r_ON, r_OH)*(
@@ -120,7 +121,7 @@ class Helix(object):
     
     def gauss_well(self, r_ON, rOH):  
         return -self.lambda_helix*np.exp(-(((r_ON - self.r_ON_0)**2)/(2.*(self.sigma_ON**2))) -\
-                                          (((r_OH - self.r_OH_0)**2)/(2.*(self.sigma_OH**2)))
+                                          (((r_OH - self.r_OH_0)**2)/(2.*(self.sigma_OH**2))))
 
 ##############################################################################
 # Contact terms
