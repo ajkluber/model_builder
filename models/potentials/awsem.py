@@ -114,12 +114,12 @@ class Helix(object):
         self.sigma_ON = sigma_ON
         self.sigma_OH = sigma_OH
 
-    def V(self, r_ON, r_OH, rhoi, rhoj, res_avg_helix):
-        return res_avg_helix*self.gauss_well(r_ON, r_OH)*(
+    def V(self, r_ON, r_OH, rhoi, rhoj, fai, fai_4):
+        return (fai + fai_4)*self.gauss_well(r_ON, r_OH)*(
                 self.gamma_water*sigma_water(rhoi, rhoj, self.nu_sigma, self.rho_0) +\
                 self.gamma_protein*(1. - sigma_water(rhoi, rhoj, self.nu_sigma, self.rho_0)))
     
-    def gauss_well(self, r_ON, rOH):  
+    def gauss_well(self, r_ON, r_OH):  
         return -self.lambda_helix*np.exp(-(((r_ON - self.r_ON_0)**2)/(2.*(self.sigma_ON**2))) -\
                                           (((r_OH - self.r_OH_0)**2)/(2.*(self.sigma_OH**2))))
 
