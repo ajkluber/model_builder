@@ -44,6 +44,11 @@ residue_code = {'ALA': 'A', 'ARG': 'R', 'ASN': 'N',
                 'SER': 'S', 'THR': 'T', 'TRP': 'W',
                 'TYR': 'Y', 'VAL': 'V'}
 
+resnames_alpha = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 
+                  'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 
+                  'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
+                  'SER', 'THR', 'TRP', 'TYR', 'VAL']
+
 residue_code_1_to_3 = {'A': 'ALA', 'C': 'CYS', 'D': 'ASP',
                      'E': 'GLU', 'F': 'PHE', 'G': 'GLY',
                      'H': 'HIS', 'I': 'ILE', 'K': 'LYS',
