@@ -34,7 +34,6 @@ class AwsemHamiltonian(object):
 
     def _source_parameters(self, param_path):
         self._param_path = param_path 
-        #self._backbone_coeff_path = backbone_coeff_path
         self._source_gammas()
         self._source_backbone_coeff()
 
@@ -62,6 +61,10 @@ class AwsemHamiltonian(object):
                     self._source_water_params(all_lines[i + 1:i + 8])
                 elif line == "[Helix]\n":
                     self._source_helix_params(all_lines[i + 1:i + 12])
+                elif line == "[Rama]\n":
+                    self._source_rama_params(all_lines[i + 1:i + 8])
+                elif line == "[Rama_P]\n":
+                    self._source_rama_proline_params(all_lines[i + 1:i + 7])
 
                 # TODO:
                 # - source rama params
@@ -80,6 +83,31 @@ class AwsemHamiltonian(object):
         self.potential_forms["BURIAL"] = awsem.AWSEM_POTENTIALS["BURIAL"](
                 lambda_burial=lambda_burial, nu=nu, rho1_lims=rho1_lims, 
                 rho2_lims=rho2_lims, rho3_lims=rho3_lims)
+
+    def _source_gammas(self):
+        """Extract contact and burial gamma parameters from file"""
+
+        self.gamma_burial = np.loadtxt("{}/burial_gamma.dat".format(self._param_path))
+
+        with open("{}/gamma.dat".format(self._param_path), "r") as fin:
+            gamma_direct = np.zeros((20,20))
+            for i in range(20):
+                for j in range(i, 20):
+                    line = fin.readline()
+                    gamma_direct[i, j] = gamma_direct[j, i] = float(line.split()[0])
+
+            line = fin.readline()
+            gamma_water = np.zeros((20,20))
+            gamma_protein = np.zeros((20,20))
+            for i in range(20):
+                for j in range(i, 20):
+                    line = fin.readline()
+                    gamma_water[i, j] = gamma_water[j, i] = float(line.split()[1])
+                    gamma_protein[i, j] = gamma_protein[j, i] = float(line.split()[0])
+
+        self.gamma_direct = gamma_direct 
+        self.gamma_water = gamma_water 
+        self.gamma_protein = gamma_protein 
 
     def _source_water_params(self, lines):
         """Parameterize the form of the direct and water interaction"""
@@ -122,30 +150,53 @@ class AwsemHamiltonian(object):
                 gamma_water=gamma_water, nu=nu, nu_sigma=nu_sigma, rho_0=rho_0,
                 r_ON=r_ON, r_OH=r_OH, sigma_ON=sigma_ON, sigma_OH=sigma_OH)
 
-    def _source_gammas(self):
-        """Extract contact and burial gamma parameters from file"""
+    def _source_rama_params(self, lines):
+        """Parameterize the form of the rama interaction"""
 
-        self.gamma_burial = np.loadtxt("{}/burial_gamma.dat".format(self._param_path))
+        lambda_rama = float(lines[0])
+        n_rama_fields = int(lines[1])
+        rama_fields = np.array([ [ float(x) for x in line_temp.split() ] for line_temp in lines[2:5] ])
+        W = rama_fields[:, 0]
+        sigma = rama_fields[:, 1] 
+        omega_phi = rama_fields[:, 2]
+        phi0 = -rama_fields[:, 3]
+        omega_psi = rama_fields[:, 4]
+        psi0 = -rama_fields[:, 5]
 
-        with open("{}/gamma.dat".format(self._param_path), "r") as fin:
-            gamma_direct = np.zeros((20,20))
-            for i in range(20):
-                for j in range(i, 20):
-                    line = fin.readline()
-                    gamma_direct[i, j] = gamma_direct[j, i] = float(line.split()[0])
+        self.potential_forms["RAMA"] = awsem.AWSEM_POTENTIALS["RAMA"](
+                lambda_rama=lambda_rama, W=W, sigma=sigma, 
+                omega_phi=omega_phi, phi0=phi0, 
+                omega_psi=omega_psi, psi0=psi0)
 
-            line = fin.readline()
-            gamma_water = np.zeros((20,20))
-            gamma_protein = np.zeros((20,20))
-            for i in range(20):
-                for j in range(i, 20):
-                    line = fin.readline()
-                    gamma_water[i, j] = gamma_water[j, i] = float(line.split()[1])
-                    gamma_protein[i, j] = gamma_protein[j, i] = float(line.split()[0])
+        # parameterize secondary structure bias terms
+        alpha = [ float(x) for x in lines[5].split() ] 
+        beta = [ float(x) for x in lines[6].split() ] 
 
-        self.gamma_direct = gamma_direct 
-        self.gamma_water = gamma_water 
-        self.gamma_protein = gamma_protein 
+        self.potential_forms["RAMA_ALPHA"] = awsem.AWSEM_POTENTIALS["RAMA"](
+                lambda_rama=lambda_rama, W=alpha[0], sigma=alpha[1], 
+                omega_phi=alpha[2], phi0=-alpha[3], 
+                omega_psi=alpha[4], psi0=-alpha[5])
+
+        self.potential_forms["RAMA_BETA"] = awsem.AWSEM_POTENTIALS["RAMA"](
+                lambda_rama=lambda_rama, W=beta[0], sigma=beta[1], 
+                omega_phi=beta[2], phi0=-beta[3], 
+                omega_psi=beta[4], psi0=-beta[5])
+
+    def _source_rama_proline_params(self, lines):
+        """Parameterize the form of the rama interaction"""
+
+        n_rama_fields = int(lines[0])
+        rama_fields = np.array([ [ float(x) for x in line_temp.split() ] for line_temp in lines[1:4] ])
+        W = rama_fields[:, 0]
+        sigma = rama_fields[:, 1] 
+        omega_phi = rama_fields[:, 2]
+        phi0 = -rama_fields[:, 3]
+        omega_psi = rama_fields[:, 4]
+        psi0 = -rama_fields[:, 5]
+
+        self.potential_forms["RAMA_PROLINE"] = awsem.AWSEM_POTENTIALS["RAMA"](
+                W=W, sigma=sigma, omega_phi=omega_phi, phi0=phi0, 
+                omega_psi=omega_psi, psi0=psi0)
 
     def set_topology(self, topology, parameterize=False):
         """Set the topology used to construct Hamiltonian parameters
@@ -175,6 +226,7 @@ class AwsemHamiltonian(object):
         order to assign the transferable parameters.
         """
 
+        self._parameterize_rama()
         self._parameterize_burial()
         self._parameterize_contacts()
         self._parameterize_alpha_helical()
@@ -255,6 +307,7 @@ class AwsemHamiltonian(object):
         self._contact_gamma_idxs = np.array(contact_gamma_idxs)
 
     def _parameterize_alpha_helical(self):
+        """Parameterize the alpha-helical interaction"""
         # indices for alpha helical hydrogen bonding terms and their strengths
 
         helix_res_idxs = []
@@ -291,6 +344,43 @@ class AwsemHamiltonian(object):
         self._helix_fai_4 = np.array(helix_fai_4)
         self.n_alpha_helix = len(helix_ON_pairs)
 
+    def _parameterize_rama(self):
+        """Parameterize Rama interaction. Proline is treated special"""
+
+        phi_specs = lambda res: [[res.index - 1, "C"], [res.index, "N"], [res.index, "CA"], [res.index, "C"]]
+        psi_specs = lambda res: [[res.index, "N"], [res.index, "CA"], [res.index, "C"], [res.index + 1, "N"]]
+        select_atm = lambda idx, name: self.top.select("resid {} and name {}".format(idx, name))[0]
+
+        phi_idxs = [] # C_i-1 N_i CA_i C_i
+        psi_idxs = [] # N_i CA_i C_i N_i+1
+        pro_phi_idxs = []
+        pro_psi_idxs = [] 
+        for chain in self.top.chains:
+            for res in chain.residues:
+                if (res.index in [chain.residue(0).index, 
+                    chain.residue(chain.n_residues - 1).index]) or (res.name == "GLY"):
+                    # We skip terminal residues and glycine
+                    continue
+                else:
+                    res_phi_idxs = [ select_atm(idx, name) for idx, name in phi_specs(res) ]
+                    res_psi_idxs = [ select_atm(idx, name) for idx, name in psi_specs(res) ]
+
+                    if res.name == "PRO":
+                        # add to proline dihedrals
+                        pro_phi_idxs.append(res_phi_idxs) 
+                        pro_psi_idxs.append(res_psi_idxs) 
+                    else:
+                        # add to regular dihedrals
+                        phi_idxs.append(res_phi_idxs) 
+                        psi_idxs.append(res_psi_idxs) 
+
+        self._phi_idxs = np.array(phi_idxs)
+        self._psi_idxs = np.array(psi_idxs)
+        self._pro_phi_idxs = np.array(pro_phi_idxs)
+        self._pro_psi_idxs = np.array(pro_psi_idxs)
+        self.n_phi = len(phi_idxs)
+        self.n_pro_phi = len(pro_phi_idxs)
+
     def _calculate_local_density(self, traj):
         """Calculate local protein density around each residue"""
 
@@ -303,7 +393,7 @@ class AwsemHamiltonian(object):
             local_density[:,i] = np.sum(direct.theta_I(md.compute_distances(traj, pairs)), axis=1)
         return local_density
 
-    def calculate_burial_energy(self, traj, local_density=None, sum=True):
+    def calculate_burial_energy(self, traj, local_density=None, total=True):
         """Calculate the one-body burial potential
         
         Parameters
@@ -324,20 +414,20 @@ class AwsemHamiltonian(object):
         else:
             res_local_density = local_density
 
-        if sum:
+        if total:
             Vburial = np.zeros(traj.n_frames, float)
         else:
             Vburial = np.zeros((traj.n_frames, self.top.n_residues), float)
 
         for i in range(self.top.n_residues):
-            if sum:
+            if total:
                 Vburial += burial.V(res_local_density[:,i], self.res_gamma_burial[i])
             else:
                 Vburial[:,i] = burial.V(res_local_density[:,i], self.res_gamma_burial[i])
 
         return Vburial
 
-    def calculate_direct_energy(self, traj, sum=True):
+    def calculate_direct_energy(self, traj, total=True):
         """Calculate the two-body direct contact potential
         
         Parameters
@@ -353,20 +443,20 @@ class AwsemHamiltonian(object):
         bb_traj = self.backbone_mapping.map_traj(traj)
         r = md.compute_distances(bb_traj, self._contact_pairs)
 
-        if sum:
+        if total:
             Vdirect = np.zeros(bb_traj.n_frames, float)
         else:
             Vdirect = np.zeros((bb_traj.n_frames, self.n_pairs), float)
         
         for i in range(self.n_pairs):
             gamma_direct = self.gamma_direct[self._contact_gamma_idxs[i,0], self._contact_gamma_idxs[i,1]]
-            if sum:
+            if total:
                 Vdirect += direct.V(r[:,i], gamma_direct)
             else:
                 Vdirect[:,i] = direct.V(r[:,i], gamma_direct)
         return Vdirect 
 
-    def calculate_water_energy(self, traj, local_density=None, sum=True):
+    def calculate_water_energy(self, traj, local_density=None, total=True):
         """Calculate the one-body burial potential
         
         Parameters
@@ -387,7 +477,7 @@ class AwsemHamiltonian(object):
         else:
             res_local_density = local_density
 
-        if sum:
+        if total:
             Vwater = np.zeros(bb_traj.n_frames, float)
         else:
             Vwater = np.zeros((bb_traj.n_frames, self.n_pairs), float)
@@ -397,13 +487,13 @@ class AwsemHamiltonian(object):
             rhoj = res_local_density[:,self._contact_res_idxs[i,1]]
             gamma_water = self.gamma_water[self._contact_gamma_idxs[i,0], self._contact_gamma_idxs[i,1]]
             gamma_protein = self.gamma_protein[self._contact_gamma_idxs[i,0], self._contact_gamma_idxs[i,1]]
-            if sum:
+            if total:
                 Vwater += water.V(r[:,i], rhoi, rhoj, gamma_water, gamma_protein)
             else:
                 Vwater[:,i] = water.V(r[:,i], rhoi, rhoj, gamma_water, gamma_protein)
         return Vwater 
 
-    def calculate_helix_energy(self, traj, local_density=None, sum=True):
+    def calculate_helix_energy(self, traj, local_density=None, total=True):
         """Calculate the one-body burial potential
         
         Parameters
@@ -428,7 +518,7 @@ class AwsemHamiltonian(object):
         else:
             res_local_density = local_density
 
-        if sum:
+        if total:
             Vhelix = np.zeros(bb_traj.n_frames, float)
         else:
             Vhelix = np.zeros((bb_traj.n_frames, self.n_alpha_helix), float)
@@ -438,11 +528,53 @@ class AwsemHamiltonian(object):
             rhoi_4 = res_local_density[:,self._helix_res_idxs[i,1]]
             fai = self._helix_fai[i]
             fai_4 = self._helix_fai_4[i]
-            if sum:
+            if total:
                 Vhelix += helix.V(r_ON[:,i], r_OH[:,i], rhoi, rhoi_4, fai, fai_4)
             else:
                 Vhelix[:, i] = helix.V(r_ON[:,i], r_OH[:,i], rhoi, rhoi_4, fai, fai_4)
         return Vhelix
+
+    def calculate_rama_energy(self, traj, total=True):
+        """Calculate the one-body burial potential
+        
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            Trajectory to calculate energy over.
+        sum : opt, bool
+            If true (default) return the sum of the burial potentials. If
+            false, return the burial energy of each individual residue.
+        """
+        rama = self.potential_forms["RAMA"]
+        pro_rama = self.potential_forms["RAMA_PROLINE"]
+
+        bb_traj = self.backbone_mapping.map_traj(traj)
+
+        # where does AWSEM define 0.
+        phi = md.compute_dihedrals(bb_traj, self._phi_idxs)
+        psi = md.compute_dihedrals(bb_traj, self._psi_idxs)
+
+        if total:
+            Vrama = np.zeros(bb_traj.n_frames, float)
+        else:
+            Vrama = np.zeros((bb_traj.n_frames, self.n_phi + self.n_pro_phi), float)
+
+        for i in range(self.n_phi):
+            if total:
+                Vrama += rama.V(phi[:,i], psi[:,i])
+            else:
+                Vrama[:, i] = rama.V(phi[:,i], psi[:,i])
+        if self.n_pro_phi > 0:
+            pro_phi = md.compute_dihedrals(bb_traj, self._pro_phi_idxs)
+            pro_psi = md.compute_dihedrals(bb_traj, self._pro_psi_idxs)
+            for i in range(self.n_pro_phi):
+                if total:
+                    Vrama += pro_rama.V(pro_phi[:,i], pro_psi[:,i])
+                else:
+                    Vrama[:,self.n_phi + i] = pro_rama.V(phi[:,i], psi[:,i])
+
+        return Vrama
+
 
     def calculate_energy(self):
         pass
