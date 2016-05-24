@@ -69,12 +69,13 @@ class Chi(object):
         return self.lambda_chi*((chi - chi_0)**2)
 
 class Rama(object):
-    # NOT TESTED
+
     def __init__(self, lambda_rama=2., 
             W=[1.3149, 1.32016, 1.0264], sigma=[15.398, 49.0521, 49.0954],
             omega_phi=[0.15, 0.25, 0.65], phi0=[-1.74, -1.265, 1.041], 
             omega_psi=[0.65, 0.45, 0.25], psi0=[2.138, -0.318, 0.78]):
         self.lambda_rama = lambda_rama
+        self.W = W
         self.sigma = sigma
         self.omega_phi = omega_phi
         self.phi0 = phi0
@@ -84,7 +85,7 @@ class Rama(object):
     def V(self, phi, psi):
         V = np.zeros(phi.shape[0], float)
         for i in range(len(self.W)):
-            V += -self.lambda_rama*W[i]*np.exp(-sigma[i]*(
+            V += -self.lambda_rama*self.W[i]*np.exp(-self.sigma[i]*(
                     self.omega_phi[i]*(np.cos(phi - self.phi0[i]) - 1.)**2 +\
                     self.omega_psi[i]*(np.cos(psi - self.psi0[i]) - 1.)**2))
         return V
@@ -126,6 +127,60 @@ class Helix(object):
 ##############################################################################
 # Contact terms
 ##############################################################################
+    
+class Burial(object):
+    def __init__(self, lambda_burial=1., nu=4., rho1_lims=[0.0, 3.], rho2_lims=[3., 6.], rho3_lims=[6., 9.]):
+        """One-body burial potential
+
+        The burial potential assigns an energy for being in (1) low, (2)
+        medium, or (3) high protein density. 
+
+        Parameters
+        ----------
+        lambda_burial : opt, float
+            The overall strength of the term in the Hamiltonian.
+        nu : opt, float
+            Coefficient that sets how quickly the burial well switches between on and off.
+        rho1_lims : opt, list (2)
+            The density limits of the low-density well.
+        rho2_lims : opt, list (2)
+            The density limits of the medium-density well.
+        rho3_lims : opt, list (2)
+            The density limits of the high-density well.
+
+        """
+
+        self.label = "BURIAL"
+        self.lambda_burial = lambda_burial
+        self.nu = nu
+        self.rho_lims = [ rho1_lims, rho2_lims, rho3_lims ]
+
+    def describe(self):
+        return "{} potential : lambda_burial {} nu = {}, rho_lims = {}".format(
+                self.label, self.lambda_burial, self.nu, self.rho_lims.__repr__())
+
+    def V(self, rhoi, gamma_burials):
+        """Burial potential
+        
+        Parameters
+        ----------
+        rhoi : np.ndarray 
+            Vector that contains the local protein density at site i.
+        gamma_burials : list (3)
+            Residue specific burial coefficients for residue type i to be in
+            low-, medium-, or high-density environment.
+    
+        """
+        V = np.zeros(rhoi.shape[0])
+        for i in range(3):
+            V += -self.lambda_burial*gamma_burials[i]*self.burial_theta(
+                        rhoi, self.nu, self.rho_lims[i][0], self.rho_lims[i][1])
+        return V
+
+    def burial_theta(self, rhoi, nu, rho_min, rho_max):
+        #return  0.5*np.tanh(nu*(rhoi - rho_min))*np.tanh(nu*(rhoi- rho_max))
+        return  0.5*(np.tanh(nu*(rhoi - rho_min)) + np.tanh(nu*(rho_max - rhoi)))
+
 
 class DirectContact(object):
 
@@ -220,62 +275,9 @@ class WaterMediatedContact(object):
     def theta_II(self, r):
         return theta(r, self.nu, self.r_min, self.r_max)
 
-    
-class Burial(object):
-    def __init__(self, lambda_burial=1., nu=4., rho1_lims=[0.0, 3.], rho2_lims=[3., 6.], rho3_lims=[6., 9.]):
-        """One-body burial potential
-
-        The burial potential assigns an energy for being in (1) low, (2)
-        medium, or (3) high protein density. 
-
-        Parameters
-        ----------
-        lambda_burial : opt, float
-            The overall strength of the term in the Hamiltonian.
-        nu : opt, float
-            Coefficient that sets how quickly the burial well switches between on and off.
-        rho1_lims : opt, list (2)
-            The density limits of the low-density well.
-        rho2_lims : opt, list (2)
-            The density limits of the medium-density well.
-        rho3_lims : opt, list (2)
-            The density limits of the high-density well.
-
-        """
-
-        self.label = "BURIAL"
-        self.lambda_burial = lambda_burial
-        self.nu = nu
-        self.rho_lims = [ rho1_lims, rho2_lims, rho3_lims ]
-
-    def describe(self):
-        return "{} potential : lambda_burial {} nu = {}, rho_lims = {}".format(
-                self.label, self.lambda_burial, self.nu, self.rho_lims.__repr__())
-
-    def V(self, rhoi, gamma_burials):
-        """Burial potential
-        
-        Parameters
-        ----------
-        rhoi : np.ndarray 
-            Vector that contains the local protein density at site i.
-        gamma_burials : list (3)
-            Residue specific burial coefficients for residue type i to be in
-            low-, medium-, or high-density environment.
-    
-        """
-        V = np.zeros(rhoi.shape[0])
-        for i in range(3):
-            V += -self.lambda_burial*gamma_burials[i]*self.burial_theta(
-                        rhoi, self.nu, self.rho_lims[i][0], self.rho_lims[i][1])
-        return V
-
-    def burial_theta(self, rhoi, nu, rho_min, rho_max):
-        #return  0.5*np.tanh(nu*(rhoi - rho_min))*np.tanh(nu*(rhoi- rho_max))
-        return  0.5*(np.tanh(nu*(rhoi - rho_min)) + np.tanh(nu*(rho_max - rhoi)))
-
-AWSEM_POTENTIALS = {"DIRECT":DirectContact,
-                "WATER":WaterMediatedContact,
-                "BURIAL":Burial, 
+AWSEM_POTENTIALS = {"BURIAL":Burial,
+                "DIRECT":DirectContact,
+                "WATER":WaterMediatedContact, 
                 "HELIX":Helix,
-                "CHI":Chi}
+                "CHI":Chi,
+                "RAMA":Rama}
