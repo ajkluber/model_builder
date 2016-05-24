@@ -10,7 +10,20 @@ import awsem
 
 class AwsemHamiltonian(object):
 
-    def __init__(self):
+    def __init__(self, three_bead_topology):
+        """AWSEM model
+        
+        Parameters
+        ----------
+        three_bead_topology : mdtraj.Topology
+            Topology of the coarse-grain AWSEM representation. AWSEM is
+            simulated with three explicit atoms per residue (CA, CB, O) but the
+            potentials depend on the three remaining backbone atoms (C, N, H)
+            that can be geometrically interpolated. All of the indices used
+            within this Hamiltonian are from the full-backbone topology.
+            
+        """
+
         self.gamma_residues = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 
                                'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 
                                'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
@@ -19,6 +32,10 @@ class AwsemHamiltonian(object):
         self.potential_types = [ "DIRECT", "WATER", "BURIAL" ]
         self.potential_gen = [ awsem.AWSEM_POTENTIALS[x] for x in self.potential_types ]
         self.potential_forms = { x:None for x in self.potential_types }
+
+        self.three_bead_topology = three_bead_topology
+        self.backbone_mapping = AwsemBackboneMapping(three_bead_topology)
+        self.topology = self.backbone_mapping.topology
 
     @property
     def top(self):  
@@ -30,7 +47,7 @@ class AwsemHamiltonian(object):
             status = False
         else:
             status = True
-        return True
+        return status
 
     def _source_parameters(self, param_path):
         self._param_path = param_path 
@@ -38,6 +55,7 @@ class AwsemHamiltonian(object):
         self._source_backbone_coeff()
 
         # Parameterize functional forms
+        self._parameterize()
 
     def _source_backbone_coeff(self):
         """Extract parameters from file
@@ -198,7 +216,7 @@ class AwsemHamiltonian(object):
                 W=W, sigma=sigma, omega_phi=omega_phi, phi0=phi0, 
                 omega_psi=omega_psi, psi0=psi0)
 
-    def set_topology(self, topology, parameterize=False):
+    def _set_topology(self, topology):
         """Set the topology used to construct Hamiltonian parameters
 
         
@@ -215,11 +233,8 @@ class AwsemHamiltonian(object):
         self.backbone_mapping = AwsemBackboneMapping(topology)
         self.topology = self.backbone_mapping.topology
 
-        if parameterize:
-            # Set the contact, burial, helix potentials using this topology.
-            self.parameterize()
 
-    def parameterize(self):
+    def _parameterize(self):
         """Parameterize the potential terms based off the current topology
         
         Extract the residue identites and atomic indices from the topology in
@@ -578,6 +593,9 @@ class AwsemHamiltonian(object):
 
     def calculate_energy(self):
         pass
+
+    # TODO:
+    # - method to select a subset of interactions to calculate the enegy of.
 
 if __name__ == "__main__":
     pass
