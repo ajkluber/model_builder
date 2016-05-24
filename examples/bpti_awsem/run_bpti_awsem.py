@@ -14,15 +14,18 @@ if __name__ == "__main__":
 
     # Creating the AWSEM model can take a while (~30 secs for 58 residues).
     name = "5pti"
+    disulfides = [[5, 55],[14, 38],[30, 51]]
+
     traj = md.load("{}.pdb".format(name))
     model = mdb.models.AwsemModel(traj.top)
     model.source_parameters(awsem_param_path)
     model.set_starting_conf(model.map_traj(traj))
+    model.mapping.add_disulfides(disulfides)
 
     # The two ambiguous energy scales in AWSEM are the temperature and the
     # strength of the "fragment memory" structural bias. Set frag_strength =
     # None if you don't want to use the fragment memory interaction.
-    T = 280.
+    T = 300.
     frag_strength = 0.05
     
     n_frames = int(1E5)
