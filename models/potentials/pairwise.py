@@ -15,6 +15,9 @@ class PairPotential(object):
     def describe(self):
         """interaction description"""
         return "{}:{:>12}{:>12}".format(self.prefix_label, self.atmi, self.atmj)
+        
+    def set_epsilon(self, value):
+        self.eps = value
 
     def __hash__(self):
         hash_value = hash(self.prefix_label)
@@ -213,7 +216,7 @@ class LJ12GaussianPotential(PairPotential):
         self.rNC = rNC
         self.r0 = r0
         self.width = width
-        self.gaussian = GaussianPotential(atmi, atmj, eps, r0, width)
+        self.gaussian = GaussianPotential(atmi, atmj, self.eps, r0, width)
         self.lj12 = LJ12Potential(atmi, atmj, 1.0, rNC)
 
     def V(self, r):
@@ -229,6 +232,10 @@ class LJ12GaussianPotential(PairPotential):
         
     def d2Vdrdeps(self, r):
         return self.gaussian.d2Vdrdeps(self, r)
+    
+    def set_epsilon(self, value):
+        self.eps = value
+        self.gaussian.eps = value
 
 class FlatBottomWell(PairPotential):
 
