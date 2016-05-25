@@ -121,7 +121,7 @@ class AWSEMLammpsFiles(object):
 
         self.topfile = top_string
 
-    def write_simulation_files(self, ref_traj_aa, topfilename, seqfilename):
+    def write_simulation_files(self, ref_traj_aa, topfilename, seqfilename, ssbias=False):
 
         self.generate_topology()
 
@@ -148,12 +148,16 @@ class AWSEMLammpsFiles(object):
         assert len(dssp) == sum([ len(x) for x in fasta ]), "Number of residues in reference different than expected"
         with open("ssweight", "w") as fout:
             for ss in dssp:
-                if ss == "H": 
-                    helix = 1.
-                    sheet = 0.
-                elif ss == "E":
-                    helix = 0.
-                    sheet = 1.
+                if ssbias:
+                    if ss == "H": 
+                        helix = 1.
+                        sheet = 0.
+                    elif ss == "E":
+                        helix = 0.
+                        sheet = 1.
+                    else:
+                        helix = 0.
+                        sheet = 0.
                 else:
                     helix = 0.
                     sheet = 0.
