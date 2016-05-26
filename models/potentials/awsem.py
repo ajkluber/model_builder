@@ -72,8 +72,8 @@ class Rama(object):
 
     def __init__(self, lambda_rama=2., 
             W=[1.3149, 1.32016, 1.0264], sigma=[15.398, 49.0521, 49.0954],
-            omega_phi=[0.15, 0.25, 0.65], phi0=[-1.74, -1.265, 1.041], 
-            omega_psi=[0.65, 0.45, 0.25], psi0=[2.138, -0.318, 0.78]):
+            omega_phi=[0.15, 0.25, 0.65], phi0=[1.74, 1.265, -1.041], 
+            omega_psi=[0.65, 0.45, 0.25], psi0=[-2.138, 0.318, -0.78]):
         self.lambda_rama = lambda_rama
         self.W = W
         self.sigma = sigma
