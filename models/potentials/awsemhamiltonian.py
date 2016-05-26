@@ -216,6 +216,29 @@ class AwsemHamiltonian(object):
                 W=W, sigma=sigma, omega_phi=omega_phi, phi0=phi0, 
                 omega_psi=omega_psi, psi0=psi0)
 
+    def _default_parameters(self):
+        """Create potential forms with default parameters"""
+
+        self.potential_forms["BURIAL"] = awsem.AWSEM_POTENTIALS["BURIAL"]()
+        self.potential_forms["DIRECT"] = awsem.AWSEM_POTENTIALS["DIRECT"]()
+        self.potential_forms["WATER"] = awsem.AWSEM_POTENTIALS["WATER"]()
+        self.potential_forms["HELIX"] = awsem.AWSEM_POTENTIALS["HELIX"]()
+        self.potential_forms["RAMA"] = awsem.AWSEM_POTENTIALS["RAMA"]()
+        
+#        self.potential_forms["RAMA_ALPHA"] = awsem.AWSEM_POTENTIALS["RAMA"](
+#                lambda_rama=lambda_rama, W=alpha[0], sigma=alpha[1], 
+#                omega_phi=alpha[2], phi0=-alpha[3], 
+#                omega_psi=alpha[4], psi0=-alpha[5])
+#
+#        self.potential_forms["RAMA_BETA"] = awsem.AWSEM_POTENTIALS["RAMA"](
+#                lambda_rama=lambda_rama, W=beta[0], sigma=beta[1], 
+#                omega_phi=beta[2], phi0=-beta[3], 
+#                omega_psi=beta[4], psi0=-beta[5])
+#
+#        self.potential_forms["RAMA_PROLINE"] = awsem.AWSEM_POTENTIALS["RAMA"](
+#                W=W, sigma=sigma, omega_phi=omega_phi, phi0=phi0, 
+#                omega_psi=omega_psi, psi0=psi0)
+
     def _set_topology(self, topology):
         """Set the topology used to construct Hamiltonian parameters
 
