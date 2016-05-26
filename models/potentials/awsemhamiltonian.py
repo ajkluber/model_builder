@@ -41,6 +41,9 @@ class AwsemHamiltonian(object):
     def top(self):  
         return self.topology
 
+    def _set_charged_residues(self, charged_residues):
+        self._charged_residues = charged_residues
+
     def _potential_is_parameterized(self, code):
         if self.potential_forms[code] is None:
             #print "Potential {} is not parameterized!".format(code)
@@ -77,6 +80,8 @@ class AwsemHamiltonian(object):
                     self._source_burial_params(all_lines[i + 1:i + 6])
                 elif line == "[Water]\n":
                     self._source_water_params(all_lines[i + 1:i + 8])
+                elif line == "[DebyeHuckel]\n":
+                    self._source_debye_params(all_lines[i + 1:i + 5])
                 elif line == "[Helix]\n":
                     self._source_helix_params(all_lines[i + 1:i + 12])
                 elif line == "[Rama]\n":
@@ -134,7 +139,7 @@ class AwsemHamiltonian(object):
         nu, nu_sigma = [ float(x) for x in lines[1].split() ]
         nu *= 10.
         rho_0 = float(lines[2])
-        self.contact_exclude_neighbors = int(lines[3])
+        self._contact_exclude_neighbors = int(lines[3])
         direct_r_min, direct_r_max, dum = [ float(x)/10. for x in lines[5].split() ]
         water_r_min, water_r_max, dum = [ float(x)/10. for x in lines[6].split() ]
 
@@ -145,6 +150,16 @@ class AwsemHamiltonian(object):
         self.potential_forms["WATER"] = awsem.AWSEM_POTENTIALS["WATER"](
                 lambda_water=lambda_water, nu=nu, nu_sigma=nu_sigma, 
                 r_min=water_r_min, r_max=water_r_max, rho_0=rho_0)
+
+    def _source_debye_params(self, lines):
+
+        self._debye_kplusplus, self._debye_kminusminus, self._debye_kplusminus = [ float(x) for x in lines[0].split() ]
+        k_screening = float(lines[1])
+        debye_length = float(lines[2])/10.
+        self._debye_exclude_neighbors = int(lines[3])
+
+        self.potential_forms["DEBYE"] = awsem.AWSEM_POTENTIALS["DEBYE"](
+                k_screening=k_screening, debye_length=debye_length)
 
     def _source_helix_params(self, lines):
         """Parameterize the form of the helix interaction"""
@@ -216,15 +231,15 @@ class AwsemHamiltonian(object):
                 W=W, sigma=sigma, omega_phi=omega_phi, phi0=phi0, 
                 omega_psi=omega_psi, psi0=psi0)
 
-    def _default_parameters(self):
-        """Create potential forms with default parameters"""
-
-        self.potential_forms["BURIAL"] = awsem.AWSEM_POTENTIALS["BURIAL"]()
-        self.potential_forms["DIRECT"] = awsem.AWSEM_POTENTIALS["DIRECT"]()
-        self.potential_forms["WATER"] = awsem.AWSEM_POTENTIALS["WATER"]()
-        self.potential_forms["HELIX"] = awsem.AWSEM_POTENTIALS["HELIX"]()
-        self.potential_forms["RAMA"] = awsem.AWSEM_POTENTIALS["RAMA"]()
-        
+#    def _default_parameters(self):
+#        """Create potential forms with default parameters"""
+#
+#        self.potential_forms["BURIAL"] = awsem.AWSEM_POTENTIALS["BURIAL"]()
+#        self.potential_forms["DIRECT"] = awsem.AWSEM_POTENTIALS["DIRECT"]()
+#        self.potential_forms["WATER"] = awsem.AWSEM_POTENTIALS["WATER"]()
+#        self.potential_forms["HELIX"] = awsem.AWSEM_POTENTIALS["HELIX"]()
+#        self.potential_forms["RAMA"] = awsem.AWSEM_POTENTIALS["RAMA"]()
+#        
 #        self.potential_forms["RAMA_ALPHA"] = awsem.AWSEM_POTENTIALS["RAMA"](
 #                lambda_rama=lambda_rama, W=alpha[0], sigma=alpha[1], 
 #                omega_phi=alpha[2], phi0=-alpha[3], 
@@ -264,6 +279,7 @@ class AwsemHamiltonian(object):
         order to assign the transferable parameters.
         """
 
+        self._parameterize_debye()
         self._parameterize_rama()
         self._parameterize_burial()
         self._parameterize_contacts()
@@ -330,7 +346,7 @@ class AwsemHamiltonian(object):
 
                 if (resi.chain.index == resj.chain.index):
                     # exclude neighbors on same chain.
-                    if (resj.index - resi.index) >= self.contact_exclude_neighbors:
+                    if (resj.index - resi.index) >= self._contact_exclude_neighbors:
                         contact_pairs.append([idx1, idx2])
                         contact_res_idxs.append([resi.index, resj.index])
                         contact_gamma_idxs.append([gamma_idx1, gamma_idx2])
@@ -343,6 +359,37 @@ class AwsemHamiltonian(object):
         self._contact_pairs = np.array(contact_pairs)
         self._contact_res_idxs = np.array(contact_res_idxs)
         self._contact_gamma_idxs = np.array(contact_gamma_idxs)
+
+
+    def _parameterize_debye(self):
+        # Only charged residues interact.
+
+        debye_pairs = []
+        debye_charges = []
+        debye_kij = []
+        for i in range(len(self._charged_residues)):
+            resi = self.top.residue(self._charged_residues[i][0] - 1)
+            for j in range(i + 1, len(self._charged_residues)):
+                resj = self.top.residue(self._charged_residues[j][0] - 1)
+
+                if abs(resi.index - resj.index) >= self._debye_exclude_neighbors:
+                    qi = self._charged_residues[i][1]
+                    qj = self._charged_residues[j][1]
+                    idx1 = self.top.select("resid {} and name CB".format(resi.index))[0]
+                    idx2 = self.top.select("resid {} and name CB".format(resj.index))[0]
+                    debye_pairs.append([idx1, idx2])
+                    debye_charges.append([qi, qj])
+
+                    if (qi > 0) and (qj > 0):
+                        debye_kij.append(self._debye_kplusplus)
+                    elif (qi < 0) and (qj < 0):
+                        debye_kij.append(self._debye_kminusminus)
+                    elif ((qi > 0) and (qj < 0)) or ((qi < 0) and (qj > 0)):
+                        debye_kij.append(self._debye_kplusminus)
+        self._debye_pairs = np.array(debye_pairs)
+        self._debye_charges = np.array(debye_charges)
+        self._debye_kij = np.array(debye_kij)
+        self.n_debye_pairs = len(debye_pairs)
 
     def _parameterize_alpha_helical(self):
         """Parameterize the alpha-helical interaction"""
@@ -531,6 +578,38 @@ class AwsemHamiltonian(object):
                 Vwater[:,i] = water.V(r[:,i], rhoi, rhoj, gamma_water, gamma_protein)
         return Vwater 
 
+    def calculate_debye_energy(self, traj, total=True):
+        """Calculate the one-body burial potential
+        
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            Trajectory to calculate energy over.
+        sum : opt, bool
+            If true (default) return the sum of the burial potentials. If
+            false, return the burial energy of each individual residue.
+        """
+        debye = self.potential_forms["DEBYE"]
+
+        bb_traj = self.backbone_mapping.map_traj(traj)
+
+        r = md.compute_distances(bb_traj, self._debye_pairs)
+
+        if total:
+            Vdebye = np.zeros(bb_traj.n_frames, float)
+        else:
+            Vdebye = np.zeros((bb_traj.n_frames, self.n_debye_pairs), float)
+
+        for i in range(self.n_debye_pairs):
+            qi = self._debye_charges[i,0]
+            qj = self._debye_charges[i,1]
+            kij = self._debye_kij[i]
+            if total:
+                Vdebye += debye.V(r[:,i], qi, qj, kij)
+            else:
+                Vdebye[:, i] = debye.V(r[:,i], qi, qj, kij)
+        return Vdebye
+
     def calculate_helix_energy(self, traj, local_density=None, total=True):
         """Calculate the one-body burial potential
         
@@ -602,6 +681,7 @@ class AwsemHamiltonian(object):
                 Vrama += rama.V(phi[:,i], psi[:,i])
             else:
                 Vrama[:, i] = rama.V(phi[:,i], psi[:,i])
+
         if self.n_pro_phi > 0:
             pro_phi = md.compute_dihedrals(bb_traj, self._pro_phi_idxs)
             pro_psi = md.compute_dihedrals(bb_traj, self._pro_psi_idxs)

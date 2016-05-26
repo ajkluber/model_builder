@@ -275,9 +275,29 @@ class WaterMediatedContact(object):
     def theta_II(self, r):
         return theta(r, self.nu, self.r_min, self.r_max)
 
+class DebyeHuckel(object):
+
+    def __init__(self, k_screening=1., debye_length=0.1):
+        """Debye-Huckel screened electrostatics interaction
+
+        Parameters
+        ----------
+        k_screening : float, opt.
+            Strength of the screening. Effectively changes the screening length.
+        debye_length : float, opt. 
+            Screening length.
+        
+        """
+        self.k_screening = k_screening
+        self.debye_length = debye_length
+
+    def V(self, r, qi, qj, k_ij):
+        return (k_ij*qi*qj/r)*np.exp(-self.k_screening*r/self.debye_length)
+
 AWSEM_POTENTIALS = {"BURIAL":Burial,
                 "DIRECT":DirectContact,
                 "WATER":WaterMediatedContact, 
+                "DEBYE":DebyeHuckel,
                 "HELIX":Helix,
                 "CHI":Chi,
                 "RAMA":Rama}
