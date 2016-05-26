@@ -140,8 +140,8 @@ class AWSEMLammpsFiles(object):
 
         with open("charge_on_residues.dat", "w") as fout:
             fout.write("{:d}\n".format(len(self.model.mapping._charged_residues)))
-            for res in self.model.mapping._charged_residues:
-                fout.write("{:6d}   {:8.4f}\n".format(res[0], res[1]))
+            for res_idx, charge in self.model.mapping._charged_residues:
+                fout.write("{:6d}   {:8.4f}\n".format(res_idx, charge))
 
         # compute secondary structure from a reference structure
         dssp = ("".join(md.compute_dssp(ref_traj_aa)[0])).replace("C","-")
