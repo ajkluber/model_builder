@@ -322,7 +322,7 @@ class AwsemBackboneMapping(object):
 
         if residue.index > chain.residue(0).index:
             # add N atom if not the N-terminus 
-            prev_res = chain.residue(residue.index - 1)
+            prev_res = chain.residue(residue.index - chain.residue(0).index - 1)
             new_n = newTopology.add_atom('N', md.core.element.get_by_symbol('N'), 
                                         newResidue, serial=atm_idx)
             
@@ -344,7 +344,7 @@ class AwsemBackboneMapping(object):
 
         if residue.index < chain.residue(chain.n_residues - 1).index:
             # add C atom if not the C-terminus
-            next_res = chain.residue(residue.index + 1)
+            next_res = chain.residue(residue.index - chain.residue(0).index + 1)
             new_c = newTopology.add_atom('C', md.core.element.get_by_symbol('C'), 
                                         newResidue, serial=atm_idx)
             next_CA_idx = [ atm.index for atm in next_res.atoms if (atm.name == "CA") ][0]
