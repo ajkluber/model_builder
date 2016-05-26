@@ -153,7 +153,7 @@ class AwsemHamiltonian(object):
 
     def _source_debye_params(self, lines):
 
-        self._debye_kplusplus, self._debye_kminusminus, self._debye_kplusminus = [ float(x) for x in lines[0].split() ]
+        self._debye_kplusplus, self._debye_kminusminus, self._debye_kplusminus = [ float(x)/10. for x in lines[0].split() ]
         k_screening = float(lines[1])
         debye_length = float(lines[2])/10.
         self._debye_exclude_neighbors = int(lines[3])
