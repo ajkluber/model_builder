@@ -320,9 +320,34 @@ class LJ12SwitchingPotential(PairPotential):
             
     def set_epsilon(self, value):
         self.eps = value
-        self.attractive.eps = value
-        self.repuslive.eps = value
+        self.attractive.eps = np.abs(value)
+        self.repuslive.eps = np.abs(value)
         self.determine_current()
+    
+    def get_V_epsilons(self, r):
+        constants_list_att = self.attractive.dVdeps(r)
+        constants_list_rep = self.repuslive.dVdeps(r)
+        def func(epsilon):
+            if epsilon < 0:
+                return constants_list_rep * epsilon
+            else:
+                return constants_list_att * epsilon
+                
+        return func
+        
+    def get_dV_depsilons(self, r):
+        constants_list_att = self.attractive.dVdeps(r)
+        constants_list_rep = self.repuslive.dVdeps(r)
+        def func(epsilon):
+            if epsilon < 0:
+                return constants_list_rep * epsilon
+            elif epsilon == 0:
+                return (constants_list_att + constants_list_rep) / 2.
+            else:
+                return constants_list_att * epsilon
+                
+        return func
+        
         
 
 class FlatBottomWell(PairPotential):
