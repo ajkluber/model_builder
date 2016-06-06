@@ -277,16 +277,18 @@ class LJ12GaussianPotential(PairPotential):
         return first + second
 
     def dVdeps(self, r):
-        return self.gaussian.dVdeps(r)
+        return (1. + self.lj12.V(r))*self.gaussian.dVdeps(r)
         
     def d2Vdrdeps(self, r):
-        return self.gaussian.d2Vdrdeps(self, r)
+        first = self.lj12.dVdr(r)*self.gaussian.dVdeps(r) 
+        second = (1. + self.lj12.V(r))*self.gaussian.d2Vdrdeps(r)
+        return first + second
     
     def set_epsilon(self, value):
         self.eps = value
         self.gaussian.eps = value
         
-class LJ12SwitchingPotential(PairPotential):
+class LJ12GaussTanhSwitching(PairPotential):
     """ LJ12 Potential with Gaussian attractive and tanh repulsive"""
     def __init__(self, atmi, atmj, eps, rNC, r0, width):
         PairPotential.__init__(self, atmi, atmj)
