@@ -18,7 +18,55 @@ class PairPotential(object):
         
     def set_epsilon(self, value):
         self.eps = value
-
+        
+    def get_V_epsilons(self, r):
+        """ Returns function V(epsilons)
+        
+        Default function for returning the Potential Energy as a 
+        function of epsilons. Since the majority of pairwise functions 
+        are scaled linearly with epsilon, this is a good default choice. This method can and should be overrided when necessary. See 
+        
+        Parameters
+        ----------
+        r : array(float)
+            Distance for evaluating each pairwise potential function.
+        
+        Returns
+        -------
+        func : method
+            Function that computse the potential energy as a function 
+            of epsilon
+        """
+        
+        constants_list = self.dVdeps(r)
+        def func(epsilon):
+            return constants_list * epsilon
+        
+        return func
+        
+    def get_dV_depsilons(self, r):
+        """ Returns function dV(epsilons)/depsilons
+        
+        Parameters
+        ----------
+        r : array(float)
+            Distance for evaluating each pairwise potential function.
+        
+        Returns
+        -------
+        func : method
+            Function that computse the derivative of the potential 
+            energy with respect to epsilon, as a function of epsilon.
+        
+        
+        """
+        
+        constants_list = self.dVdeps(r)
+        def func(epsilon):
+            return constants_list
+        
+        return func
+        
     def __hash__(self):
         hash_value = hash(self.prefix_label)
         hash_value ^= hash(self.atmi)
@@ -41,6 +89,7 @@ class PairPotential(object):
 
     def __repr__(self):
         return "<PairPotential at 0x{}x>".format(id(self))
+   
 
 class LJPotential(PairPotential):
     
@@ -236,6 +285,45 @@ class LJ12GaussianPotential(PairPotential):
     def set_epsilon(self, value):
         self.eps = value
         self.gaussian.eps = value
+        
+class LJ12SwitchingPotential(PairPotential):
+    """ LJ12 Potential with Gaussian attractive and tanh repulsive"""
+    def __init__(self, atmi, atmj, eps, rNC, r0, width):
+        PairPotential.__init__(self, atmi, atmj)
+        self.prefix_label = "LJ12GAUSSIAN"
+        self.eps = eps
+        self.rNC = rNC
+        self.r0 = r0
+        self.width = width
+        self.attractive = LJ12GaussianPotential(atmi, atmj, np.abs(eps), rNC, r0, width)
+        self.repulsive = LJ12TanhRepPotential(atmi, atmj, np.abs(eps), rNC. r0, width)
+        self.determine_current()
+        
+    def V(self, r):
+        return self.current.V(r)
+    
+    def dVdr(self, r):
+        return self.current.dVdr(r)
+    
+    def dVdeps(self, r):
+        return self.current.dVdeps(r)
+        
+    def d2Vdrdeps(self, r):
+        return self.current.d2Vdrdeps(self, r)
+        
+    def determine_current(self):
+        """ If eps > 0, return attractive, otherwise return repulsive"""
+        if self.eps < 0:
+            self.current = self.repulsive
+        else:
+            self.current = self.attractive
+            
+    def set_epsilon(self, value):
+        self.eps = value
+        self.attractive.eps = value
+        self.repuslive.eps = value
+        self.determine_current()
+        
 
 class FlatBottomWell(PairPotential):
 
