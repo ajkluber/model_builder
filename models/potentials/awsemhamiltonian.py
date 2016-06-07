@@ -37,6 +37,8 @@ class AwsemHamiltonian(object):
         self.backbone_mapping = AwsemBackboneMapping(three_bead_topology)
         self.topology = self.backbone_mapping.topology
 
+        self._get_terminal_residues()
+
     @property
     def top(self):  
         return self.topology
@@ -51,6 +53,14 @@ class AwsemHamiltonian(object):
         else:
             status = True
         return status
+
+    def _get_terminal_residues(self):
+        """Get which residues are on the end of a chain"""
+        self._n_terminal_residues = []
+        self._c_terminal_residues = []
+        for chain in self.top.chains:
+            self._n_terminal_residues.append(chain.residue(0).index)
+            self._c_terminal_residues.append(chain.residue(-1).index)
 
     def _source_parameters(self, param_path):
         self._param_path = param_path 
@@ -153,7 +163,8 @@ class AwsemHamiltonian(object):
 
     def _source_debye_params(self, lines):
 
-        self._debye_kplusplus, self._debye_kminusminus, self._debye_kplusminus = [ float(x)/10. for x in lines[0].split() ]
+        self._debye_kplusplus, self._debye_kminusminus, self._debye_kplusminus =\
+                [ float(x)/10. for x in lines[0].split() ]
         k_screening = float(lines[1])
         debye_length = float(lines[2])/10.
         self._debye_exclude_neighbors = int(lines[3])
@@ -294,32 +305,32 @@ class AwsemHamiltonian(object):
             res_burial.append(self.gamma_burial[res_idx1])
         self.res_gamma_burial = np.array(res_burial)
 
-        # pairs included in the local density calculation for each residue. We
-        # exclude -/+1 neighbors on the same chain.
-        self.res_burial_pairs = []
-        for i in range(self.top.n_residues):
-            temp_res_burial_pairs = []
-            resi = self.top.residue(i)
-            if resi.name == "GLY":
-                idx1 = self.top.select("resid {} and name CA".format(i))[0]
-            else:
-                idx1 = self.top.select("resid {} and name CB".format(i))[0]
-            for j in range(self.top.n_residues):
-                if i != j:
-                    resj = self.top.residue(j)
-
-                    if resj.name == "GLY":
-                        idx2 = self.top.select("resid {} and name CA".format(j))[0]
-                    else:
-                        idx2 = self.top.select("resid {} and name CB".format(j))[0]
-
-                    if (resi.chain.index == resj.chain.index):
-                        if abs(resj.index - resi.index) > 1:
-                            temp_res_burial_pairs.append([idx1, idx2])
-                    else:
-                        temp_res_burial_pairs.append([idx1, idx2])
-
-            self.res_burial_pairs.append(np.array(temp_res_burial_pairs))
+#        # pairs included in the local density calculation for each residue. We
+#        # exclude -/+1 neighbors on the same chain.
+#        self.res_burial_pairs = []
+#        for i in range(self.top.n_residues):
+#            temp_res_burial_pairs = []
+#            resi = self.top.residue(i)
+#            if resi.name == "GLY":
+#                idx1 = self.top.select("resid {} and name CA".format(i))[0]
+#            else:
+#                idx1 = self.top.select("resid {} and name CB".format(i))[0]
+#            for j in range(self.top.n_residues):
+#                if i != j:
+#                    resj = self.top.residue(j)
+#
+#                    if resj.name == "GLY":
+#                        idx2 = self.top.select("resid {} and name CA".format(j))[0]
+#                    else:
+#                        idx2 = self.top.select("resid {} and name CB".format(j))[0]
+#
+#                    if (resi.chain.index == resj.chain.index):
+#                        if abs(resj.index - resi.index) > 1:
+#                            temp_res_burial_pairs.append([idx1, idx2])
+#                    else:
+#                        temp_res_burial_pairs.append([idx1, idx2])
+#
+#            self.res_burial_pairs.append(np.array(temp_res_burial_pairs))
 
     def _parameterize_contacts(self):
         """Assign gammas for each contact interaction"""
@@ -466,15 +477,53 @@ class AwsemHamiltonian(object):
         self.n_phi = len(phi_idxs)
         self.n_pro_phi = len(pro_phi_idxs)
 
+#    def _calculate_local_density(self, traj):
+#        """Calculate local protein density around each residue"""
+#
+#        local_density = np.zeros((traj.n_frames, traj.n_residues))
+#        direct = self.potential_forms["DIRECT"]
+#
+#        for i in range(traj.n_residues):
+#            # compute local density of residue
+#            pairs = self.res_burial_pairs[i]
+#            local_density[:,i] = np.sum(direct.theta_I(md.compute_distances(traj, pairs)), axis=1)
+#        return local_density
+
     def _calculate_local_density(self, traj):
         """Calculate local protein density around each residue"""
 
         local_density = np.zeros((traj.n_frames, traj.n_residues))
         direct = self.potential_forms["DIRECT"]
 
+        is_gly_ca = lambda atom: ((atom.residue.name == "GLY") and (atom.name == "CA"))
+        is_other_cb = lambda atom: ((atom.residue.name != "GLY") and (atom.name == "CB"))
+        not_neighbors = lambda atom, idxs: not (atom.residue.index in idxs)
+
         for i in range(traj.n_residues):
             # compute local density of residue
-            pairs = self.res_burial_pairs[i]
+            res = traj.top.residue(i)
+            if res.name == "GLY":
+                idx1 = traj.top.select("resid {} and name CA".format(res.index))
+            else:
+                idx1 = traj.top.select("resid {} and name CB".format(res.index))
+            
+            # If terminal
+            if res.index in self._n_terminal_residues:
+                pairs = np.array([ [idx1, atom.index] for atom in traj.top.atoms \
+                        if is_gly_ca(atom) and not_neighbors(atom, [res.index, res.index + 1]) ] +\
+                        [ [idx1, atom.index] for atom in traj.top.atoms \
+                        if is_other_cb(atom) and not_neighbors(atom, [res.index, res.index + 1]) ])
+            elif res.index in self._c_terminal_residues:
+                pairs = np.array([ [idx1, atom.index] for atom in traj.top.atoms \
+                        if is_gly_ca(atom) and not_neighbors(atom, [res.index, res.index - 1]) ] +\
+                        [ [idx1, atom.index] for atom in traj.top.atoms \
+                        if is_other_cb(atom) and not_neighbors(atom, [res.index, res.index - 1]) ])
+            else:
+                pairs = np.array([ [idx1, atom.index] for atom in traj.top.atoms \
+                        if is_gly_ca(atom) and not_neighbors(atom, [res.index - 1, res.index, res.index + 1]) ] +\
+                        [ [ idx1, atom.index] for atom in traj.top.atoms \
+                        if is_other_cb(atom) and not_neighbors(atom, [res.index - 1, res.index, res.index + 1]) ])
+
             local_density[:,i] = np.sum(direct.theta_I(md.compute_distances(traj, pairs)), axis=1)
         return local_density
 
@@ -689,8 +738,7 @@ class AwsemHamiltonian(object):
                 if total:
                     Vrama += pro_rama.V(pro_phi[:,i], pro_psi[:,i])
                 else:
-                    Vrama[:,self.n_phi + i] = pro_rama.V(phi[:,i], psi[:,i])
-
+                    Vrama[:,self.n_phi + i] = pro_rama.V(pro_phi[:,i], pro_psi[:,i])
         return Vrama
 
 
