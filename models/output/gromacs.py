@@ -12,6 +12,7 @@ class GromacsFiles(object):
     def __init__(self, model, version=None):
         self.model = model
         self.version = version
+        self.topfile = None
 
         # check compatibility of interactions with this version
         # of gromacs
@@ -50,7 +51,7 @@ class GromacsFiles(object):
         self._tablenames = []
         for i in range(self.model.Hamiltonian.n_pairs):
             pot = self.model.Hamiltonian._pairs[i]
-            if pot.prefix_label not in self._supported_pair_potentials:
+            if not (pot.prefix_label in self._supported_pair_potentials):
                 self._tabled_pots.append(pot)
 
                 table_name = "table_b{}.xvg".format(len(self._tabled_pots))
@@ -81,7 +82,8 @@ class GromacsFiles(object):
 
     def write_simulation_files(self, path_to_tables="."):
         # Write the Hamiltonian Gromacs input file: topol.top
-        self.generate_topology()
+        if self.topfile is None
+            self.generate_topology()
 
         with open("topol.top", "w") as fout:
             fout.write(self.topfile)
