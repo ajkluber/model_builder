@@ -82,7 +82,7 @@ class GromacsFiles(object):
 
     def write_simulation_files(self, path_to_tables="."):
         # Write the Hamiltonian Gromacs input file: topol.top
-        if self.topfile is None
+        if self.topfile is None:
             self.generate_topology()
 
         with open("topol.top", "w") as fout:
