@@ -4,11 +4,39 @@ import numpy as np
 import mdtraj as md
 
 class InternalFiles(object):
+    """ Save files for reconstructing a model object.
     
+    This is where methods for saving a model object's pieces should go. 
+    For example, outputting the pairwise and model params files for 
+    reconstructing the pair-pair interactions.
+    
+    Methods
+    -------
+    write_pairwise_parameters
+    
+    """
     def __init__(self, model):
+        """ Initialize the InternalFiles outputter.
+        
+        Parameters
+        ----------
+        model : Model
+            Model object from this package.
+            
+        """
         self.model = model
     
     def write_pairwise_parameters(self, suffix=""):
+        """ Write pairwise parameter files in current directory
+        
+        Parameters
+        ----------
+        suffix : str, Default=""
+            Save the files with some suffix. e.g. sufix="_test" saves
+            model_builder_test and pairwise_params_test
+                
+        """        
+       
         pairwise_string = self._generate_pairwise_string()
         model_params_string = self._generate_model_params_string()
         
