@@ -97,6 +97,7 @@ class LJPotential(PairPotential):
         PairPotential.__init__(self, atmi, atmj)
         self.eps = eps
         self.r0 = r0
+        self.other_params = [r0]
 
 class LJ12Potential(LJPotential):
 
@@ -192,6 +193,7 @@ class TanhRepPotential(PairPotential):
         self.eps = eps
         self.r0 = r0
         self.width = width
+        self.other_params = [r0, width]
 
     def V(self,r):
         return self.eps*self.dVdeps(r) 
@@ -218,7 +220,8 @@ class LJ12TanhRepPotential(PairPotential):
         self.rNC = rNC
         self.r0 = r0
         self.width = width
-
+        self.other_params = [rNC, r0, width]
+        
     def V(self,r):
         return self.eps*self.dVdeps(r) + (self.rNC/r)**12
 
@@ -243,7 +246,8 @@ class GaussianPotential(PairPotential):
         self.eps = eps
         self.r0 = r0
         self.width = width
-
+        self.other_params = [r0, width]
+        
     def V(self, r):
         return self.eps*self.dVdeps(r)
 
@@ -267,6 +271,7 @@ class LJ12GaussianPotential(PairPotential):
         self.width = width
         self.gaussian = GaussianPotential(atmi, atmj, self.eps, r0, width)
         self.lj12 = LJ12Potential(atmi, atmj, 1.0, rNC)
+        self.other_params = [rNC, r0, width]
 
     def V(self, r):
         return (1. + self.lj12.V(r))*(1. + self.gaussian.V(r)) - 1.
@@ -292,7 +297,7 @@ class LJ12GaussTanhSwitching(PairPotential):
     """ LJ12 Potential with Gaussian attractive and tanh repulsive"""
     def __init__(self, atmi, atmj, eps, rNC, r0, width):
         PairPotential.__init__(self, atmi, atmj)
-        self.prefix_label = "LJ12GAUSSIAN"
+        self.prefix_label = "LJ12GAUSSIANTANH"
         self.eps = eps
         self.rNC = rNC
         self.r0 = r0
@@ -300,6 +305,7 @@ class LJ12GaussTanhSwitching(PairPotential):
         self.attractive = LJ12GaussianPotential(atmi, atmj, np.abs(eps), rNC, r0, width)
         self.repulsive = LJ12TanhRepPotential(atmi, atmj, np.abs(eps), rNC. r0, width)
         self.determine_current()
+        self.other_params = [rNC, r0, width]
         
     def V(self, r):
         return self.current.V(r)
@@ -360,6 +366,7 @@ class FlatBottomWell(PairPotential):
         self.kb = kb
         self.rNC = rNC
         self.r0 = r0
+        self.other_params = [kb, rNC, r0]
 
     def V(self, r):
         V = np.zeros(r.shape[0])
