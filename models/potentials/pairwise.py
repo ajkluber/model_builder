@@ -334,7 +334,7 @@ class LJ12GaussTanhSwitching(PairPotential):
     
     def get_V_epsilons(self, r):
         constants_list_att = self.attractive.dVdeps(r)
-        constants_list_rep = self.repuslive.dVdeps(r)
+        constants_list_rep = self.repulsive.dVdeps(r)
         def func(epsilon):
             if epsilon < 0:
                 return constants_list_rep * epsilon
@@ -345,7 +345,7 @@ class LJ12GaussTanhSwitching(PairPotential):
         
     def get_dV_depsilons(self, r):
         constants_list_att = self.attractive.dVdeps(r)
-        constants_list_rep = self.repuslive.dVdeps(r)
+        constants_list_rep = self.repulsive.dVdeps(r)
         constants_list_average = (constants_list_att + constants_list_rep) / 2.
         def func(epsilon):
             if epsilon < 0:
