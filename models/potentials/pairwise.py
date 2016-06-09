@@ -303,7 +303,7 @@ class LJ12GaussTanhSwitching(PairPotential):
         self.r0 = r0
         self.width = width
         self.attractive = LJ12GaussianPotential(atmi, atmj, np.abs(eps), rNC, r0, width)
-        self.repulsive = LJ12TanhRepPotential(atmi, atmj, np.abs(eps), rNC. r0, width)
+        self.repulsive = LJ12TanhRepPotential(atmi, atmj, np.abs(eps), rNC, r0, width)
         self.determine_current()
         self.other_params = [rNC, r0, width]
         
@@ -346,13 +346,14 @@ class LJ12GaussTanhSwitching(PairPotential):
     def get_dV_depsilons(self, r):
         constants_list_att = self.attractive.dVdeps(r)
         constants_list_rep = self.repuslive.dVdeps(r)
+        constants_list_average = (constants_list_att + constants_list_rep) / 2.
         def func(epsilon):
             if epsilon < 0:
-                return constants_list_rep * epsilon
+                return constants_list_rep
             elif epsilon == 0:
-                return (constants_list_att + constants_list_rep) / 2.
+                return constants_list_average
             else:
-                return constants_list_att * epsilon
+                return constants_list_att
                 
         return func
         
@@ -385,4 +386,5 @@ PAIR_POTENTIALS = {"LJ1210":LJ1210Potential,
                 "LJ12GAUSSIAN":LJ12GaussianPotential,
                 "TANHREP":TanhRepPotential,
                 "LJ12TANHREP":LJ12TanhRepPotential,
-                "FLATWELL":FlatBottomWell}
+                "FLATWELL":FlatBottomWell,
+                "LJ12GAUSSIANTANH":LJ12GaussTanhSwitching}
