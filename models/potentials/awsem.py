@@ -74,20 +74,30 @@ class Rama(object):
             W=[1.3149, 1.32016, 1.0264], sigma=[15.398, 49.0521, 49.0954],
             omega_phi=[0.15, 0.25, 0.65], phi0=[1.74, 1.265, -1.041], 
             omega_psi=[0.65, 0.45, 0.25], psi0=[-2.138, 0.318, -0.78]):
+        """Ramanchandran interaction
+    
+        Parameters
+        ----------
+        lambda_direct : opt, float
+            The overall strength of the term in the Hamiltonian.
+        W : list, opt.
+            Weights of each Ramachandran well.
+
+        """
         self.lambda_rama = lambda_rama
         self.W = W
         self.sigma = sigma
         self.omega_phi = omega_phi
-        self.phi0 = phi0
         self.omega_psi = omega_psi
+        self.phi0 = phi0
         self.psi0 = psi0
 
     def V(self, phi, psi):
-        V = np.zeros(phi.shape[0], float)
+        V = np.zeros(phi.shape, float)
         for i in range(len(self.W)):
             V += -self.lambda_rama*self.W[i]*np.exp(-self.sigma[i]*(
-                    self.omega_phi[i]*(np.cos(phi - self.phi0[i]) - 1.)**2 +\
-                    self.omega_psi[i]*(np.cos(psi - self.psi0[i]) - 1.)**2))
+                    self.omega_phi[i]*((np.cos(phi - self.phi0[i]) - 1.)**2) +\
+                    self.omega_psi[i]*((np.cos(psi - self.psi0[i]) - 1.)**2)))
         return V
 
 class Helix(object):
@@ -275,9 +285,29 @@ class WaterMediatedContact(object):
     def theta_II(self, r):
         return theta(r, self.nu, self.r_min, self.r_max)
 
+class DebyeHuckel(object):
+
+    def __init__(self, k_screening=1., debye_length=0.1):
+        """Debye-Huckel screened electrostatics interaction
+
+        Parameters
+        ----------
+        k_screening : float, opt.
+            Strength of the screening. Effectively changes the screening length.
+        debye_length : float, opt. 
+            Screening length.
+        
+        """
+        self.k_screening = k_screening
+        self.debye_length = debye_length
+
+    def V(self, r, qi, qj, k_ij):
+        return (k_ij*qi*qj/r)*np.exp(-self.k_screening*r/self.debye_length)
+
 AWSEM_POTENTIALS = {"BURIAL":Burial,
                 "DIRECT":DirectContact,
                 "WATER":WaterMediatedContact, 
+                "DEBYE":DebyeHuckel,
                 "HELIX":Helix,
                 "CHI":Chi,
                 "RAMA":Rama}

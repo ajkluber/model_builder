@@ -51,7 +51,7 @@ class GromacsFiles(object):
         self._tablenames = []
         for i in range(self.model.Hamiltonian.n_pairs):
             pot = self.model.Hamiltonian._pairs[i]
-            if pot.prefix_label not in self._supported_pair_potentials:
+            if not (pot.prefix_label in self._supported_pair_potentials):
                 self._tabled_pots.append(pot)
 
                 table_name = "table_b{}.xvg".format(len(self._tabled_pots))
