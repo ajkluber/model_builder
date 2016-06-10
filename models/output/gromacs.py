@@ -7,11 +7,12 @@ SUPPORTED_VERSIONS = ["4.5.4","4.5.4_sbm","4.6.5","4.6.5_sbm"]
 
 class GromacsFiles(object):
 
-    natively_supported_potentials = {"4.5.4":["LJ1210",]}
+    natively_supported_potentials = {"4.5.4":["LJ1210"]}
 
     def __init__(self, model, version=None):
         self.model = model
         self.version = version
+        self.topfile = None
 
         # check compatibility of interactions with this version
         # of gromacs
@@ -81,7 +82,8 @@ class GromacsFiles(object):
 
     def write_simulation_files(self, path_to_tables="."):
         # Write the Hamiltonian Gromacs input file: topol.top
-        self.generate_topology()
+        if self.topfile is None:
+            self.generate_topology()
 
         with open("topol.top", "w") as fout:
             fout.write(self.topfile)
@@ -100,6 +102,9 @@ class GromacsFiles(object):
 
         with open("conf.gro", "w") as fout:
             fout.write(temp)
+
+        # files useful for visualizing
+        self.model.ref_traj.save("ref.pdb")
 
     def _write_table_files(self, path_to_tables):
         """Save table files"""
