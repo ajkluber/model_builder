@@ -67,6 +67,29 @@ class GromacsFiles(object):
         self._n_tables = len(self._tablenames)
     
     def _check_supported(self, pot):
+        """ Check if the potential requires a table file or not
+        
+        If the potential is supported, return True. No extra table file 
+        will be written. If the potential is not supported, return 
+        False. A table file of that potential will be generated in 
+        _generate_interaction_tables(). Special cases may exist, such as 
+        a gaussian-tanh function where it is supported for epsilon 
+        greater than zero but not for less than zero. This is handled 
+        inside nested if statements. Specific conditions can be added to 
+        lists in the __init__ method.
+        
+        Parameters
+        ----------
+        pot : PairPotential
+            Must have attribute `prefix_label` and `eps`.
+        
+        Returns
+        -------
+        supported : bool
+            True if supported potential. False otherwise.
+        
+        """
+        
         supported = True
         if pot.prefix_label in self._supported_pair_potentials:
             pass #unconditionally True            
