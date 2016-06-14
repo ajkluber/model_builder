@@ -7,7 +7,7 @@ SUPPORTED_VERSIONS = ["4.5.4","4.5.4_sbm","4.6.5","4.6.5_sbm"]
 
 class GromacsFiles(object):
 
-    natively_supported_potentials = {"4.5.4":["LJ1210",]}
+    natively_supported_potentials = {"4.5.4":["LJ1210"]}
 
     def __init__(self, model, version=None):
         self.model = model
@@ -27,7 +27,9 @@ class GromacsFiles(object):
 
         self._supported_pair_potentials = ["LJ12", "LJ1210",
                                             "GAUSSIAN", "LJ12GAUSSIAN"]
-
+        #potentials that are supported when epsilon >=0
+        self._switch_supported_pair_potentials = ["LJ12GAUSSIANTANH"]
+        
     def _generate_index_file(self):
         top = self.model.mapping.topology
         self.index_ndx = "[ System ]\n"
@@ -51,7 +53,7 @@ class GromacsFiles(object):
         self._tablenames = []
         for i in range(self.model.Hamiltonian.n_pairs):
             pot = self.model.Hamiltonian._pairs[i]
-            if not (pot.prefix_label in self._supported_pair_potentials):
+            if not self._check_supported(pot):
                 self._tabled_pots.append(pot)
 
                 table_name = "table_b{}.xvg".format(len(self._tabled_pots))
@@ -63,7 +65,45 @@ class GromacsFiles(object):
                 table[10:,2] = -1.*pot.dVdr(r[10:]) 
                 self._tables.append(table)
         self._n_tables = len(self._tablenames)
-
+    
+    def _check_supported(self, pot):
+        """ Check if the potential requires a table file or not
+        
+        If the potential is supported, return True. No extra table file 
+        will be written. If the potential is not supported, return 
+        False. A table file of that potential will be generated in 
+        _generate_interaction_tables(). Special cases may exist, such as 
+        a gaussian-tanh function where it is supported for epsilon 
+        greater than zero but not for less than zero. This is handled 
+        inside nested if statements. Specific conditions can be added to 
+        lists in the __init__ method.
+        
+        Parameters
+        ----------
+        pot : PairPotential
+            Must have attribute `prefix_label` and `eps`.
+        
+        Returns
+        -------
+        supported : bool
+            True if supported potential. False otherwise.
+        
+        """
+        
+        supported = True
+        if pot.prefix_label in self._supported_pair_potentials:
+            pass #unconditionally True            
+        else:
+            if pot.prefix_label in self._switch_supported_pair_potentials:
+                if pot.eps >= 0:
+                    pass #it is supported
+                else:
+                    supported = False
+            else:
+                supported = False
+        
+        return supported
+        
     def _get_LJ1210_table(self):
         """ LJ1210 interaction table """ 
         r = np.arange(0.0, 20.0, 0.002)
@@ -102,6 +142,9 @@ class GromacsFiles(object):
 
         with open("conf.gro", "w") as fout:
             fout.write(temp)
+
+        # files useful for visualizing
+        self.model.ref_traj.save("ref.pdb")
 
     def _write_table_files(self, path_to_tables):
         """Save table files"""
@@ -234,10 +277,11 @@ class GromacsFiles(object):
                         func = 5
                         params = "{:>18.9e}{:>18.9e}{:>18.9e}".format(
                                     pot.eps, pot.r0, pot.width)
-                    elif pot.prefix_label == "LJ12GAUSSIAN":
+                    elif pot.prefix_label in ["LJ12GAUSSIAN", "LJ12GAUSSIANTANH"]:
                         func = 6
                         params = "{:>18.9e}{:>18.9e}{:>18.9e}{:>18.9e}".format(
                                     pot.eps, pot.r0, pot.width, pot.rNC**12)
+                        assert pot.eps >= 0
                     else:
                         print "Warning: interaction is not supported: {}".format(pot.describe())
                     pairs_top += "{}{:>2}{}\n".format(atm_idxs, func, params)
