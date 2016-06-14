@@ -304,10 +304,77 @@ class DebyeHuckel(object):
     def V(self, r, qi, qj, k_ij):
         return (k_ij*qi*qj/r)*np.exp(-self.k_screening*r/self.debye_length)
 
+class FragmentMemory(object):
+    """ Associative Fragment Memory Term for AWSEM
+    
+    Used for computing the associated memory term for a whole fragment. 
+    So this will be a collection of gaussian contacts between various Ca 
+    and Cb atoms.
+    
+    Attributes
+    ----------
+    weight : float
+        Weight of this fragment relative to other fragments. Default 1.
+    sigmas : list, float
+        2*(sigma**2) computed based on atom indices in fragment.
+    distances : list, float
+        Ideal distance for each atom_pair
+    atom_pairs : list, mdtraj.atom
+        A Nx2 list of N pairs of mdtraj.atom objects.
+    
+    """
+    
+    def __init__(self, atom_pairs, distances, weight=1.):
+        self.weight = weight #weight of this fragment relative to others
+        self.sigmas = [] #array of 2*sigma^2 values.
+        self.distances = distances
+        self.atom_pairs = atom_pairs
+        #atom index determines sigmas
+        for pair in atom_pairs:
+            index_diff = np.abs(pair[0].index - pair[1].index)
+            sigma_diff = index_diff ** 0.15
+            self.sigmas.append(2.*(sigma_diff**2.))
+        
+        if not len(self.distances) == len(self.sigmas):
+            raise FragmentException(len(self.distances), len(self.sigmas))
+            
+        self.num_gaussians = len(self.distances)
+        
+    def V(self, r):
+        """ Compute the Potential Energy for this Fragment 
+        
+        Parameters
+        ----------
+        r : array, floats
+            First index of array is for each frame, second index refers 
+            to each term in the fragment.
+        
+        Returns
+        -------
+        energy : array, floats
+            1-D array giving total potential energy for this fragment in 
+            each frame. 
+            
+        """
+        
+        energy = np.zeros(np.shape(r)[0])
+        for idx in range(self.num_gaussians):
+            energy -= np.exp(-((r[:,idx]-self.distances[idx])**2)/self.sigmas[idx])
+        
+        energy *= self.weight
+        return energy
+        
+class FragmentException(Exception):
+    def __init__(self, len_distances, len_sigmas):
+        message = "Length of distance lists (%d) and sigmas (%d) do not match." % (len_distances, len_sigmas)
+        super(FragmentException, self).__init__(message)
+        
+
 AWSEM_POTENTIALS = {"BURIAL":Burial,
                 "DIRECT":DirectContact,
                 "WATER":WaterMediatedContact, 
                 "DEBYE":DebyeHuckel,
                 "HELIX":Helix,
                 "CHI":Chi,
-                "RAMA":Rama}
+                "RAMA":Rama,
+                "FRAGMENT":FragmentMemory}
