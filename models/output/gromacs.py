@@ -3,6 +3,8 @@ import numpy as np
 
 import mdtraj as md
 
+import viz_bonds
+
 SUPPORTED_VERSIONS = ["4.5.4","4.5.4_sbm","4.6.5","4.6.5_sbm"]
 
 class GromacsFiles(object):
@@ -36,7 +38,7 @@ class GromacsFiles(object):
         for i in range(top.n_atoms):
             atom = top.atom(i)
             self.index_ndx += "{:>4}".format(atom.index + 1)
-            if (i % 15) == 0:
+            if ((i % 15) == 0) and (i > 0):
                 self.index_ndx += "\n" 
         self.index_ndx += "\n" 
 
@@ -120,7 +122,7 @@ class GromacsFiles(object):
         table[0,0] = 0
         return table
 
-    def write_simulation_files(self, path_to_tables="."):
+    def write_simulation_files(self, path_to_tables=".", box_xyz=[20,20,20]):
         # Write the Hamiltonian Gromacs input file: topol.top
         if self.topfile is None:
             self.generate_topology()
@@ -138,13 +140,14 @@ class GromacsFiles(object):
         self.model.ref_traj.save("conf.gro")
         with open("conf.gro", "r") as fin:
             temp = reduce(lambda x,y: x+y, fin.readlines()[:-1])
-            temp += "{:>10f}{:>10f}{:>10f}\n".format(20,20,20)
+            temp += "{:>10f}{:>10f}{:>10f}\n".format(box_xyz[0], box_xyz[1], box_xyz[2])
 
         with open("conf.gro", "w") as fout:
             fout.write(temp)
 
         # files useful for visualizing
         self.model.ref_traj.save("ref.pdb")
+        viz_bonds.write_bonds_tcl(self.model.mapping.top)
 
     def _write_table_files(self, path_to_tables):
         """Save table files"""

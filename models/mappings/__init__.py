@@ -7,10 +7,6 @@ The structure submodule should also handle adding cofactors to the system (e.g.
 heme).
 '''
 
-#import mappings
-#import contacts
-import viz_bonds
-
 from calpha import CalphaMapping
 from calphacbeta import CalphaCbetaMapping
 from heavyatom import HeavyAtomMapping
