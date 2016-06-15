@@ -1,8 +1,9 @@
+import argparse
 import numpy as np
 
 import mdtraj as md
 
-from model_builder.models.structure.mappings import CalphaMapping
+from model_builder.models.mappings import CalphaMapping
 
 def native_gaussians(pairs, rNC, r0, width, model_param):
     """Create pairwise params string describe native Gaussian contacts
@@ -160,7 +161,7 @@ if __name__ == "__main__":
     parser.add_argument("b_value")
     args = parser.parse_args()
     
-    params_string, eps_string, nonnative_pairs = make_pairwise_params(args.pdb, args.contacts, args.b_value)
+    params_string, eps_string, nonnative_pairs = make_pairwise_params(args.pdb, args.contacts, float(args.b_value))
 
     name = args.pdb.split(".pdb")[0]
     with open("{}_pairwise_params".format(name), "w") as fout:
