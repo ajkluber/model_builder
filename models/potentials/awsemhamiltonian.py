@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 import mdtraj as md
 
@@ -740,8 +741,72 @@ class AwsemHamiltonian(object):
                 else:
                     Vrama[:,self.n_phi + i] = pro_rama.V(pro_phi[:,i], pro_psi[:,i])
         return Vrama
-
-
+    
+    def add_fragment_memory(self, traj, protein_index, frag_index, length, weight):
+        #construct list of atoms from the fragment index
+        fragment_top = traj.top
+        fragment_atom_list = []
+        for idx in np.arange(frag_index, frag_index+length):
+            for atom in fragment_top.residue(idx).atoms:
+                if atom.name in ["CA", "CB"]:
+                    fragment_atom_list.append(atom)
+        
+        protein_top = self.three_bead_topology #traj files write three beads
+        protein_atom_list = []
+        for idx in np.arange(protein_index, protein_index+length):
+            for atom in protein_top.residue(idx).atoms:
+                if atom.name in ["CA", "CB"]:
+                    protein_atom_list.append(atom)
+        
+        #check the lists, make sure the sequences match
+        assert len(protein_atom_list) == len(fragment_atom_list)
+        
+        #generate a list of pairs of atoms and indices
+        fragment_atom_pairs = []
+        distance_pairs = []
+        protein_atom_pairs = []
+        num_atoms = len(fragment_atom_list)
+        for idx in range(num_atoms):
+            frag_atm1 = fragment_atom_list[idx]
+            prot_atm1 = protein_atom_list[idx]
+            for jdx in np.arange(idx+1, num_atoms):
+                frag_atm2 = fragment_atom_list[jdx]
+                prot_atm2 = protein_atom_list[jdx]
+                #only add pairs separated by two residues
+                separation = frag_atm1.residue.index-frag_atm2.residue.index
+                if np.abs(separation) > 2:
+                    fragment_atom_pairs.append([frag_atm1, frag_atm2])
+                    protein_atom_pairs.append([prot_atm1, prot_atm2])
+                    distance_pairs.append([frag_atm1.index,frag_atm2.index])
+            
+        #compute distances
+        distances = md.compute_distances(traj, distance_pairs, periodic=False)
+        distances = distances.transpose() * 10.#reform to NX1 array
+        
+             
+        #add to the Hamiltonian, each fragment term to a list
+        fragment = awsem.AWSEM_POTENTIALS["FRAGMENT"](protein_atom_pairs, distances, weight=weight)
+        
+        try:
+            self.fragment_potentials.append(fragment)
+        except AttributeError:
+            self.fragment_potentials = [fragment]
+    
+    def compute_fragment_memory_potential(self, traj):
+        if not hasattr(self,"fragment_potentials"):
+            raise AttributeError("fragment_potentials not initialized")
+        
+        for potential in self.fragment_potentials:
+            distances = md.compute_distances(traj, potential.atom_pair_indices, periodic=False) * 10.
+            energy = potential.V(distances)
+            try:
+                total_potential += energy
+            except:
+                total_potential = energy
+                
+        total_potential *= self.fragment_memory_scale
+        return total_potential
+        
     def calculate_energy(self):
         pass
 
@@ -750,3 +815,6 @@ class AwsemHamiltonian(object):
 
 if __name__ == "__main__":
     pass
+    
+    
+    

@@ -327,6 +327,7 @@ class FragmentMemory(object):
     def __init__(self, atom_pairs, distances, weight=1.):
         self.weight = weight #weight of this fragment relative to others
         self.sigmas = [] #array of 2*sigma^2 values.
+        self.atom_pair_indices = []
         self.distances = distances
         self.atom_pairs = atom_pairs
         #atom index determines sigmas
@@ -334,7 +335,8 @@ class FragmentMemory(object):
             index_diff = np.abs(pair[0].index - pair[1].index)
             sigma_diff = index_diff ** 0.15
             self.sigmas.append(2.*(sigma_diff**2.))
-        
+            self.atom_pair_indices.append([pair[0].index, pair[1].index])
+            
         if not len(self.distances) == len(self.sigmas):
             raise FragmentException(len(self.distances), len(self.sigmas))
             
