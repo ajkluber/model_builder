@@ -118,7 +118,7 @@ class CalphaMapping(object):
             katom = self.top.atom(k)
             self._contact_pairs.append([natom, katom])
     
-    def add_disulfides(self, disulfides):
+    def add_disulfides(self, disulfides, simple=False):
         """ Add disulfide bonded interactions.
         
         Adds appropriate bond, angle and dihedral interactions.
@@ -145,9 +145,10 @@ class CalphaMapping(object):
             #add bond between c-alpha of the Cys residues
             self.top.add_bond(cys1, cys2)
             
-            #add angular constraints between CYS;s and previous c-alphas
-            self._angles.append((ca1, cys1, cys2))
-            self._angles.append((cys1, cys2, ca2))
-            
-            #add dihedral constraints between CYS's and previous c-alphas
-            self._dihedrals.append((ca1, cys1, cys2, ca2))
+            if not simple:
+                #add angular constraints between CYS;s and previous c-alphas
+                self._angles.append((ca1, cys1, cys2))
+                self._angles.append((cys1, cys2, ca2))
+                
+                #add dihedral constraints between CYS's and previous c-alphas
+                self._dihedrals.append((ca1, cys1, cys2, ca2))

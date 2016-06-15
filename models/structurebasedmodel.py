@@ -54,8 +54,8 @@ class StructureBasedModel(Model):
         else:
             self.ref_traj.save(saveas)
     
-    def assign_disulfides(self, disulfides):
-        self.mapping.add_disulfides(disulfides)
+    def assign_disulfides(self, disulfides, simple=False):
+        self.mapping.add_disulfides(disulfides, simple=simple)
         
     def assign_backbone(self):
         self.mapping._assign_sbm_angles()
