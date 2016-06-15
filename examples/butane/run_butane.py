@@ -6,7 +6,7 @@ import mdtraj as md
 from mdtraj.core.element import get_by_symbol
 
 import model_builder as mdb
-import simulation.mdp
+import simulation
 import plot_eng
 
 def butane_toy_model():
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     # Save mdp file for NVE simulation (newtonian dynamics). We want to see the
     # oscillations in energy.
     with open("run.mdp", "w") as fout:
-        fout.write(simulation.mdp.constant_energy("1000000"))
+        fout.write(simulation.gromacs.mdp.constant_energy("1000000"))
 
     # Save remaining simulation files
     save_top_file(model, startingtraj)
@@ -146,7 +146,7 @@ if __name__ == "__main__":
 
     # Save mdp file for NVT simulation (constant temperature).
     with open("run.mdp", "w") as fout:
-        fout.write(simulation.mdp.constant_temperature(10, "1000000"))
+        fout.write(simulation.gromacs.mdp.constant_temperature(10, "1000000"))
 
     # Save remaining simulation files
     save_top_file(model, startingtraj)
