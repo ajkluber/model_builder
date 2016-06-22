@@ -153,7 +153,7 @@ class CalphaCbetaMapping(object):
                     dih = (res.atom(0), cj, ck, res.atom(1))
                     self._improper_dihedrals.append(dih)
                     
-    def add_disulfides(self, disulfides):
+    def add_disulfides(self, disulfides, simple=False):
         """ Add disulfide bonded interactions.
         
         Adds appropriate bond, angle and dihedral interactions.
