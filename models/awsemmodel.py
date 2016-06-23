@@ -57,7 +57,7 @@ class AwsemModel(Model):
                     self.Hamiltonian.add_fragment_memory(traj, p_idx, f_idx, length, weight)
                     if count+max_frag_length == total_length:
                         go = False
-                    count += 1
+                    count += 3
             else:   
                 if length > max_frag_length:
                     print "No Cycling, exceeding max_frag_length" 

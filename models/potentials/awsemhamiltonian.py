@@ -766,6 +766,7 @@ class AwsemHamiltonian(object):
         distance_pairs = []
         protein_atom_pairs = []
         num_atoms = len(fragment_atom_list)
+
         for idx in range(num_atoms):
             frag_atm1 = fragment_atom_list[idx]
             prot_atm1 = protein_atom_list[idx]
@@ -778,7 +779,9 @@ class AwsemHamiltonian(object):
                     fragment_atom_pairs.append([frag_atm1, frag_atm2])
                     protein_atom_pairs.append([prot_atm1, prot_atm2])
                     distance_pairs.append([frag_atm1.index,frag_atm2.index])
-            
+                else:
+                    pass
+                    
         #compute distances
         distances = md.compute_distances(traj, distance_pairs, periodic=False)
         distances = distances.transpose() * 10.#reform to NX1 array
