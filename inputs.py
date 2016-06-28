@@ -135,16 +135,16 @@ def load_models(names,dry_run=False):
 def load_config(name):
     """Parse options from <name>.ini file"""
      
-    if not os.path.exists("%s" % name):
+    if not os.path.exists(name):
         raise IOError("%s doesn't exist!" % name)
     config = ConfigParser.SafeConfigParser(allow_no_value=True)
-    config.read("%s" % name)
+    config.read(name)
 
     # Populate all fields as None 
     modelopts = _empty_model_opts()
     fittingopts = _empty_fitting_opts()
 
-    print "Creating model according to %s.ini" % name
+    print "Creating model according to " + name
     print "Options not shown default to None"
     load_model_section(config.items("model"),modelopts)
     load_fitting_section(config,modelopts,fittingopts)
