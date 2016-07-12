@@ -291,7 +291,7 @@ class AwsemHamiltonian(object):
         order to assign the transferable parameters.
         """
 
-        self._parameterize_debye()
+        #self._parameterize_debye()
         self._parameterize_rama()
         self._parameterize_burial()
         self._parameterize_contacts()
