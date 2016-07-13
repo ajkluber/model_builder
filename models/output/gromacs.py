@@ -122,7 +122,7 @@ class GromacsFiles(object):
         table[0,0] = 0
         return table
 
-    def write_simulation_files(self, path_to_tables=".", box_xyz=[20,20,20]):
+    def write_simulation_files(self, path_to_tables=".", savetables=True, box_xyz=[20,20,20]):
         # Write the Hamiltonian Gromacs input file: topol.top
         if self.topfile is None:
             self.generate_topology()
@@ -133,7 +133,8 @@ class GromacsFiles(object):
         with open("index.ndx", "w") as fout:
             fout.write(self.index_ndx)
 
-        self._write_table_files(path_to_tables)
+        if savetables:
+            self._write_table_files(path_to_tables)
 
         # Save the starting configuration, but we have to fix the unitcell
         # information.
