@@ -57,7 +57,8 @@ def load_model(name,dry_run=False):
     if modelopts["bead_repr"] in ["CA", "CACB"]:
         model = _load_sbm(modelopts)
     elif modelopts["bead_repr"] in ["awsem"]:
-        model = _load_awsem(modelopts)        
+        model = _load_awsem(modelopts)     
+           
     return model,fittingopts
 
 def _load_awsem(modelopts):
