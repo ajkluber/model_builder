@@ -153,14 +153,17 @@ class GromacsFiles(object):
     def _write_table_files(self, path_to_tables):
         """Save table files"""
 
-        if not os.path.exists("{}/table.xvg".format(path_to_tables)):
-            np.savetxt("{}/table.xvg".format(path_to_tables), self.tablep, fmt="%16.15e")
-        if not os.path.exists("{}/tablep.xvg".format(path_to_tables)):
-            np.savetxt("{}/tablep.xvg".format(path_to_tables), self.tablep, fmt="%16.15e")
+        cwd = os.getcwd()
+        os.chdir(path_to_tables)
+        if not os.path.exists("table.xvg"):
+            np.savetxt("table.xvg", self.tablep, fmt="%16.15e")
+        if not os.path.exists("tablep.xvg"):
+            np.savetxt("tablep.xvg", self.tablep, fmt="%16.15e")
 
         for i in range(self._n_tables):
-            if not os.path.exists("{}/{}".format(path_to_tables,self._tablenames[i])):
-                np.savetxt("{}/{}".format(path_to_tables,self._tablenames[i]), self._tables[i])
+            if not os.path.exists(self._tablenames[i]):
+                np.savetxt(self._tablenames[i], self._tables[i])
+        os.chdir(cwd)
 
     def _get_atomtypes_top(self):
         """ Generate the [ atoms ] top."""
