@@ -120,3 +120,35 @@ class StructureBasedHamiltonian(Hamiltonian):
                                 "dihedral":"COSINE_DIHEDRAL",
                                 "improper_dihedral":"HARMONIC_DIHEDRAL",
                                 "contact":"LJ1210"}
+
+    def calc_native_nonative_pair_energy(self, traj, n_native_pairs, sum=True):
+        """Energy for pair interactions
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+        
+        sum : bool (opt.)
+            If sum=True return the total energy.
+        """
+        r = md.compute_distances(traj, self._pair_idxs)
+        if sum:
+            Enat = np.zeros(traj.n_frames, float)
+            Enon = np.zeros(traj.n_frames, float)
+        else:
+            Enat = np.zeros((traj.n_frames, n_native_pairs), float)
+            Enon = np.zeros((traj.n_frames, self.n_pairs - n_native_pairs), float)
+
+        for i in range(n_native_pairs):
+            if sum:
+                Enat += self._pairs[i].V(r[:,i])
+            else:
+                Enat[:,i] = self._pairs[i].V(r[:,i])
+
+        for i in range(n_native_pairs, self.n_pairs):
+            if sum:
+                Enon += self._pairs[i].V(r[:,i])
+            else:
+                Enon[:,i - n_native_pairs] = self._pairs[i].V(r[:,i])
+        return Enat, Enon
+
