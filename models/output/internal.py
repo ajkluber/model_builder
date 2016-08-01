@@ -48,7 +48,6 @@ class InternalFiles(object):
         f.write(model_params_string)
         f.close()
         
-        
     def _generate_pairwise_string(self):
         pairwise_string = "#    pairs         param         potential_type   other_params\n"
         count = 0
@@ -76,3 +75,9 @@ class InternalFiles(object):
             model_params_string += "%f\n" % eps
             
         return model_params_string
+    
+    def write_ini_file(self):
+        pass
+    
+    def write_new_awsem_files(self):
+        pass

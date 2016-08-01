@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import shutil
 import mdtraj as md
 
 import potentials 
@@ -17,7 +18,8 @@ class AwsemModel(Model):
     def source_parameters(self, param_path, parameterize=True): 
         # read in parameters from source directory
         self.Hamiltonian._source_parameters(param_path)
-
+        self.param_source = param_path
+        
     def add_fragment_memory(self, param_path, mem_file, max_frag_length=9, cycle = True, fragment_memory_scale=0.1):
         """ Add the fragment memory terms to the model from a .mem file
         
@@ -63,5 +65,47 @@ class AwsemModel(Model):
                     print "No Cycling, exceeding max_frag_length" 
                 self.Hamiltonian.add_fragment_memory(traj, protein_index, frag_index, length, weight)
         os.chdir(cwd)
-         
+    
+    def copy_awsem_parameters(self, new_directory, start_directory=None):
+        if start_directory is None:
+            start_directory = self.param_source
+            
+        if not os.path.isdir(new_directory):
+            os.mkdir(new_directory)
+            
+        param_files = os.listdir(start_directory)
+        for pfile in param_files:
+            pfile_str = "%s/%s" % (start_directory, pfile)
+            if os.path.isfile(pfile_str):
+                shutil.copy(pfile_str, new_directory)
+                
+        self.param_source = new_directory
+             
+    def write_new_gammas(self, new_param_path):
+        gamma_str = self._get_gammas_file_format()
+        f = open("%s/gamma.dat"%new_param_path, "w")
+        f.write(gamma_str)
+        f.close()
+                
+    def _get_gammas_file_format(self):
+        gamma_direct = self.Hamiltonian.gamma_direct
+        ##debug
+        ##gamma_direct=np.zeros((20,20))
+        ##
+        gamma_str = ""
+        for i in range(20):
+            for j in range(i,20):
+                gval = gamma_direct[i,j]
+                gamma_str += "%8.5f  %8.5f\n" % (gval, gval)
         
+        gamma_str += "\n"
+        gamma_water = self.Hamiltonian.gamma_water
+        gamma_protein = self.Hamiltonian.gamma_protein
+        
+        for i in range(20):
+            for j in range(i,20):
+                wval = gamma_water[i,j]
+                pval = gamma_protein[i,j]
+                gamma_str += "%8.5f  %8.5f\n" % (pval, wval)
+        
+        return gamma_str
