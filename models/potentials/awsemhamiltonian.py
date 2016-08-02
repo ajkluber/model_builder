@@ -85,7 +85,7 @@ class AwsemHamiltonian(object):
         """
         
         #set default parameters first, then override them with the 
-        self._set_default_parameters()
+        self._set_default_backbone_coeff()
         
         with open("{}/fix_backbone_coeff.data".format(self._param_path), "r") as fin: 
             all_lines = fin.readlines()
@@ -372,7 +372,6 @@ class AwsemHamiltonian(object):
         order to assign the transferable parameters.
         """
         
-        if 
         self._parameterize_debye()
         self._parameterize_rama()
         self._parameterize_burial()
