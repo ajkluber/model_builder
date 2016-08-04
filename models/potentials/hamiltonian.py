@@ -178,6 +178,29 @@ class Hamiltonian(object):
         """Indices of atoms in pair interactions"""
         return np.array([[pair.atmi.index, pair.atmj.index] for pair in self.pairs ])
 
+    def add_custom_pair(self, atm1, atm2, func, *args):
+        """Add a custom pair interaction function
+
+        Parameters
+        ----------
+        atm1 : object, mdtraj.atom
+
+        atm2 : object
+
+        func : function
+            A function that has the pairwise distance as its first argument and
+            remaining parameters given by args
+        *args : 
+            Remaining arguments that paraemterize the imputted function.
+        """
+
+        p = pairwise.PAIR_POTENTIALS["CUSTOM"](atm1, atm2, func, *args)
+        if p not in self._pairs:
+            self._pairs.append(p)
+            self._epsilons.append(p.eps)
+        else:
+            util.interaction_exists_warning(p)
+
     def calc_bond_energy(self, traj, sum=True):
         """Energy for bond interactions
 
