@@ -360,7 +360,7 @@ class LJ12GaussTanhSwitching(PairPotential):
         
 
 class FlatBottomWell(PairPotential):
-
+    
     def __init__(self, atmi, atmj, kb, rNC, r0):
         PairPotential.__init__(self, atmi, atmj)
         self.prefix_label = "FLATWELL"
@@ -381,10 +381,24 @@ class FlatBottomWell(PairPotential):
         dVdr[r >= self.r0] = self.kb*(r[r >= self.r0] - self.r0)
         return dVdr
 
+class CustomPairPotential(PairPotential):
+
+    def __init__(self, atmi, atmj, func, *args):
+        PairPotential.__init__(self, atmi, atmj)
+        self.prefix_label = "CUSTOM"
+        self.args = args
+
+    def V(self, r):
+        return self.func(r, *self.args)
+
+    def dVdr(self, r):
+        return np.gradient(self.func(r, *self.args))/(r[1] - r[0])
+
 PAIR_POTENTIALS = {"LJ1210":LJ1210Potential,
                 "GAUSSIAN":GaussianPotential,
                 "LJ12GAUSSIAN":LJ12GaussianPotential,
                 "TANHREP":TanhRepPotential,
                 "LJ12TANHREP":LJ12TanhRepPotential,
+                "CUSTOM":CustomPairPotential,
                 "FLATWELL":FlatBottomWell,
                 "LJ12GAUSSIANTANH":LJ12GaussTanhSwitching}
