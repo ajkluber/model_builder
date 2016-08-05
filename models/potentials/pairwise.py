@@ -387,12 +387,13 @@ class CustomPairPotential(PairPotential):
         PairPotential.__init__(self, atmi, atmj)
         self.prefix_label = "CUSTOM"
         self.args = args
+        self.func = func
 
     def V(self, r):
         return self.func(r, *self.args)
 
     def dVdr(self, r):
-        return np.gradient(self.func(r, *self.args))/(r[1] - r[0])
+        return np.gradient(self.func(r, *self.args), r[1] - r[0])
 
 PAIR_POTENTIALS = {"LJ1210":LJ1210Potential,
                 "GAUSSIAN":GaussianPotential,
