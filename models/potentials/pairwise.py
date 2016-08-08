@@ -383,16 +383,18 @@ class FlatBottomWell(PairPotential):
 
 class CustomPairPotential(PairPotential):
 
-    def __init__(self, atmi, atmj, func, *args):
+    def __init__(self, atmi, atmj, func, *args, **kwargs):
         PairPotential.__init__(self, atmi, atmj)
         self.prefix_label = "CUSTOM"
         self.args = args
+        self.kwargs = kwargs
+        self.func = func
 
     def V(self, r):
-        return self.func(r, *self.args)
+        return self.func(r, *self.args, **kwargs)
 
     def dVdr(self, r):
-        return np.gradient(self.func(r, *self.args))/(r[1] - r[0])
+        return np.gradient(self.func(r, *self.args, **kwargs), r[1] - r[0])
 
 PAIR_POTENTIALS = {"LJ1210":LJ1210Potential,
                 "GAUSSIAN":GaussianPotential,

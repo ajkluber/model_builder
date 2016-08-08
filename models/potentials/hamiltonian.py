@@ -197,7 +197,6 @@ class Hamiltonian(object):
         p = pairwise.PAIR_POTENTIALS["CUSTOM"](atm1, atm2, func, *args)
         if p not in self._pairs:
             self._pairs.append(p)
-            self._epsilons.append(p.eps)
         else:
             util.interaction_exists_warning(p)
 
