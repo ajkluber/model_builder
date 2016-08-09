@@ -138,7 +138,11 @@ class GromacsFiles(object):
 
         # Save the starting configuration, but we have to fix the unitcell
         # information.
-        self.model.ref_traj.save("conf.gro")
+        if hasattr(self.model, "starting_traj"):
+            self.model.starting_traj.save("conf.gro")
+        else:
+            self.model.ref_traj.save("conf.gro")
+
         with open("conf.gro", "r") as fin:
             temp = reduce(lambda x,y: x+y, fin.readlines()[:-1])
             temp += "{:>10f}{:>10f}{:>10f}\n".format(box_xyz[0], box_xyz[1], box_xyz[2])
