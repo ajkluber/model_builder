@@ -864,9 +864,11 @@ class AwsemHamiltonian(object):
                     pass
                     
         #compute distances
+        if np.shape(distance_pairs)[0] == 0:
+            raise IOError("No Distance Pairs found!")
+        print "Found %d pairs" % np.shape(distance_pairs)[0]
         distances = md.compute_distances(traj, distance_pairs, periodic=False)
-        distances = distances.transpose() * 10.#reform to NX1 array
-        
+        distances = distances.transpose()[:,0] * 10.#reform to NX1 array
              
         #add to the Hamiltonian, each fragment term to a list
         fragment = awsem.AWSEM_POTENTIALS["FRAGMENT"](protein_atom_pairs, distances, weight=weight)
