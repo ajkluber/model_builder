@@ -334,7 +334,7 @@ class FragmentMemory(object):
         for pair in atom_pairs:
             index_diff = np.abs(pair[0].residue.index - pair[1].residue.index)
             sigma_diff = index_diff ** 0.15
-            self.sigmas.append((sigma_diff**2.))
+            self.sigmas.append(2*(sigma_diff**2.))
             self.atom_pair_indices.append([pair[0].index, pair[1].index])
             
         if not len(self.distances) == len(self.sigmas):

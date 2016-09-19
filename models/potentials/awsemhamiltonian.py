@@ -83,6 +83,10 @@ class AwsemHamiltonian(object):
 
         Distance units need to be converted from Ang. to nm.
         """
+        
+        #set default parameters first, then override them with the 
+        self._set_default_backbone_coeff()
+        
         with open("{}/fix_backbone_coeff.data".format(self._param_path), "r") as fin: 
             all_lines = fin.readlines()
             for i in range(len(all_lines)):
@@ -104,7 +108,84 @@ class AwsemHamiltonian(object):
                 # - source rama params
                 # - source dssp params
                 # - source debye params
+                
+    def _set_default_backbone_coeff(self):
+        """ Set the default backbone parameters """
+        
+        #Burial Params
+        self.potential_forms["BURIAL"] = awsem.AWSEM_POTENTIALS["BURIAL"](
+                lambda_burial=1.0, nu=4.0, rho1_lims=[0.0, 3.0], 
+                rho2_lims=[3.0, 6.0], rho3_lims=[6.0, 9.0])
+        
+        #Water params
+        self.potential_forms["DIRECT"] = awsem.AWSEM_POTENTIALS["DIRECT"](
+                lambda_direct=10., nu=50., r_min=0.45, r_max=0.65)
+                
+        self.potential_forms["WATER"] = awsem.AWSEM_POTENTIALS["WATER"](
+                lambda_water=10., nu=50., nu_sigma=7.0, r_min=0.65, 
+                r_max=0.95, rho_0=2.6)
+                
+        self._contact_exclude_neighbors = 13
+        
+        #DebyeHuckel params from amylometer branch on github
+        self._debye_kplusplus = 0.1
+        self._debye_kminusminus = 0.1
+        self._debye_kplusminus = 0.1
+        self._debye_exclude_neighbors = 10
+        
+        self.potential_forms["DEBYE"] = awsem.AWSEM_POTENTIALS["DEBYE"](
+                k_screening=1.0, debye_length=1.0)
+        
+        #Helix params
+        self.potential_forms["HELIX"] = awsem.AWSEM_POTENTIALS["HELIX"](
+                lambda_helix=1.5, gamma_protein=2.0,
+                gamma_water=-1.0, nu=70., nu_sigma=7.0, rho_0=3.0,
+                r_ON=.298, r_OH=.206, sigma_ON=0.068, sigma_OH=0.076)
+        self.res_helix_fai = [0.77, 0.68, 0.07, 0.15, 0.23, 0.33, 0.27, 
+                0.0, 0.06, 0.23, 0.62, 0.65, 0.50, 0.41, -3.0, 0.35, 
+                0.11, 0.45, 0.17, 0.14]
+        self._pro_acceptor_flag = 0
+        self._pro_acceptor_fai = 0.0 
+        
+        #Rama params
+        rama_fields = np.array([ [1.3149, 15.398, 0.15, 1.74, 0.65, -2.138],
+                [1.32016, 49.0521, 0.25, 1.265, 0.45, 0.318], 
+                [1.0264, 49.0954, 0.65, -1.041, 0.25, -0.78] ]) 
+        
+        W = rama_fields[:, 0]
+        sigma = rama_fields[:, 1] 
+        omega_phi = rama_fields[:, 2]
+        phi0 = -rama_fields[:, 3]
+        omega_psi = rama_fields[:, 4]
+        psi0 = -rama_fields[:, 5]
+        
+        self.potential_forms["RAMA"] = awsem.AWSEM_POTENTIALS["RAMA"](
+                lambda_rama=2.0, W=W, sigma=sigma, 
+                omega_phi=omega_phi, phi0=phi0, 
+                omega_psi=omega_psi, psi0=psi0)
+                
+        alpha = [2.0, 419.0, 1.0, 0.995, 1.0, 0.820]
+        beta = [2.0, 15.398, 1.0, 2.25, 1.0, -2.16]
 
+        self.potential_forms["RAMA_ALPHA"] = awsem.AWSEM_POTENTIALS["RAMA"](
+                lambda_rama=2.0, W=alpha[0], sigma=alpha[1], 
+                omega_phi=alpha[2], phi0=-alpha[3], 
+                omega_psi=alpha[4], psi0=-alpha[5])
+
+        self.potential_forms["RAMA_BETA"] = awsem.AWSEM_POTENTIALS["RAMA"](
+                lambda_rama=2.0, W=beta[0], sigma=beta[1], 
+                omega_phi=beta[2], phi0=-beta[3], 
+                omega_psi=beta[4], psi0=-beta[5])
+                
+        #Rama_P params
+        rama_fields = np.array([ [0.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                [2.17, 105.52, 1.0, 1.153, 0.15, -2.4],
+                [2.15, 109.09, 1.0, 0.95, 0.15, 0.218] ])
+        self.potential_forms["RAMA_PROLINE"] = awsem.AWSEM_POTENTIALS["RAMA"](
+                W=W, sigma=sigma, omega_phi=omega_phi, phi0=phi0, 
+                omega_psi=omega_psi, psi0=psi0)
+        
+        
     def _source_burial_params(self, lines):
         """Parameterize the form of the burial interaction"""
 
@@ -290,7 +371,7 @@ class AwsemHamiltonian(object):
         Extract the residue identites and atomic indices from the topology in
         order to assign the transferable parameters.
         """
-
+        
         self._parameterize_debye()
         self._parameterize_rama()
         self._parameterize_burial()
@@ -783,9 +864,11 @@ class AwsemHamiltonian(object):
                     pass
                     
         #compute distances
+        if np.shape(distance_pairs)[0] == 0:
+            raise IOError("No Distance Pairs found!")
+        print "Found %d pairs" % np.shape(distance_pairs)[0]
         distances = md.compute_distances(traj, distance_pairs, periodic=False)
-        distances = distances.transpose() * 10.#reform to NX1 array
-        
+        distances = distances.transpose()[:,0] * 10.#reform to NX1 array
              
         #add to the Hamiltonian, each fragment term to a list
         fragment = awsem.AWSEM_POTENTIALS["FRAGMENT"](protein_atom_pairs, distances, weight=weight)
