@@ -40,7 +40,7 @@ class AwsemModel(Model):
         self.fragment_info = []
         for line in f: #cycle through until you're out of lines
             info = line.strip().split() 
-            self.fragment_str.append(info)
+            self.fragment_info.append(info)
             mem_pdb = info[0]
             ##ASSUMPTION: First index is protein, second is for fragment
             #subtract one to convert to python indices
