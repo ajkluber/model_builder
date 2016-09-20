@@ -37,8 +37,10 @@ class AwsemModel(Model):
         os.chdir(param_path)
         f = open(mem_file, "r")
         f.readline() # read the [memories] line
+        self.fragment_info = []
         for line in f: #cycle through until you're out of lines
             info = line.strip().split() 
+            self.fragment_str.append(info)
             mem_pdb = info[0]
             ##ASSUMPTION: First index is protein, second is for fragment
             #subtract one to convert to python indices
@@ -80,7 +82,17 @@ class AwsemModel(Model):
                 shutil.copy(pfile_str, new_directory)
                 
         self.param_source = new_directory
-             
+    
+    def write_new_fragment_memory(self, new_param_path, name):
+        frag_str = "[Memories]\n"
+        for idx, info in enumerate(self.fragment_info):
+            for jdx in range(4):
+                frag_str += info[jdx]
+                frag_str += " "
+            frag_str += "%.6f\n" % self.Hamiltonian.fragment_potentials[idx].weight
+        f = open("%s.mem" % name, "w")
+        f.write(frag_str)
+        
     def write_new_gammas(self, new_param_path):
         gamma_str = self._get_gammas_file_format()
         f = open("%s/gamma.dat"%new_param_path, "w")
