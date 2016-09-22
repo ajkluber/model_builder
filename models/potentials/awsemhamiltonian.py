@@ -878,23 +878,24 @@ class AwsemHamiltonian(object):
         except AttributeError:
             self.fragment_potentials = [fragment]
     
-    def compute_fragment_memory_potential(self, traj, total=True):
+    def calculate_fragment_memory_potential(self, traj, total=True):
         if not hasattr(self,"fragment_potentials"):
             raise AttributeError("fragment_potentials not initialized")
         
+        print "First cycle"        
         energy_list = []
         for idx, potential in enumerate(self.fragment_potentials):
             distances = md.compute_distances(traj, potential.atom_pair_indices, periodic=False) * 10.
             energy = potential.V(distances)            
             if idx == 0:
-                total_potential = energy            
+                total_potential = np.copy(energy)            
             else:
                 total_potential += energy
             energy_list.append(energy)
-            
+
         if total == False:
             energy_array = np.array(energy_list)
-            energy_array * self.fragment_memory_scale
+            energy_array *= self.fragment_memory_scale
             return energy_array
         else:
             total_potential *= self.fragment_memory_scale
