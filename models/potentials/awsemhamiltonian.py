@@ -882,7 +882,6 @@ class AwsemHamiltonian(object):
         if not hasattr(self,"fragment_potentials"):
             raise AttributeError("fragment_potentials not initialized")
         
-        print "First cycle"        
         energy_list = []
         for idx, potential in enumerate(self.fragment_potentials):
             distances = md.compute_distances(traj, potential.atom_pair_indices, periodic=False) * 10.
