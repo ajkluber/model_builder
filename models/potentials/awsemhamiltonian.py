@@ -866,7 +866,6 @@ class AwsemHamiltonian(object):
         #compute distances
         if np.shape(distance_pairs)[0] == 0:
             raise IOError("No Distance Pairs found!")
-        print "Found %d pairs" % np.shape(distance_pairs)[0]
         distances = md.compute_distances(traj, distance_pairs, periodic=False)
         distances = distances.transpose()[:,0] * 10.#reform to NX1 array
              

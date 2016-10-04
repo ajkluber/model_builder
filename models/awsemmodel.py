@@ -31,7 +31,7 @@ class AwsemModel(Model):
             Name of the .mem file.
         
         """
-        
+        print "Adding memory file %s from %s" % (mem_file, param_path)
         self.Hamiltonian.fragment_memory_scale = fragment_memory_scale
         cwd = os.getcwd()
         os.chdir(param_path)
@@ -50,7 +50,7 @@ class AwsemModel(Model):
             weight = float(info[4])
             traj = md.load(mem_pdb)
             if length > max_frag_length and cycle:
-                print "Sliding Through Both Sequences"
+                print "Cycling Through the sequence, exceeding max_frag_length"
                 total_length = length
                 length = max_frag_length
                 go = True
@@ -63,8 +63,6 @@ class AwsemModel(Model):
                         go = False
                     count += 3
             else:   
-                if length <= max_frag_length:
-                    print "No Cycling, exceeding max_frag_length" 
                 self.Hamiltonian.add_fragment_memory(traj, protein_index, frag_index, length, weight)
         os.chdir(cwd)
     
