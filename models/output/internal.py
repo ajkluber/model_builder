@@ -71,7 +71,7 @@ class InternalFiles(object):
     
     def _generate_model_params_string(self):
         model_params_string = "# model parameters\n"
-        for eps in self.model.Hamiltonian._epsilons:
+        for idx,eps in enumerate(self.model.Hamiltonian._epsilons):
             model_params_string += "%f\n" % eps
             
         return model_params_string
