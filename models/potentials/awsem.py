@@ -366,6 +366,13 @@ class FragmentMemory(object):
         energy *= self.weight
         return energy
         
+    def dVdgamma(self, r):
+        energy = np.zeros(np.shape(r)[0])
+        for idx in range(self.num_gaussians):
+            energy -= np.exp(-((r[:,idx]-self.distances[idx])**2)/self.sigmas[idx])
+        
+        return energy    
+        
 class FragmentException(Exception):
     def __init__(self, len_distances, len_sigmas):
         message = "Length of distance lists (%d) and sigmas (%d) do not match." % (len_distances, len_sigmas)
