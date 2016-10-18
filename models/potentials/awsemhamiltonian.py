@@ -13,7 +13,7 @@ class AwsemHamiltonian(object):
 
     def __init__(self, three_bead_topology):
         """AWSEM model
-        
+
         Parameters
         ----------
         three_bead_topology : mdtraj.Topology
@@ -22,12 +22,12 @@ class AwsemHamiltonian(object):
             potentials depend on the three remaining backbone atoms (C, N, H)
             that can be geometrically interpolated. All of the indices used
             within this Hamiltonian are from the full-backbone topology.
-            
+
         """
 
-        self.gamma_residues = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 
-                               'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 
-                               'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
+        self.gamma_residues = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS',
+                               'GLN', 'GLU', 'GLY', 'HIS', 'ILE',
+                               'LEU', 'LYS', 'MET', 'PHE', 'PRO',
                                'SER', 'THR', 'TRP', 'TYR', 'VAL']
 
         self.potential_types = [ "DIRECT", "WATER", "BURIAL" ]
@@ -41,7 +41,7 @@ class AwsemHamiltonian(object):
         self._get_terminal_residues()
 
     @property
-    def top(self):  
+    def top(self):
         return self.topology
 
     def _set_charged_residues(self, charged_residues):
@@ -64,7 +64,7 @@ class AwsemHamiltonian(object):
             self._c_terminal_residues.append(chain.residue(-1).index)
 
     def _source_parameters(self, param_path):
-        self._param_path = param_path 
+        self._param_path = param_path
         self._source_gammas()
         self._source_backbone_coeff()
 
@@ -73,7 +73,7 @@ class AwsemHamiltonian(object):
 
     def _source_backbone_coeff(self):
         """Extract parameters from file
-        
+
         AWSEM grabs parameters from a file called fix_backbone_coeff.data which
         control non-residue-specific properties of the force field, such as the
         boundaries of the contact well, the equilibrium distances between atoms
@@ -83,11 +83,11 @@ class AwsemHamiltonian(object):
 
         Distance units need to be converted from Ang. to nm.
         """
-        
-        #set default parameters first, then override them with the 
+
+        #set default parameters first, then override them with the
         self._set_default_backbone_coeff()
-        
-        with open("{}/fix_backbone_coeff.data".format(self._param_path), "r") as fin: 
+
+        with open("{}/fix_backbone_coeff.data".format(self._param_path), "r") as fin:
             all_lines = fin.readlines()
             for i in range(len(all_lines)):
                 line = all_lines[i]
@@ -108,84 +108,84 @@ class AwsemHamiltonian(object):
                 # - source rama params
                 # - source dssp params
                 # - source debye params
-                
+
     def _set_default_backbone_coeff(self):
         """ Set the default backbone parameters """
-        
+
         #Burial Params
         self.potential_forms["BURIAL"] = awsem.AWSEM_POTENTIALS["BURIAL"](
-                lambda_burial=1.0, nu=4.0, rho1_lims=[0.0, 3.0], 
+                lambda_burial=1.0, nu=4.0, rho1_lims=[0.0, 3.0],
                 rho2_lims=[3.0, 6.0], rho3_lims=[6.0, 9.0])
-        
+
         #Water params
         self.potential_forms["DIRECT"] = awsem.AWSEM_POTENTIALS["DIRECT"](
                 lambda_direct=10., nu=50., r_min=0.45, r_max=0.65)
-                
+
         self.potential_forms["WATER"] = awsem.AWSEM_POTENTIALS["WATER"](
-                lambda_water=10., nu=50., nu_sigma=7.0, r_min=0.65, 
+                lambda_water=10., nu=50., nu_sigma=7.0, r_min=0.65,
                 r_max=0.95, rho_0=2.6)
-                
+
         self._contact_exclude_neighbors = 13
-        
+
         #DebyeHuckel params from amylometer branch on github
         self._debye_kplusplus = 0.1
         self._debye_kminusminus = 0.1
         self._debye_kplusminus = 0.1
         self._debye_exclude_neighbors = 10
-        
+
         self.potential_forms["DEBYE"] = awsem.AWSEM_POTENTIALS["DEBYE"](
                 k_screening=1.0, debye_length=1.0)
-        
+
         #Helix params
         self.potential_forms["HELIX"] = awsem.AWSEM_POTENTIALS["HELIX"](
                 lambda_helix=1.5, gamma_protein=2.0,
                 gamma_water=-1.0, nu=70., nu_sigma=7.0, rho_0=3.0,
                 r_ON=.298, r_OH=.206, sigma_ON=0.068, sigma_OH=0.076)
-        self.res_helix_fai = [0.77, 0.68, 0.07, 0.15, 0.23, 0.33, 0.27, 
-                0.0, 0.06, 0.23, 0.62, 0.65, 0.50, 0.41, -3.0, 0.35, 
+        self.res_helix_fai = [0.77, 0.68, 0.07, 0.15, 0.23, 0.33, 0.27,
+                0.0, 0.06, 0.23, 0.62, 0.65, 0.50, 0.41, -3.0, 0.35,
                 0.11, 0.45, 0.17, 0.14]
         self._pro_acceptor_flag = 0
-        self._pro_acceptor_fai = 0.0 
-        
+        self._pro_acceptor_fai = 0.0
+
         #Rama params
         rama_fields = np.array([ [1.3149, 15.398, 0.15, 1.74, 0.65, -2.138],
-                [1.32016, 49.0521, 0.25, 1.265, 0.45, 0.318], 
-                [1.0264, 49.0954, 0.65, -1.041, 0.25, -0.78] ]) 
-        
+                [1.32016, 49.0521, 0.25, 1.265, 0.45, 0.318],
+                [1.0264, 49.0954, 0.65, -1.041, 0.25, -0.78] ])
+
         W = rama_fields[:, 0]
-        sigma = rama_fields[:, 1] 
+        sigma = rama_fields[:, 1]
         omega_phi = rama_fields[:, 2]
         phi0 = -rama_fields[:, 3]
         omega_psi = rama_fields[:, 4]
         psi0 = -rama_fields[:, 5]
-        
+
         self.potential_forms["RAMA"] = awsem.AWSEM_POTENTIALS["RAMA"](
-                lambda_rama=2.0, W=W, sigma=sigma, 
-                omega_phi=omega_phi, phi0=phi0, 
+                lambda_rama=2.0, W=W, sigma=sigma,
+                omega_phi=omega_phi, phi0=phi0,
                 omega_psi=omega_psi, psi0=psi0)
-                
+
         alpha = [2.0, 419.0, 1.0, 0.995, 1.0, 0.820]
         beta = [2.0, 15.398, 1.0, 2.25, 1.0, -2.16]
 
         self.potential_forms["RAMA_ALPHA"] = awsem.AWSEM_POTENTIALS["RAMA"](
-                lambda_rama=2.0, W=alpha[0], sigma=alpha[1], 
-                omega_phi=alpha[2], phi0=-alpha[3], 
+                lambda_rama=2.0, W=alpha[0], sigma=alpha[1],
+                omega_phi=alpha[2], phi0=-alpha[3],
                 omega_psi=alpha[4], psi0=-alpha[5])
 
         self.potential_forms["RAMA_BETA"] = awsem.AWSEM_POTENTIALS["RAMA"](
-                lambda_rama=2.0, W=beta[0], sigma=beta[1], 
-                omega_phi=beta[2], phi0=-beta[3], 
+                lambda_rama=2.0, W=beta[0], sigma=beta[1],
+                omega_phi=beta[2], phi0=-beta[3],
                 omega_psi=beta[4], psi0=-beta[5])
-                
+
         #Rama_P params
         rama_fields = np.array([ [0.0, 0.0, 1.0, 0.0, 1.0, 0.0],
                 [2.17, 105.52, 1.0, 1.153, 0.15, -2.4],
                 [2.15, 109.09, 1.0, 0.95, 0.15, 0.218] ])
         self.potential_forms["RAMA_PROLINE"] = awsem.AWSEM_POTENTIALS["RAMA"](
-                W=W, sigma=sigma, omega_phi=omega_phi, phi0=phi0, 
+                W=W, sigma=sigma, omega_phi=omega_phi, phi0=phi0,
                 omega_psi=omega_psi, psi0=psi0)
-        
-        
+
+
     def _source_burial_params(self, lines):
         """Parameterize the form of the burial interaction"""
 
@@ -196,7 +196,7 @@ class AwsemHamiltonian(object):
         rho3_lims = [ float(x) for x in lines[4].split() ]
 
         self.potential_forms["BURIAL"] = awsem.AWSEM_POTENTIALS["BURIAL"](
-                lambda_burial=lambda_burial, nu=nu, rho1_lims=rho1_lims, 
+                lambda_burial=lambda_burial, nu=nu, rho1_lims=rho1_lims,
                 rho2_lims=rho2_lims, rho3_lims=rho3_lims)
 
     def _source_gammas(self):
@@ -220,9 +220,9 @@ class AwsemHamiltonian(object):
                     gamma_water[i, j] = gamma_water[j, i] = float(line.split()[1])
                     gamma_protein[i, j] = gamma_protein[j, i] = float(line.split()[0])
 
-        self.gamma_direct = gamma_direct 
-        self.gamma_water = gamma_water 
-        self.gamma_protein = gamma_protein 
+        self.gamma_direct = gamma_direct
+        self.gamma_water = gamma_water
+        self.gamma_protein = gamma_protein
 
     def _source_water_params(self, lines):
         """Parameterize the form of the direct and water interaction"""
@@ -236,11 +236,11 @@ class AwsemHamiltonian(object):
         water_r_min, water_r_max, dum = [ float(x)/10. for x in lines[6].split() ]
 
         self.potential_forms["DIRECT"] = awsem.AWSEM_POTENTIALS["DIRECT"](
-                lambda_direct=lambda_direct, nu=nu, 
+                lambda_direct=lambda_direct, nu=nu,
                 r_min=direct_r_min, r_max=direct_r_max)
 
         self.potential_forms["WATER"] = awsem.AWSEM_POTENTIALS["WATER"](
-                lambda_water=lambda_water, nu=nu, nu_sigma=nu_sigma, 
+                lambda_water=lambda_water, nu=nu, nu_sigma=nu_sigma,
                 r_min=water_r_min, r_max=water_r_max, rho_0=rho_0)
 
     def _source_debye_params(self, lines):
@@ -261,13 +261,13 @@ class AwsemHamiltonian(object):
         gamma_protein, gamma_water = [ float(x) for x in lines[1].split() ]
         nu, nu_sigma = [ float(x) for x in lines[2].split() ]
         nu *= 10.
-        rho_0 = float(lines[3]) 
-        helix_i_diff = int(lines[4]) 
+        rho_0 = float(lines[3])
+        helix_i_diff = int(lines[4])
         helix_cutoff = float(lines[5])/10.
         self.res_helix_fai = [ float(x) for x in lines[7].split() ]
         pro_vals = [ x for x in lines[8].split() ]
         self._pro_acceptor_flag = int(pro_vals[0])
-        self._pro_acceptor_fai = float(pro_vals[0]) 
+        self._pro_acceptor_fai = float(pro_vals[0])
         sigma_OH, sigma_ON = [ float(x)/10. for x in lines[9].split() ]
         r_OH, r_ON = [ float(x)/10. for x in lines[10].split() ]
 
@@ -283,29 +283,29 @@ class AwsemHamiltonian(object):
         n_rama_fields = int(lines[1])
         rama_fields = np.array([ [ float(x) for x in line_temp.split() ] for line_temp in lines[2:5] ])
         W = rama_fields[:, 0]
-        sigma = rama_fields[:, 1] 
+        sigma = rama_fields[:, 1]
         omega_phi = rama_fields[:, 2]
         phi0 = -rama_fields[:, 3]
         omega_psi = rama_fields[:, 4]
         psi0 = -rama_fields[:, 5]
 
         self.potential_forms["RAMA"] = awsem.AWSEM_POTENTIALS["RAMA"](
-                lambda_rama=lambda_rama, W=W, sigma=sigma, 
-                omega_phi=omega_phi, phi0=phi0, 
+                lambda_rama=lambda_rama, W=W, sigma=sigma,
+                omega_phi=omega_phi, phi0=phi0,
                 omega_psi=omega_psi, psi0=psi0)
 
         # parameterize secondary structure bias terms
-        alpha = [ float(x) for x in lines[5].split() ] 
-        beta = [ float(x) for x in lines[6].split() ] 
+        alpha = [ float(x) for x in lines[5].split() ]
+        beta = [ float(x) for x in lines[6].split() ]
 
         self.potential_forms["RAMA_ALPHA"] = awsem.AWSEM_POTENTIALS["RAMA"](
-                lambda_rama=lambda_rama, W=alpha[0], sigma=alpha[1], 
-                omega_phi=alpha[2], phi0=-alpha[3], 
+                lambda_rama=lambda_rama, W=alpha[0], sigma=alpha[1],
+                omega_phi=alpha[2], phi0=-alpha[3],
                 omega_psi=alpha[4], psi0=-alpha[5])
 
         self.potential_forms["RAMA_BETA"] = awsem.AWSEM_POTENTIALS["RAMA"](
-                lambda_rama=lambda_rama, W=beta[0], sigma=beta[1], 
-                omega_phi=beta[2], phi0=-beta[3], 
+                lambda_rama=lambda_rama, W=beta[0], sigma=beta[1],
+                omega_phi=beta[2], phi0=-beta[3],
                 omega_psi=beta[4], psi0=-beta[5])
 
     def _source_rama_proline_params(self, lines):
@@ -314,14 +314,14 @@ class AwsemHamiltonian(object):
         n_rama_fields = int(lines[0])
         rama_fields = np.array([ [ float(x) for x in line_temp.split() ] for line_temp in lines[1:4] ])
         W = rama_fields[:, 0]
-        sigma = rama_fields[:, 1] 
+        sigma = rama_fields[:, 1]
         omega_phi = rama_fields[:, 2]
         phi0 = -rama_fields[:, 3]
         omega_psi = rama_fields[:, 4]
         psi0 = -rama_fields[:, 5]
 
         self.potential_forms["RAMA_PROLINE"] = awsem.AWSEM_POTENTIALS["RAMA"](
-                W=W, sigma=sigma, omega_phi=omega_phi, phi0=phi0, 
+                W=W, sigma=sigma, omega_phi=omega_phi, phi0=phi0,
                 omega_psi=omega_psi, psi0=psi0)
 
 #    def _default_parameters(self):
@@ -332,25 +332,25 @@ class AwsemHamiltonian(object):
 #        self.potential_forms["WATER"] = awsem.AWSEM_POTENTIALS["WATER"]()
 #        self.potential_forms["HELIX"] = awsem.AWSEM_POTENTIALS["HELIX"]()
 #        self.potential_forms["RAMA"] = awsem.AWSEM_POTENTIALS["RAMA"]()
-#        
+#
 #        self.potential_forms["RAMA_ALPHA"] = awsem.AWSEM_POTENTIALS["RAMA"](
-#                lambda_rama=lambda_rama, W=alpha[0], sigma=alpha[1], 
-#                omega_phi=alpha[2], phi0=-alpha[3], 
+#                lambda_rama=lambda_rama, W=alpha[0], sigma=alpha[1],
+#                omega_phi=alpha[2], phi0=-alpha[3],
 #                omega_psi=alpha[4], psi0=-alpha[5])
 #
 #        self.potential_forms["RAMA_BETA"] = awsem.AWSEM_POTENTIALS["RAMA"](
-#                lambda_rama=lambda_rama, W=beta[0], sigma=beta[1], 
-#                omega_phi=beta[2], phi0=-beta[3], 
+#                lambda_rama=lambda_rama, W=beta[0], sigma=beta[1],
+#                omega_phi=beta[2], phi0=-beta[3],
 #                omega_psi=beta[4], psi0=-beta[5])
 #
 #        self.potential_forms["RAMA_PROLINE"] = awsem.AWSEM_POTENTIALS["RAMA"](
-#                W=W, sigma=sigma, omega_phi=omega_phi, phi0=phi0, 
+#                W=W, sigma=sigma, omega_phi=omega_phi, phi0=phi0,
 #                omega_psi=omega_psi, psi0=psi0)
 
     def _set_topology(self, topology):
         """Set the topology used to construct Hamiltonian parameters
 
-        
+
         Parameters
         ----------
         topology : mdtraj.Topology
@@ -367,11 +367,11 @@ class AwsemHamiltonian(object):
 
     def _parameterize(self):
         """Parameterize the potential terms based off the current topology
-        
+
         Extract the residue identites and atomic indices from the topology in
         order to assign the transferable parameters.
         """
-        
+
         self._parameterize_debye()
         self._parameterize_rama()
         self._parameterize_burial()
@@ -495,12 +495,12 @@ class AwsemHamiltonian(object):
         helix_fai_4 = []
         # indices participating in alpha-helical hydrogen bonds
         for i in range(self.top.n_residues - 4):
-            resi = self.top.residue(i) 
-            resi_4 = self.top.residue(i + 4) 
+            resi = self.top.residue(i)
+            resi_4 = self.top.residue(i + 4)
             if resi.chain.index == resi_4.chain.index:
                 # Get donor acceptor indices
                 O_idx = self.top.select("resid {} and name O".format(resi.index))[0]
-                H_idx = self.top.select("resid {} and name H".format(resi_4.index))[0] 
+                H_idx = self.top.select("resid {} and name H".format(resi_4.index))[0]
                 N_idx = self.top.select("resid {} and name N".format(resi_4.index))[0]
                 helix_res_idxs.append([resi.index, resi_4.index])
                 helix_ON_pairs.append([O_idx, N_idx])
@@ -532,10 +532,10 @@ class AwsemHamiltonian(object):
         phi_idxs = [] # C_i-1 N_i CA_i C_i
         psi_idxs = [] # N_i CA_i C_i N_i+1
         pro_phi_idxs = []
-        pro_psi_idxs = [] 
+        pro_psi_idxs = []
         for chain in self.top.chains:
             for res in chain.residues:
-                if (res.index in [chain.residue(0).index, 
+                if (res.index in [chain.residue(0).index,
                     chain.residue(chain.n_residues - 1).index]) or (res.name == "GLY"):
                     # We skip terminal residues and glycine
                     continue
@@ -545,12 +545,12 @@ class AwsemHamiltonian(object):
 
                     if res.name == "PRO":
                         # add to proline dihedrals
-                        pro_phi_idxs.append(res_phi_idxs) 
-                        pro_psi_idxs.append(res_psi_idxs) 
+                        pro_phi_idxs.append(res_phi_idxs)
+                        pro_psi_idxs.append(res_psi_idxs)
                     else:
                         # add to regular dihedrals
-                        phi_idxs.append(res_phi_idxs) 
-                        psi_idxs.append(res_psi_idxs) 
+                        phi_idxs.append(res_phi_idxs)
+                        psi_idxs.append(res_psi_idxs)
 
         self._phi_idxs = np.array(phi_idxs)
         self._psi_idxs = np.array(psi_idxs)
@@ -588,7 +588,7 @@ class AwsemHamiltonian(object):
                 idx1 = traj.top.select("resid {} and name CA".format(res.index))
             else:
                 idx1 = traj.top.select("resid {} and name CB".format(res.index))
-            
+
             # If terminal
             if res.index in self._n_terminal_residues:
                 pairs = np.array([ [idx1, atom.index] for atom in traj.top.atoms \
@@ -611,13 +611,13 @@ class AwsemHamiltonian(object):
 
     def calculate_burial_energy(self, traj, local_density=None, total=True):
         """Calculate the one-body burial potential
-        
+
         Parameters
         ----------
         traj : mdtraj.Trajectory
             Trajectory to calculate energy over.
         local_density : np.ndarray (traj.n_frames, traj.n_residues)
-            Local protein density around each residue for all frames in traj. 
+            Local protein density around each residue for all frames in traj.
         sum : opt, bool
             If true (default) return the sum of the burial potentials. If
             false, return the burial energy of each individual residue.
@@ -645,7 +645,7 @@ class AwsemHamiltonian(object):
 
     def calculate_direct_energy(self, traj, total=True):
         """Calculate the two-body direct contact potential
-        
+
         Parameters
         ----------
         traj : mdtraj.Trajectory
@@ -654,7 +654,7 @@ class AwsemHamiltonian(object):
             If true (default) return the sum of the burial potentials. If
             false, return the burial energy of each individual residue.
         """
-        direct = self.potential_forms["DIRECT"] 
+        direct = self.potential_forms["DIRECT"]
 
         bb_traj = self.backbone_mapping.map_traj(traj)
         r = md.compute_distances(bb_traj, self._contact_pairs)
@@ -663,27 +663,30 @@ class AwsemHamiltonian(object):
             Vdirect = np.zeros(bb_traj.n_frames, float)
         else:
             Vdirect = np.zeros((bb_traj.n_frames, self.n_pairs), float)
-        
+
         for i in range(self.n_pairs):
             gamma_direct = self.gamma_direct[self._contact_gamma_idxs[i,0], self._contact_gamma_idxs[i,1]]
             if total:
                 Vdirect += direct.V(r[:,i], gamma_direct)
             else:
                 Vdirect[:,i] = direct.V(r[:,i], gamma_direct)
-        return Vdirect 
+        return Vdirect
 
-    def calculate_water_energy(self, traj, local_density=None, total=True):
+    def calculate_water_energy(self, traj, local_density=None, total=True, split=False):
         """Calculate the one-body burial potential
-        
+
         Parameters
         ----------
         traj : mdtraj.Trajectory
             Trajectory to calculate energy over.
-        sum : opt, bool
+        total : opt, bool
             If true (default) return the sum of the burial potentials. If
             false, return the burial energy of each individual residue.
+        split : opt, bool
+            If False (default) do nothing. If True, return individual energy
+            values for water term and protein term.
         """
-        water = self.potential_forms["WATER"] 
+        water = self.potential_forms["WATER"]
 
         bb_traj = self.backbone_mapping.map_traj(traj)
         r = md.compute_distances(bb_traj, self._contact_pairs)
@@ -697,21 +700,33 @@ class AwsemHamiltonian(object):
             Vwater = np.zeros(bb_traj.n_frames, float)
         else:
             Vwater = np.zeros((bb_traj.n_frames, self.n_pairs), float)
-        
+
+        if split:
+            split_water = np.zeros((bb_traj.n_frames, self.n_pairs), float)
+            split_protein = np.zeros((bb_traj.n_frames, self.n_pairs), float)
+
         for i in range(self.n_pairs):
             rhoi = res_local_density[:,self._contact_res_idxs[i,0]]
             rhoj = res_local_density[:,self._contact_res_idxs[i,1]]
             gamma_water = self.gamma_water[self._contact_gamma_idxs[i,0], self._contact_gamma_idxs[i,1]]
             gamma_protein = self.gamma_protein[self._contact_gamma_idxs[i,0], self._contact_gamma_idxs[i,1]]
-            if total:
-                Vwater += water.V(r[:,i], rhoi, rhoj, gamma_water, gamma_protein)
+            if not split:
+                if total:
+                    Vwater += water.V(r[:,i], rhoi, rhoj, gamma_water, gamma_protein)
+                else:
+                    Vwater[:,i] = water.V(r[:,i], rhoi, rhoj, gamma_water, gamma_protein)
             else:
-                Vwater[:,i] = water.V(r[:,i], rhoi, rhoj, gamma_water, gamma_protein)
-        return Vwater 
+                split_water[:,i] = gamma_water * self.water.dVdgamma_water(r[:,i], rhoi, rhoj)
+                split_protein[:,i] = gamma_protein * self.water.dVdgamma_protein(r[:,i], rhoi, rhoj)
+
+        if split:
+            return split_water, split_protein
+        else:
+            return Vwater
 
     def calculate_debye_energy(self, traj, total=True):
         """Calculate the one-body burial potential
-        
+
         Parameters
         ----------
         traj : mdtraj.Trajectory
@@ -743,13 +758,13 @@ class AwsemHamiltonian(object):
 
     def calculate_helix_energy(self, traj, local_density=None, total=True):
         """Calculate the one-body burial potential
-        
+
         Parameters
         ----------
         traj : mdtraj.Trajectory
             Trajectory to calculate energy over.
         local_density : np.ndarray (traj.n_frames, traj.n_residues)
-            Local protein density around each residue for all frames in traj. 
+            Local protein density around each residue for all frames in traj.
         sum : opt, bool
             If true (default) return the sum of the burial potentials. If
             false, return the burial energy of each individual residue.
@@ -784,7 +799,7 @@ class AwsemHamiltonian(object):
 
     def calculate_rama_energy(self, traj, total=True):
         """Calculate the one-body burial potential
-        
+
         Parameters
         ----------
         traj : mdtraj.Trajectory
@@ -822,7 +837,7 @@ class AwsemHamiltonian(object):
                 else:
                     Vrama[:,self.n_phi + i] = pro_rama.V(pro_phi[:,i], pro_psi[:,i])
         return Vrama
-    
+
     def add_fragment_memory(self, traj, protein_index, frag_index, length, weight):
         #construct list of atoms from the fragment index
         fragment_top = traj.top
@@ -831,17 +846,17 @@ class AwsemHamiltonian(object):
             for atom in fragment_top.residue(idx).atoms:
                 if atom.name in ["CA", "CB"]:
                     fragment_atom_list.append(atom)
-        
+
         protein_top = self.three_bead_topology #traj files write three beads
         protein_atom_list = []
         for idx in np.arange(protein_index, protein_index+length):
             for atom in protein_top.residue(idx).atoms:
                 if atom.name in ["CA", "CB"]:
                     protein_atom_list.append(atom)
-        
+
         #check the lists, make sure the sequences match
         assert len(protein_atom_list) == len(fragment_atom_list)
-        
+
         #generate a list of pairs of atoms and indices
         fragment_atom_pairs = []
         distance_pairs = []
@@ -862,35 +877,35 @@ class AwsemHamiltonian(object):
                     distance_pairs.append([frag_atm1.index,frag_atm2.index])
                 else:
                     pass
-                    
+
         #compute distances
         if np.shape(distance_pairs)[0] == 0:
             raise IOError("No Distance Pairs found!")
         distances = md.compute_distances(traj, distance_pairs, periodic=False)
         distances = distances.transpose()[:,0] * 10.#reform to NX1 array
-             
+
         #add to the Hamiltonian, each fragment term to a list
         fragment = awsem.AWSEM_POTENTIALS["FRAGMENT"](protein_atom_pairs, distances, weight=weight)
-        
+
         try:
             self.fragment_potentials.append(fragment)
         except AttributeError:
             self.fragment_potentials = [fragment]
-    
+
     def calculate_fragment_memory_potential(self, traj, total=True):
         if not hasattr(self,"fragment_potentials"):
             raise AttributeError("fragment_potentials not initialized")
-        
+
         energy_list = []
         for idx, potential in enumerate(self.fragment_potentials):
             distances = md.compute_distances(traj, potential.atom_pair_indices, periodic=False) * 10.
-            energy = potential.V(distances)            
+            energy = potential.V(distances)
             if idx == 0:
-                total_potential = np.copy(energy)            
+                total_potential = np.copy(energy)
             else:
                 total_potential += energy
             energy_list.append(energy)
-        
+
         if total == False:
             energy_array = np.array(energy_list)
             energy_array *= self.fragment_memory_scale
@@ -898,7 +913,7 @@ class AwsemHamiltonian(object):
         else:
             total_potential *= self.fragment_memory_scale
             return total_potential
-        
+
     def calculate_energy(self):
         pass
 
@@ -907,6 +922,3 @@ class AwsemHamiltonian(object):
 
 if __name__ == "__main__":
     pass
-    
-    
-    
