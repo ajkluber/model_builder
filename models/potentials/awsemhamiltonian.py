@@ -716,8 +716,8 @@ class AwsemHamiltonian(object):
                 else:
                     Vwater[:,i] = water.V(r[:,i], rhoi, rhoj, gamma_water, gamma_protein)
             else:
-                split_water[:,i] = gamma_water * self.water.dVdgamma_water(r[:,i], rhoi, rhoj)
-                split_protein[:,i] = gamma_protein * self.water.dVdgamma_protein(r[:,i], rhoi, rhoj)
+                split_water[:,i] = -water.lambda_water * gamma_water * water.dVdgamma_water(r[:,i], rhoi, rhoj)
+                split_protein[:,i] = -water.lambda_water * gamma_protein * water.dVdgamma_protein(r[:,i], rhoi, rhoj)
 
         if split:
             return split_water, split_protein
