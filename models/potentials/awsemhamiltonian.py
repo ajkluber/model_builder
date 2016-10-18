@@ -890,7 +890,7 @@ class AwsemHamiltonian(object):
             else:
                 total_potential += energy
             energy_list.append(energy)
-
+        
         if total == False:
             energy_array = np.array(energy_list)
             energy_array *= self.fragment_memory_scale
