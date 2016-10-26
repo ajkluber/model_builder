@@ -643,7 +643,7 @@ class AwsemHamiltonian(object):
 
         return Vburial
 
-    def calculate_direct_energy(self, traj, total=True):
+    def calculate_direct_energy(self, traj, total=True, dgamma=False):
         """Calculate the two-body direct contact potential
 
         Parameters
@@ -665,11 +665,15 @@ class AwsemHamiltonian(object):
             Vdirect = np.zeros((bb_traj.n_frames, self.n_pairs), float)
 
         for i in range(self.n_pairs):
-            gamma_direct = self.gamma_direct[self._contact_gamma_idxs[i,0], self._contact_gamma_idxs[i,1]]
-            if total:
-                Vdirect += direct.V(r[:,i], gamma_direct)
+            if dgamma:
+                Vpiece = direct.dVdgamma(r[:,i])
             else:
-                Vdirect[:,i] = direct.V(r[:,i], gamma_direct)
+                gamma_direct = self.gamma_direct[self._contact_gamma_idxs[i,0], self._contact_gamma_idxs[i,1]]
+                Vpiece = direct.V(r[:,i], gamma_direct)
+            if total:
+                Vdirect += Vpiece
+            else:
+                Vdirect[:,i] = Vpiece
         return Vdirect
 
     def calculate_water_energy(self, traj, local_density=None, total=True, split=False):
