@@ -650,9 +650,13 @@ class AwsemHamiltonian(object):
         ----------
         traj : mdtraj.Trajectory
             Trajectory to calculate energy over.
-        sum : opt, bool
+        total : opt, bool
             If true (default) return the sum of the burial potentials. If
             false, return the burial energy of each individual residue.
+        dgamma : opt, bool
+            If true, return the dVdgamma value. Default False. Warning,
+            this will apply even when total=True, this could lead to
+            meaningless results.
         """
         direct = self.potential_forms["DIRECT"]
 
@@ -676,7 +680,7 @@ class AwsemHamiltonian(object):
                 Vdirect[:,i] = Vpiece
         return Vdirect
 
-    def calculate_water_energy(self, traj, local_density=None, total=True, split=False):
+    def calculate_water_energy(self, traj, local_density=None, total=True, split=False, dgamma=False):
         """Calculate the one-body burial potential
 
         Parameters
@@ -689,6 +693,8 @@ class AwsemHamiltonian(object):
         split : opt, bool
             If False (default) do nothing. If True, return individual energy
             values for water term and protein term.
+        dgamma : opt, bool
+            If split, then it returns the individual dgamma values
         """
         water = self.potential_forms["WATER"]
 
@@ -720,8 +726,12 @@ class AwsemHamiltonian(object):
                 else:
                     Vwater[:,i] = water.V(r[:,i], rhoi, rhoj, gamma_water, gamma_protein)
             else:
-                split_water[:,i] = -water.lambda_water * gamma_water * water.dVdgamma_water(r[:,i], rhoi, rhoj)
-                split_protein[:,i] = -water.lambda_water * gamma_protein * water.dVdgamma_protein(r[:,i], rhoi, rhoj)
+                if dgamma:
+                    split_water[:,i] = -water.lambda_water * water.dVdgamma_water(r[:,i], rhoi, rhoj)
+                    split_protein[:,i] = -water.lambda_water * water.dVdgamma_protein(r[:,i], rhoi, rhoj)
+                else:
+                    split_water[:,i] = -water.lambda_water * gamma_water * water.dVdgamma_water(r[:,i], rhoi, rhoj)
+                    split_protein[:,i] = -water.lambda_water * gamma_protein * water.dVdgamma_protein(r[:,i], rhoi, rhoj)
 
         if split:
             return split_water, split_protein
@@ -897,6 +907,20 @@ class AwsemHamiltonian(object):
             self.fragment_potentials = [fragment]
 
     def calculate_fragment_memory_potential(self, traj, total=True, dgamma=False):
+        """Calculate the two-body direct contact potential
+
+        Parameters
+        ----------
+        traj : mdtraj.Trajectory
+            Trajectory to calculate energy over.
+        total : opt, bool
+            If true (default) return the sum of the burial potentials. If
+            false, return the burial energy of each individual residue.
+        dgamma : opt, bool
+            If true, return the dVdgamma value. Default False. Warning,
+            this will apply even when total=True, this could lead to
+            meaningless results.
+        """
         if not hasattr(self,"fragment_potentials"):
             raise AttributeError("fragment_potentials not initialized")
 
