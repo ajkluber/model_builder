@@ -138,7 +138,7 @@ def _load_sbm(modelopts):
             model.Hamiltonian._add_pairs(pairopts)
     else:
         #use the modelopts["pairs"] file
-        pairs = np.loadtxt("%s" % modelopts["pairs_file"],dtype=int) - 1
+        pairs = np.loadtxt("%s" % modelopts["pairs"],dtype=int) - 1
         # For removing the unnecessary columns from the smog contact map output
         if len(pairs[0,:]) == 4:
             pairs = pairs[:,np.array([1,3])]
