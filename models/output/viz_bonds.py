@@ -28,9 +28,9 @@ $sel delete'''.format(molid, idx1, idx2)
         fout.write(tclstring)
 
 def write_bonds_conect(bond_idxs, outfile="conect.pdb"):
-    
+
     bond_idxs = check_bond_idxs(bond_idxs)
- 
+
     conectstring = ''
     for idx1, idx2 in bond_idxs:
         conectstring += "CONECT{:5d}{:5d}\n".format(idx1, idx2)
@@ -48,7 +48,9 @@ def check_bond_idxs(thing):
             raise IOError("array must be size (n_bonds, 2). Inputted: {}".format(topology.shape))
         else:
             bond_idxs = thing
-         
+    else:
+        raise IOError("Invalid Input Type for Writing Out Bonds. Must be: mdtraj.Topology, mdtraj.Trajectory, or numpy.ndarray of shape (N,2)")
+
     return bond_idxs
 
 if __name__ == "__main__":
