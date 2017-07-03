@@ -2,7 +2,7 @@ import numpy as np
 
 import mdtraj as md
 
-from model_builder.models.structure.mappings import CalphaMapping
+from model_builder.models.mappings.calpha import CalphaMapping
 
 if __name__ == "__main__":
     int_type = "LJ12GAUSSIAN"

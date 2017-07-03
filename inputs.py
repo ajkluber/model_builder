@@ -5,9 +5,10 @@ import re
 import os
 import shutil
 import ConfigParser
-import mdtraj
+import mdtraj as md
 
 from models import StructureBasedModel as SBM
+from models import AwsemModel as AwsemModel
 
 #############################################################################
 # Helper functions to load in models from .ini files
@@ -53,14 +54,43 @@ def load_model(name,dry_run=False):
     #Load options and construct topology
     modelopts, fittingopts = load_config(name)
     modelopts["dry_run"] = dry_run
-    top = mdtraj.load(modelopts["topology"])
+    if modelopts["bead_repr"] in ["CA", "CACB"]:
+        model = _load_sbm(modelopts)
+    elif modelopts["bead_repr"] in ["awsem"]:
+        model = _load_awsem(modelopts)     
+           
+    return model,fittingopts
+
+def _load_awsem(modelopts):
+    traj = md.load(modelopts["topology"])
+    if "awsem_param_path" in modelopts:
+        awsem_param_path = modelopts["awsem_param_path"]
+    else:
+        raise IOError("awsem_param_path must be specified in .ini file")
+    model = AwsemModel(traj.top)
+    model.source_parameters(awsem_param_path)
+    model.set_starting_conf(model.map_traj(traj))
+    
+    if modelopts["disulfides"] is not None:
+        disulf = modelopts["disulfides"]
+        disulfides = []
+        for i in range(len(disulf)/2):
+            disulfides.append([disulf[2*i], disulf[2*i+1]])
+        model.mapping.add_disulfides(disulfides)
+    
+    return model
+    
+    
+def _load_sbm(modelopts):
+    
+    top = md.load(modelopts["topology"])
     model = SBM(top.topology, bead_repr=modelopts["bead_repr"])
     
     #load a reference set to base a model off of
     if modelopts["reference"] is None:
         traj = top
     else:
-        traj = mdtraj.load(modelopts["reference"])
+        traj = md.load(modelopts["reference"])
     model.set_reference(traj)
     
     ##add backbone and disulfides
@@ -108,7 +138,12 @@ def load_model(name,dry_run=False):
             model.Hamiltonian._add_pairs(pairopts)
     else:
         #use the modelopts["pairs"] file
-        model.add_pairs(np.loadtxt(modelopts["pairs"]).astype(int) - 1)
+        pairs = np.loadtxt("%s" % modelopts["pairs"],dtype=int) - 1
+        # For removing the unnecessary columns from the smog contact map output
+        if len(pairs[0,:]) == 4:
+            pairs = pairs[:,np.array([1,3])]
+
+        model.add_pairs(pairs)
         model.add_sbm_contacts()
         
     #Assign epsilons for fitting. Default: All pair interactions
@@ -119,7 +154,7 @@ def load_model(name,dry_run=False):
     
     model.assign_fitted_epsilons(parameters_to_fit)
     
-    return model,fittingopts
+    return model
 
 def load_models(names,dry_run=False):
     """Create models from saved options in <name>.ini"""

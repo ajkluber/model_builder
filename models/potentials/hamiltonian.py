@@ -33,7 +33,6 @@ class Hamiltonian(object):
         self._pairs = []
         self._default_parameters = {}
         self._default_potentials = {}
-        self._epsilons = []
 
     def __str__(self):
         return "<%s>" % (self._string_summary_basic())
@@ -96,7 +95,13 @@ class Hamiltonian(object):
         pots = self._bonds + self._angles + self._dihedrals + self._pairs
         for pot in pots:
             yield pot 
-
+    @property
+    def _epsilons(self):
+        eps = []
+        for p in self._pairs:
+            eps.append(p.eps)
+        return eps
+        
     def describe(self):
         """Describe the terms of the Hamiltonian"""
         description = ""
@@ -133,7 +138,6 @@ class Hamiltonian(object):
         p = pairwise.PAIR_POTENTIALS[code](atm1, atm2, *args)
         if p not in self._pairs:
             self._pairs.append(p)
-            self._epsilons.append(p.eps)
         else:
             util.interaction_exists_warning(p)
 
@@ -177,6 +181,28 @@ class Hamiltonian(object):
     def _pair_idxs(self):
         """Indices of atoms in pair interactions"""
         return np.array([[pair.atmi.index, pair.atmj.index] for pair in self.pairs ])
+
+    def add_custom_pair(self, atm1, atm2, func, *args):
+        """Add a custom pair interaction function
+
+        Parameters
+        ----------
+        atm1 : object, mdtraj.atom
+
+        atm2 : object
+
+        func : function
+            A function that has the pairwise distance as its first argument and
+            remaining parameters given by args
+        *args : 
+            Remaining arguments that paraemterize the imputted function.
+        """
+
+        p = pairwise.PAIR_POTENTIALS["CUSTOM"](atm1, atm2, func, *args)
+        if p not in self._pairs:
+            self._pairs.append(p)
+        else:
+            util.interaction_exists_warning(p)
 
     def calc_bond_energy(self, traj, sum=True):
         """Energy for bond interactions

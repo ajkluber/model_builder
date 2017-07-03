@@ -17,10 +17,10 @@ def sigma_water(rhoi, rhoj, nu_sigma, rho_0):
 class Spring(object):
     # NOT TESTED
     def __init__(self, k, r0):
-        """Harmonic potential 
-        
+        """Harmonic potential
+
         Used for V_connectivity and V_chain to maintain backbone geometry.
-        
+
         Parameters
         ----------
         k : float
@@ -63,19 +63,19 @@ class Chi(object):
         """
 
         v1 = CA_xyz - C_xyz
-        v2 = N_xyz - CA_xyz 
+        v2 = N_xyz - CA_xyz
         v3 = CA_xyz - CB_xyz
         chi = np.dot(np.cross(v1, v2), v3) # Does this work vectorized?
         return self.lambda_chi*((chi - chi_0)**2)
 
 class Rama(object):
 
-    def __init__(self, lambda_rama=2., 
+    def __init__(self, lambda_rama=2.,
             W=[1.3149, 1.32016, 1.0264], sigma=[15.398, 49.0521, 49.0954],
-            omega_phi=[0.15, 0.25, 0.65], phi0=[1.74, 1.265, -1.041], 
+            omega_phi=[0.15, 0.25, 0.65], phi0=[1.74, 1.265, -1.041],
             omega_psi=[0.65, 0.45, 0.25], psi0=[-2.138, 0.318, -0.78]):
         """Ramanchandran interaction
-    
+
         Parameters
         ----------
         lambda_direct : opt, float
@@ -106,12 +106,12 @@ class Helix(object):
             gamma_protein=2., gamma_water=-1., nu=70., nu_sigma=7.,
             rho_0=3., r_ON=0.298, r_OH=0.206, sigma_ON=0.068, sigma_OH=0.076):
         """Alpha helical interaction
-    
+
         Parameters
         ----------
         lambda_direct : opt, float
             The overall strength of the term in the Hamiltonian.
-        
+
         """
 
         self.lambda_helix = lambda_helix
@@ -129,21 +129,21 @@ class Helix(object):
         return (fai + fai_4)*self.gauss_well(r_ON, r_OH)*(
                 self.gamma_water*sigma_water(rhoi, rhoj, self.nu_sigma, self.rho_0) +\
                 self.gamma_protein*(1. - sigma_water(rhoi, rhoj, self.nu_sigma, self.rho_0)))
-    
-    def gauss_well(self, r_ON, r_OH):  
+
+    def gauss_well(self, r_ON, r_OH):
         return -self.lambda_helix*np.exp(-(((r_ON - self.r_ON_0)**2)/(2.*(self.sigma_ON**2))) -\
                                           (((r_OH - self.r_OH_0)**2)/(2.*(self.sigma_OH**2))))
 
 ##############################################################################
 # Contact terms
 ##############################################################################
-    
+
 class Burial(object):
     def __init__(self, lambda_burial=1., nu=4., rho1_lims=[0.0, 3.], rho2_lims=[3., 6.], rho3_lims=[6., 9.]):
         """One-body burial potential
 
         The burial potential assigns an energy for being in (1) low, (2)
-        medium, or (3) high protein density. 
+        medium, or (3) high protein density.
 
         Parameters
         ----------
@@ -171,15 +171,15 @@ class Burial(object):
 
     def V(self, rhoi, gamma_burials):
         """Burial potential
-        
+
         Parameters
         ----------
-        rhoi : np.ndarray 
+        rhoi : np.ndarray
             Vector that contains the local protein density at site i.
         gamma_burials : list (3)
             Residue specific burial coefficients for residue type i to be in
             low-, medium-, or high-density environment.
-    
+
         """
         V = np.zeros(rhoi.shape[0])
         for i in range(3):
@@ -196,7 +196,7 @@ class DirectContact(object):
 
     def __init__(self, lambda_direct=1, nu=50., r_min=0.45, r_max=0.65):
         """Direct contact interaction
-        
+
         Parameters
         ----------
         lambda_direct : opt, float
@@ -208,27 +208,30 @@ class DirectContact(object):
             The minimum of the contact well.
         r_max : opt, float
             The maximum of the contact well.
-            
+
         """
         self.lambda_direct = lambda_direct
         self.nu = nu
         self.r_min = r_min
         self.r_max = r_max
 
-    def V(self, r, gamma_direct): 
+    def V(self, r, gamma_direct):
         return -self.lambda_direct*gamma_direct*self.theta_I(r)
 
     def dVdgamma_direct(self, r):
         return self.theta_I(r)
 
+    def dVdgamma(self, r):
+        return -self.lambda_direct*self.theta_I(r)
+
     def theta_I(self, r):
         return theta(r, self.nu, self.r_min, self.r_max)
 
 class WaterMediatedContact(object):
-    
+
     def __init__(self, lambda_water=1., nu=50., nu_sigma=7., r_min=0.65, r_max=0.95, rho_0=2.6):
         """Water- or protein-mediated contact interaction
-        
+
         Parameters
         ----------
         lambda_water : opt, float
@@ -237,14 +240,14 @@ class WaterMediatedContact(object):
             Coefficient that sets how quickly the contact well switches
             between on and off.
         nu_sigma : opt, float
-            Coefficient that sets how fast the contact switches from 
+            Coefficient that sets how fast the contact switches from
             water-mediated to protein-mediated based on the local densities of
             the residues involved.
         r_min : opt, float
             The minimum of the contact well.
         r_max : opt, float
             The maximum of the contact well.
-            
+
         """
         self.lambda_water = lambda_water
         self.nu = nu
@@ -253,9 +256,9 @@ class WaterMediatedContact(object):
         self.r_max = r_max
         self.rho_0 = rho_0
 
-    def V(self, r, rhoi, rhoj, gamma_water, gamma_protein): 
+    def V(self, r, rhoi, rhoj, gamma_water, gamma_protein):
         """Water- or protein-mediated contact interaction
-        
+
         Parameters
         ----------
         r : np.ndarray (n_frames)
@@ -271,7 +274,7 @@ class WaterMediatedContact(object):
         gamma_protein : float
             The strength of the protein-mediated interaction between residues i
             and j.
-        
+
         """
         return -self.lambda_water*(gamma_water*self.dVdgamma_water(r, rhoi, rhoj) +\
                                 gamma_protein*self.dVdgamma_protein(r, rhoi, rhoj))
@@ -294,9 +297,9 @@ class DebyeHuckel(object):
         ----------
         k_screening : float, opt.
             Strength of the screening. Effectively changes the screening length.
-        debye_length : float, opt. 
+        debye_length : float, opt.
             Screening length.
-        
+
         """
         self.k_screening = k_screening
         self.debye_length = debye_length
@@ -306,11 +309,11 @@ class DebyeHuckel(object):
 
 class FragmentMemory(object):
     """ Associative Fragment Memory Term for AWSEM
-    
-    Used for computing the associated memory term for a whole fragment. 
-    So this will be a collection of gaussian contacts between various Ca 
+
+    Used for computing the associated memory term for a whole fragment.
+    So this will be a collection of gaussian contacts between various Ca
     and Cb atoms.
-    
+
     Attributes
     ----------
     weight : float
@@ -321,9 +324,9 @@ class FragmentMemory(object):
         Ideal distance for each atom_pair
     atom_pairs : list, mdtraj.atom
         A Nx2 list of N pairs of mdtraj.atom objects.
-    
+
     """
-    
+
     def __init__(self, atom_pairs, distances, weight=1.):
         self.weight = weight #weight of this fragment relative to others
         self.sigmas = [] #array of 2*sigma^2 values.
@@ -334,47 +337,54 @@ class FragmentMemory(object):
         for pair in atom_pairs:
             index_diff = np.abs(pair[0].residue.index - pair[1].residue.index)
             sigma_diff = index_diff ** 0.15
-            self.sigmas.append((sigma_diff**2.))
+            self.sigmas.append(2*(sigma_diff**2.))
             self.atom_pair_indices.append([pair[0].index, pair[1].index])
-            
+
         if not len(self.distances) == len(self.sigmas):
             raise FragmentException(len(self.distances), len(self.sigmas))
-            
+
         self.num_gaussians = len(self.distances)
-        
+
     def V(self, r):
-        """ Compute the Potential Energy for this Fragment 
-        
+        """ Compute the Potential Energy for this Fragment
+
         Parameters
         ----------
         r : array, floats
-            First index of array is for each frame, second index refers 
+            First index of array is for each frame, second index refers
             to each term in the fragment.
-        
+
         Returns
         -------
         energy : array, floats
-            1-D array giving total potential energy for this fragment in 
-            each frame. 
-            
+            1-D array giving total potential energy for this fragment in
+            each frame.
+
         """
-        
+
         energy = np.zeros(np.shape(r)[0])
         for idx in range(self.num_gaussians):
             energy -= np.exp(-((r[:,idx]-self.distances[idx])**2)/self.sigmas[idx])
-        
+
         energy *= self.weight
         return energy
-        
+
+    def dVdgamma(self, r):
+        energy = np.zeros(np.shape(r)[0])
+        for idx in range(self.num_gaussians):
+            energy -= np.exp(-((r[:,idx]-self.distances[idx])**2)/self.sigmas[idx])
+
+        return energy
+
 class FragmentException(Exception):
     def __init__(self, len_distances, len_sigmas):
         message = "Length of distance lists (%d) and sigmas (%d) do not match." % (len_distances, len_sigmas)
         super(FragmentException, self).__init__(message)
-        
+
 
 AWSEM_POTENTIALS = {"BURIAL":Burial,
                 "DIRECT":DirectContact,
-                "WATER":WaterMediatedContact, 
+                "WATER":WaterMediatedContact,
                 "DEBYE":DebyeHuckel,
                 "HELIX":Helix,
                 "CHI":Chi,
