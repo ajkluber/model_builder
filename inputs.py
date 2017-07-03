@@ -276,36 +276,39 @@ def _empty_model_opts():
 def parse_pairwise_params(pairwise_file):
     """ parse the pairwise_params file and output necessary values"""
     
+    from models.potentials.pairwise import PAIR_POTENTIALS
+
     fopen = open(pairwise_file, "r")
     pairs = []
     pairs_index_number = []
     pairs_potential_type = []
     pairs_args = []
-    key={"8":"LJ12GAUSSIAN", "4": "GAUSSIAN", "2":"LJ1210", "5":"LJ12TANHREP"}
-    wordkeys = [key[i] for i in key]
-    wordkeys.append("LJ12GAUSSIANTANH")
+    # old potential numbering style, for backwards compatibility
+    num_to_word = {"8":"LJ12GAUSSIAN", "4": "GAUSSIAN", "2":"LJ1210", "5":"LJ12TANHREP"}
     count = 0
     for line in fopen:
         count += 1
         data = line.strip().split()
         if not data[0][0] is "#":
             #convert to pythonic indices
-            pairs.append([int(data[0])-1, int(data[1])-1]) 
+            pairs.append([int(data[0]) - 1, int(data[1]) - 1]) 
             pairs_index_number.append(int(data[2]))
-            
-            if data[3] in key:
+            if data[3] in num_to_word:
                 #using number keys for functions, convert to Word key
-                pot_type = key[data[3]] 
-            elif data[3] in wordkeys:
+                pot_type = num_to_word[data[3]] 
+            elif data[3] in PAIR_POTENTIALS:
                 #check if using word keys
                 pot_type = data[3]
             else:
-                print "Unknown function type for param: %s %s\n" %(data[0], data[1])
-                print "See line %d"
+                raise IOError("Unknown potential key {} for pair {} {}  line {}".format(data[3], data[0], data[1], count))
+                #print "Line {:d}: Unknown potenital {} for pair: {:d} {:d}".format(count, data[3], data[0], data[1])
             
             pairs_potential_type.append(pot_type)
-            
             pairs_args.append([float(val) for val in data[4:]])
+
+            #if data[3] == "TANHREP":
+            #    import pdb
+            #    pdb.set_trace()
     
     return pairs, pairs_index_number, pairs_potential_type, pairs_args
     
