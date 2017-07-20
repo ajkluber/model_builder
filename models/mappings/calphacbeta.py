@@ -9,24 +9,26 @@ import atom_types
 class CalphaCbetaMapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""
 
-    def __init__(self, topology):
+    def __init__(self, topology, use_n_chains=1):
         self._ref_topology = topology.copy()
 
         # Build new topology
         newTopology = Topology()
-        new_atm_idx = 0 
+        new_atm_idx = 0
         res_idx = 1
         prev_ca = None
         ca_idxs = []
         self._sidechain_idxs = []
         self._sidechain_mass = []
+        chain_count = 0
         for chain in topology._chains:
             newChain = newTopology.add_chain()
+            chain_count += 1
             for residue in chain._residues:
                 #resSeq = getattr(residue, 'resSeq', None) or residue.index
                 newResidue = newTopology.add_residue(residue.name, newChain, res_idx)
                 # map CA
-                new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'), 
+                new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'),
                                     newResidue, serial=new_atm_idx)
                 if prev_ca is None:
                     prev_ca = new_ca
@@ -35,9 +37,15 @@ class CalphaCbetaMapping(object):
                     if new_ca.residue.chain.index == prev_ca.residue.chain.index:
                         newTopology.add_bond(prev_ca, new_ca)
                     prev_ca = new_ca
-
-                ca_idxs.append([[ atm.index for atm in residue.atoms if \
+                try:
+                    ca_idxs.append([[ atm.index for atm in residue.atoms if \
                             (atm.name == "CA") ][0], new_atm_idx ])
+                except:
+                    print residue
+                    print chain
+                    for atm in residue.atoms:
+                        atm.name
+                    raise
                 new_atm_idx += 1
 
                 if residue.name == 'GLY':
@@ -46,7 +54,7 @@ class CalphaCbetaMapping(object):
                 else:
                     # map CB
                     cb_name = "CB%s" % atom_types.residue_code[residue.name]
-                    new_cb = newTopology.add_atom(cb_name, md.core.element.get_by_symbol('C'), 
+                    new_cb = newTopology.add_atom(cb_name, md.core.element.get_by_symbol('C'),
                                         newResidue, serial=new_atm_idx)
 
                     newTopology.add_bond(new_cb, new_ca)
@@ -58,9 +66,12 @@ class CalphaCbetaMapping(object):
                     new_atm_idx += 1
                 res_idx += 1
 
+            if chain_count >= use_n_chains:
+                break
+
         self._ca_idxs = np.array(ca_idxs)
         self.topology = newTopology
-    
+
     @property
     def top(self):
         return self.topology
@@ -73,7 +84,7 @@ class CalphaCbetaMapping(object):
             cacb_xyz[:,self._ca_idxs[res.index,1],:] = \
                     traj.xyz[:,self._ca_idxs[res.index,0],:]
             # Map sidechain atoms to their center of mass
-            if res.name != 'GLY': 
+            if res.name != 'GLY':
                 old_idxs = self._sidechain_idxs[res.index][0]
                 new_idx = self._sidechain_idxs[res.index][1]
                 sc_mass = self._sidechain_mass[res.index]
@@ -89,14 +100,14 @@ class CalphaCbetaMapping(object):
 
     def _residue_to_atom_contacts(self, residue_contacts):
         atm_contacts = []
-        for n,k in residue_contacts: 
+        for n,k in residue_contacts:
             nres = self.topology.residue(n)
             kres = self.topology.residue(k)
             # Calpha-Calpha contact
             ca_n = nres.atom(0)
             ca_k = kres.atom(0)
             atm_contacts.append([ca_n, ca_k])
-            if (nres.name != "GLY") and (kres.name != "GLY"): 
+            if (nres.name != "GLY") and (kres.name != "GLY"):
                 # Cbeta-Cbeta contact
                 cb_n = nres.atom(1)
                 cb_k = kres.atom(1)
@@ -132,7 +143,7 @@ class CalphaCbetaMapping(object):
                         self._angles.append((cb, ca, next_ca))
 
     def _assign_sbm_dihedrals(self):
-        
+
         self._improper_dihedrals = []
         self._dihedrals = []
         for chain in self.topology.chains:
@@ -143,8 +154,8 @@ class CalphaCbetaMapping(object):
             #add improper dihedrals
             num_residues = chain.residue(-1).index
             for res in chain.residues:
-                check = res.index == 0 #not first residue 
-                check = check or res.index == num_residues #last residue 
+                check = res.index == 0 #not first residue
+                check = check or res.index == num_residues #last residue
                 check = check or res.name == "GLY" #GLY
                 if not check:
                     idx = res.index
@@ -152,67 +163,67 @@ class CalphaCbetaMapping(object):
                     ck = chain.residue(idx+1).atom(0)
                     dih = (res.atom(0), cj, ck, res.atom(1))
                     self._improper_dihedrals.append(dih)
-                    
+
     def add_disulfides(self, disulfides, simple=False):
         """ Add disulfide bonded interactions.
-        
+
         Adds appropriate bond, angle and dihedral interactions.
-        
+
         Args:
-            disulfides (list): List of disulfide pairs between the 
+            disulfides (list): List of disulfide pairs between the
                 residues of the disulfides.
-                
+
         """
-        
+
         for pair in disulfides:
             res1 = self.top.residue(pair[0])
             res2 = self.top.residue(pair[1])
-            
+
             #add c-alpha atoms
             ca1 = res1.atom(0)
             ca2 = res2.atom(0)
             #add c-beta
             cb1 = res1.atom(1)
             cb2 = res2.atom(1)
-            
+
             #add bond between c-beta
             self.top.add_bond(cb1, cb2)
-            
+
             #add angular constraints
             self._angles.append((ca1, cb1, cb2))
             self._angles.append((cb1, cb2, ca2))
-            
+
             #add dihedral constraints
             self._dihedrals.append((ca1, cb1, cb2, ca2))
 
     @property
     def n_atomtypes(self):
         return len(self.atomtypes)
-                                        
+
     def add_atoms(self):
         self.atoms = []
         self.atomtypes = []
         for chain in self.top._chains:
             for res in chain._residues:
                 if res.name == "GLY":
-                    cg_atom = atom_types.CoarseGrainAtom(res.atom(0).index, "CA", 
+                    cg_atom = atom_types.CoarseGrainAtom(res.atom(0).index, "CA",
                             res.index, res.name, 0.266, 1, 0)
                     self.atoms.append(cg_atom)
                 else:
-                    cg_atom = atom_types.CoarseGrainAtom(res.atom(0).index, "CA", 
-                            res.index, res.name, 0.266, 1, 0)  
+                    cg_atom = atom_types.CoarseGrainAtom(res.atom(0).index, "CA",
+                            res.index, res.name, 0.266, 1, 0)
                     self.atoms.append(cg_atom)
                     radii = atom_types.residue_cacb_effective_interaction[res.name]
                     name = "CB%s" % atom_types.residue_code[res.name]
-                    cg_atom = atom_types.CoarseGrainAtom(res.atom(1).index, name, 
+                    cg_atom = atom_types.CoarseGrainAtom(res.atom(1).index, name,
                             res.index, res.name, radii, 1, 0)
-                    self.atoms.append(cg_atom)   
-        
+                    self.atoms.append(cg_atom)
+
         for cg_atom in self.atoms:
             # Unique list of atom types.
             if cg_atom.name not in [ atm.name for atm in self.atomtypes ]:
                 self.atomtypes.append(cg_atom)
-    
+
     def _atomidx_to_atom_contacts(self, pairs):
         atm_contacts = []
         for n,k in pairs:
@@ -220,7 +231,7 @@ class CalphaCbetaMapping(object):
             katom = self.top.atom(k)
             atm_contacts.append([natom, katom])
         return atm_contacts
-        
+
     def _add_pairs(self, pairs):
         self._contact_pairs = self._atomidx_to_atom_contacts(pairs)
 
