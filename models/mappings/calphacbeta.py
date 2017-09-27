@@ -9,7 +9,10 @@ import atom_types
 class CalphaCbetaMapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""
 
-    def __init__(self, topology, use_n_chains=1):
+    def __init__(self, topology, use_chains=None):
+        if use_chains is None:
+            use_chains = range(len(topology._chains))
+
         self._ref_topology = topology.copy()
 
         # Build new topology
@@ -20,57 +23,57 @@ class CalphaCbetaMapping(object):
         ca_idxs = []
         self._sidechain_idxs = []
         self._sidechain_mass = []
-        chain_count = 0
-        for chain in topology._chains:
-            newChain = newTopology.add_chain()
-            chain_count += 1
-            for residue in chain._residues:
-                #resSeq = getattr(residue, 'resSeq', None) or residue.index
-                newResidue = newTopology.add_residue(residue.name, newChain, res_idx)
-                # map CA
-                new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'),
-                                    newResidue, serial=new_atm_idx)
-                if prev_ca is None:
-                    prev_ca = new_ca
-                else:
-                    # only bond atoms in the same chain.
-                    if new_ca.residue.chain.index == prev_ca.residue.chain.index:
-                        newTopology.add_bond(prev_ca, new_ca)
-                    prev_ca = new_ca
-                try:
-                    ca_idxs.append([[ atm.index for atm in residue.atoms if \
-                            (atm.name == "CA") ][0], new_atm_idx ])
-                except:
-                    print residue
-                    print chain
-                    for atm in residue.atoms:
-                        atm.name
-                    raise
-                new_atm_idx += 1
-
-                if residue.name == 'GLY':
-                    self._sidechain_idxs.append([])
-                    self._sidechain_mass.append([])
-                else:
-                    # map CB
-                    cb_name = "CB%s" % atom_types.residue_code[residue.name]
-                    new_cb = newTopology.add_atom(cb_name, md.core.element.get_by_symbol('C'),
+        self._chain_indices = []
+        for chain_count,chain in enumerate(topology._chains):
+            if chain_count in use_chains:
+                newChain = newTopology.add_chain()
+                for residue in chain._residues:
+                    #resSeq = getattr(residue, 'resSeq', None) or residue.index
+                    newResidue = newTopology.add_residue(residue.name, newChain, res_idx)
+                    # map CA
+                    new_ca = newTopology.add_atom('CA', md.core.element.get_by_symbol('C'),
                                         newResidue, serial=new_atm_idx)
-
-                    newTopology.add_bond(new_cb, new_ca)
-
-                    self._sidechain_idxs.append([[ atm.index for atm in residue.atoms if \
-                                (atm.is_sidechain) and (atm.element.symbol != "H") ], new_atm_idx ])
-                    self._sidechain_mass.append(np.array([ atm.element.mass for atm in residue.atoms if \
-                                (atm.is_sidechain) and (atm.element.symbol != "H") ]))
+                    self._chain_indices.append(chain_count)
+                    if prev_ca is None:
+                        prev_ca = new_ca
+                    else:
+                        # only bond atoms in the same chain.
+                        if new_ca.residue.chain.index == prev_ca.residue.chain.index:
+                            newTopology.add_bond(prev_ca, new_ca)
+                        prev_ca = new_ca
+                    try:
+                        ca_idxs.append([[ atm.index for atm in residue.atoms if \
+                                (atm.name == "CA") ][0], new_atm_idx ])
+                    except:
+                        print residue
+                        print chain
+                        for atm in residue.atoms:
+                            atm.name
+                        raise
                     new_atm_idx += 1
-                res_idx += 1
 
-            if chain_count >= use_n_chains:
-                break
+                    if residue.name == 'GLY':
+                        self._sidechain_idxs.append([])
+                        self._sidechain_mass.append([])
+                    else:
+                        # map CB
+                        cb_name = "CB%s" % atom_types.residue_code[residue.name]
+                        new_cb = newTopology.add_atom(cb_name, md.core.element.get_by_symbol('C'),
+                                            newResidue, serial=new_atm_idx)
+                        self._chain_indices.append(chain_count)
+
+                        newTopology.add_bond(new_cb, new_ca)
+
+                        self._sidechain_idxs.append([[ atm.index for atm in residue.atoms if \
+                                    (atm.is_sidechain) and (atm.element.symbol != "H") ], new_atm_idx ])
+                        self._sidechain_mass.append(np.array([ atm.element.mass for atm in residue.atoms if \
+                                    (atm.is_sidechain) and (atm.element.symbol != "H") ]))
+                        new_atm_idx += 1
+                    res_idx += 1
 
         self._ca_idxs = np.array(ca_idxs)
         self.topology = newTopology
+        assert self.topology.n_atoms == len(self._chain_indices)
 
     @property
     def top(self):
@@ -117,28 +120,31 @@ class CalphaCbetaMapping(object):
     def _assign_sbm_angles(self):
 
         self._angles = []
+        chain_count = 0
         for chain in self.topology.chains:
+            chain_count += 1
             # CA-CA-CA angles first
             ca_atoms = [ atom for atom in chain.atoms if atom.name == "CA" ]
+            assert len(ca_atoms) == chain.n_residues
             for i in range(len(ca_atoms) - 2):
                 self._angles.append((ca_atoms[i], ca_atoms[i + 1], ca_atoms[i + 2]))
 
             # CA-CA-CB and CB-CA-CA angles next
-            for res in chain.residues:
+            for res_count,res in enumerate(chain.residues):
                 if res.name != "GLY":
                     ca = res.atom(0)
                     cb = res.atom(1)
-                    if res.index == 0:
+                    if res_count == 0:
                         # if terminal
-                        next_ca = chain.residue(res.index + 1).atom(0)
+                        next_ca = chain.residue(res_count + 1).atom(0)
                         self._angles.append((cb, ca, next_ca))
-                    elif (res.index + 1) == chain.n_residues:
+                    elif (res_count + 1) == chain.n_residues:
                         # if terminal
-                        prev_ca = chain.residue(res.index - 1).atom(0)
+                        prev_ca = chain.residue(res_count - 1).atom(0)
                         self._angles.append((prev_ca, ca, cb))
                     else:
-                        prev_ca = chain.residue(res.index - 1).atom(0)
-                        next_ca = chain.residue(res.index + 1).atom(0)
+                        prev_ca = chain.residue(res_count - 1).atom(0)
+                        next_ca = chain.residue(res_count + 1).atom(0)
                         self._angles.append((prev_ca, ca, cb))
                         self._angles.append((cb, ca, next_ca))
 
@@ -152,13 +158,13 @@ class CalphaCbetaMapping(object):
             for i in range(len(ca_atoms)-3):
                 self._dihedrals.append((ca_atoms[i], ca_atoms[i+1], ca_atoms[i+2], ca_atoms[i+3]))
             #add improper dihedrals
-            num_residues = chain.residue(-1).index
-            for res in chain.residues:
-                check = res.index == 0 #not first residue
-                check = check or res.index == num_residues #last residue
+            num_residues = chain.n_residues
+            for res_count,res in enumerate(chain.residues):
+                check = res_count == 0 #not first residue
+                check = check or res_count+1 == num_residues #last residue
                 check = check or res.name == "GLY" #GLY
                 if not check:
-                    idx = res.index
+                    idx = res_count
                     cj = chain.residue(idx-1).atom(0)
                     ck = chain.residue(idx+1).atom(0)
                     dih = (res.atom(0), cj, ck, res.atom(1))
