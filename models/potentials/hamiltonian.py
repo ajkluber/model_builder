@@ -2,7 +2,7 @@ import numpy as np
 
 import mdtraj as md
 
-import pairwise 
+import pairwise
 import bonded
 
 import util
@@ -15,7 +15,7 @@ class Hamiltonian(object):
 
         The Hamiltonian holds the potential energy function for the system. The
         Hamiltonian consists of a set of interaction potentials, usually: bonds,
-        angles, dihedrals, and pairwise potentials. Interactions need to be 
+        angles, dihedrals, and pairwise potentials. Interactions need to be
         added after the Hamiltonian is initialized.
 
         Note
@@ -94,21 +94,29 @@ class Hamiltonian(object):
         """Iterator over all interactions"""
         pots = self._bonds + self._angles + self._dihedrals + self._pairs
         for pot in pots:
-            yield pot 
+            yield pot
+
     @property
     def _epsilons(self):
         eps = []
         for p in self._pairs:
             eps.append(p.eps)
         return eps
-        
+
+    @property
+    def _pair_function_type_labels(self):
+        labs = []
+        for p in self._pairs:
+            labs.append(p.prefix_label)
+        return labs
+
     def describe(self):
         """Describe the terms of the Hamiltonian"""
         description = ""
         for pot in self.potentials:
             description += "{}\n".format(pot.describe())
-        return description 
-    
+        return description
+
     def _add_bond(self, code, atm1, atm2, *args):
         """Add a bond interaction"""
         b = bonded.BOND_POTENTIALS[code](atm1, atm2, *args)
@@ -160,7 +168,7 @@ class Hamiltonian(object):
         """Add a set of pair interactions"""
         for p in pair_params:
             self._add_pair(p[0], p[1], p[2], *p[3:])
-            
+
     @property
     def _bond_idxs(self):
         """Indices of atoms in bond interactions"""
@@ -171,7 +179,7 @@ class Hamiltonian(object):
         """Indices of atoms in angle interactions"""
         return np.array([[angle.atmi.index, angle.atmj.index, angle.atmk.index] for angle in self.angles ])
 
-    @property 
+    @property
     def _dihedral_idxs(self):
         """Indices of atoms in dihedral interactions"""
         return np.array([[ dih.atmi.index, dih.atmj.index,
@@ -194,7 +202,7 @@ class Hamiltonian(object):
         func : function
             A function that has the pairwise distance as its first argument and
             remaining parameters given by args
-        *args : 
+        *args :
             Remaining arguments that paraemterize the imputted function.
         """
 
@@ -210,7 +218,7 @@ class Hamiltonian(object):
         Parameters
         ----------
         traj : mdtraj.Trajectory
-        
+
         sum : bool (opt.)
             If sum=True return the total energy.
         """
@@ -233,7 +241,7 @@ class Hamiltonian(object):
         Parameters
         ----------
         traj : mdtraj.Trajectory
-        
+
         sum : bool (opt.)
             If sum=True return the total energy.
         """
@@ -256,7 +264,7 @@ class Hamiltonian(object):
         Parameters
         ----------
         traj : mdtraj.Trajectory
-        
+
         sum : bool (opt.)
             If sum=True return the total energy.
         """
@@ -285,7 +293,7 @@ class Hamiltonian(object):
         Parameters
         ----------
         traj : mdtraj.Trajectory
-        
+
         sum : bool (opt.)
             If sum=True return the total energy.
         """
@@ -304,9 +312,9 @@ class Hamiltonian(object):
 
     def define_contact_group(self, label, pairs):
         # Use this to define a group of contacts by a label.
-        # The label can later be used to get their energy. 
+        # The label can later be used to get their energy.
         # e.g. 'native' [[1,10],[2,10]]
-        pass 
+        pass
 
     def calc_contact_group_energy(self, label, traj):
         # Calculate the energy of a group of contacts
@@ -314,7 +322,7 @@ class Hamiltonian(object):
 
     def select_parameters(self):
         # Identify parameters by:
-        #   - parameter type: eps, r0, 
+        #   - parameter type: eps, r0,
         #   - interaction type: bonds, angles, etc.
         pass
 
