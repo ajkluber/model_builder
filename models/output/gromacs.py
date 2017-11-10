@@ -292,7 +292,11 @@ class GromacsFiles(object):
                         func = 6
                         params = "{:>18.9e}{:>18.9e}{:>18.9e}{:>18.9e}".format(
                                     pot.eps, pot.r0, pot.width, pot.rNC**12)
-                        assert pot.eps >= 0
+                        try:
+                            assert pot.eps >= 0
+                        except:
+                            print "Negative Potential Value (%f) was used for atom index %d %d" % (pot.eps, pot.atmi.index + 1, pot.atmj.index + 1)
+                            raise
                     else:
                         print "Warning: interaction is not supported: {}".format(pot.describe())
                     pairs_top += "{}{:>2}{}\n".format(atm_idxs, func, params)
