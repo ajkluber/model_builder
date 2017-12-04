@@ -329,6 +329,7 @@ class LJ12GaussTanhSwitching(PairPotential):
     def set_epsilon(self, value):
         self.eps = value
         self.attractive.eps = np.abs(value)
+        self.attractive.gaussian.eps = np.abs(value)
         self.repulsive.eps = np.abs(value)
         self.determine_current()
 
