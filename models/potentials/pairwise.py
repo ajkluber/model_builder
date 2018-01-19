@@ -274,12 +274,10 @@ class LJ12GaussianPotential(PairPotential):
         self.other_params = [rNC, r0, width]
 
     def V(self, r):
-        return self.eps * ((1. + (self.lj12.V(r) / self.eps))*(1. + self.gaussian.V(r)) - 1.)
+        return (self.eps * self.gaussian.V(r)) + self.lj12.V(r) + (self.lj12.V(r) * self.gaussian.V(r))
 
     def dVdr(self, r):
-        first = (1. + (self.lj12.V(r) / self.eps))*self.gaussian.dVdr(r)
-        second = (1. + self.gaussian.V(r))*(self.lj12.dVdr(r) / self.eps)
-        return self.eps * (first + second)
+        return (self.eps * self.gaussian.dVdr(r)) + self.lj12.dVdr(r) + (self.lj12.dVdr(r) * self.gaussian.V(r))+ (self.lj12.V(r) * self.gaussian.dVdr(r))
 
     def dVdeps(self, r):
         return self.gaussian.dVdeps(r)
