@@ -269,29 +269,26 @@ class LJ12GaussianPotential(PairPotential):
         self.rNC = rNC
         self.r0 = r0
         self.width = width
-        self.gaussian = GaussianPotential(atmi, atmj, self.eps, r0, width)
+        self.gaussian = GaussianPotential(atmi, atmj, 1.0, r0, width)
         self.lj12 = LJ12Potential(atmi, atmj, 1.0, rNC)
         self.other_params = [rNC, r0, width]
 
     def V(self, r):
-        return (1. + self.lj12.V(r))*(1. + self.gaussian.V(r)) - 1.
+        return self.eps * ((1. + (self.lj12.V(r) / self.eps))*(1. + self.gaussian.V(r)) - 1.)
 
     def dVdr(self, r):
-        first = (1. + self.lj12.V(r))*self.gaussian.dVdr(r)
-        second = (1. + self.gaussian.V(r))*self.lj12.dVdr(r)
-        return first + second
+        first = (1. + (self.lj12.V(r) / self.eps))*self.gaussian.dVdr(r)
+        second = (1. + self.gaussian.V(r))*(self.lj12.dVdr(r) / self.eps)
+        return self.eps * (first + second)
 
     def dVdeps(self, r):
-        return (1. + self.lj12.V(r))*self.gaussian.dVdeps(r)
+        return self.gaussian.dVdeps(r)
 
     def d2Vdrdeps(self, r):
-        first = self.lj12.dVdr(r)*self.gaussian.dVdeps(r)
-        second = (1. + self.lj12.V(r))*self.gaussian.d2Vdrdeps(r)
-        return first + second
+        return self.gaussian.d2Vdrdeps(r)
 
     def set_epsilon(self, value):
         self.eps = value
-        self.gaussian.eps = value
 
 class LJ12GaussTanhSwitching(PairPotential):
     """ LJ12 Potential with Gaussian attractive and tanh repulsive"""
@@ -328,8 +325,7 @@ class LJ12GaussTanhSwitching(PairPotential):
 
     def set_epsilon(self, value):
         self.eps = value
-        self.attractive.eps = np.abs(value)
-        self.attractive.gaussian.eps = np.abs(value)
+        self.attractive.set_epsilon(np.abs(value))
         self.repulsive.eps = np.abs(value)
         self.determine_current()
 
