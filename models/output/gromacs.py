@@ -151,7 +151,8 @@ class GromacsFiles(object):
             fout.write(temp)
 
         # files useful for visualizing
-        self.model.ref_traj.save("ref.pdb")
+        if hasattr(self.model, "ref_traj"):
+            self.model.ref_traj.save("ref.pdb")
         viz_bonds.write_bonds_tcl(self.model.mapping.top)
 
     def _write_table_files(self, path_to_tables):
