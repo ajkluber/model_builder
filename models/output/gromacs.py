@@ -42,14 +42,14 @@ class GromacsFiles(object):
                 self.index_ndx += "\n" 
         self.index_ndx += "\n" 
 
-    def _generate_interaction_tables(self):
+    def _generate_interaction_tables(self, rmax=20.0):
         """Generates tables of user-defined potentials"""
 
         # Determine which interactions need to be tabled 
         self.tablep = self._get_LJ1210_table()
         self.LJtable = self.tablep
 
-        r = np.arange(0, 20.0, 0.002)
+        r = np.arange(0, rmax, 0.002)
         self._tabled_pots = []
         self._tables = []
         self._tablenames = []
