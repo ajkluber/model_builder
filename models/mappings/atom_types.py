@@ -22,6 +22,13 @@ class CoarseGrainAtom(object):
         return "<model_builder.CoarseGrainAtom {} {} {} {}>".format(
                 self.name, self.radius, self.mass, self.charge)
 
+    def set_LJ1210_from_sigma_epsilon(self, sigma, epsilon):
+        # assuming a LJ 12-10 potential
+        c6 = epsilon * 6 * (sigma**10)
+        c12 = epsilon * 5 * (sigma**12)
+
+        self.c6 = c6
+        self.c12 = c12
 ##
 # coding=utf-8
 """ Useful values for properties of a CG atom """
@@ -44,9 +51,9 @@ residue_code = {'ALA': 'A', 'ARG': 'R', 'ASN': 'N',
                 'SER': 'S', 'THR': 'T', 'TRP': 'W',
                 'TYR': 'Y', 'VAL': 'V'}
 
-resnames_alpha = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 
-                  'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 
-                  'LEU', 'LYS', 'MET', 'PHE', 'PRO', 
+resnames_alpha = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS',
+                  'GLN', 'GLU', 'GLY', 'HIS', 'ILE',
+                  'LEU', 'LYS', 'MET', 'PHE', 'PRO',
                   'SER', 'THR', 'TRP', 'TYR', 'VAL']
 
 residue_code_1_to_3 = {'A': 'ALA', 'C': 'CYS', 'D': 'ASP',
@@ -68,9 +75,9 @@ residue_radii = {'ALA': 0.1844827, 'ARG': 0.3134491, 'ASN': 0.2477519,
                 'SER': 0.1936102, 'THR': 0.2376198, 'TRP': 0.3422321,
                 'TYR': 0.3168939, 'VAL': 0.2619603, 'AVERAGE': 0.2683678}
 
-"""use this effective interaction distance to be in line with the sizes 
+"""use this effective interaction distance to be in line with the sizes
 from the Cheung, Finke, Callahan, Onuchic, JPhysChemB 2003 paper"""
-residue_cacb_effective_interaction = {key:residue_radii[key]*1.4 for key in residue_radii} 
+residue_cacb_effective_interaction = {key:residue_radii[key]*1.4 for key in residue_radii}
 
 residues_alpha = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN',
                   'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS',
@@ -79,5 +86,5 @@ residues_alpha = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN',
 
 residues_hydrophobicity = ['CYS', 'MET', 'PHE', 'ILE', 'LEU',
                            'VAL', 'TRP', 'TYR', 'ALA', 'GLY',
-                           'THR', 'SER', 'GLN', 'ASN', 'GLU', 
+                           'THR', 'SER', 'GLN', 'ASN', 'GLU',
                            'ASP', 'HIS', 'ARG', 'LYS', 'PRO']
