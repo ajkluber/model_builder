@@ -243,3 +243,15 @@ class CalphaCbetaMapping(object):
 
     def _add_atomtypes(self):
         pass
+
+    def _assign_flavored_nonnative_values(self, flavored_values):
+        # flavored values is
+        for atm in self.atoms:
+            if atm.name == "CA": # backbone atom
+                if "CA" in flavored_values:
+                    these_values = flavored_values["CA"]
+                    atm.set_LJ1210_from_sigma_epsilon(these_values[0], these_values[1])
+            else: # this is a sidechain atom
+                if atm.resname in flavored_values:
+                    these_values = flavored_values[atm.resname]
+                    atm.set_LJ1210_from_sigma_epsilon(these_values[0], these_values[1])

@@ -42,14 +42,14 @@ class GromacsFiles(object):
                 self.index_ndx += "\n" 
         self.index_ndx += "\n" 
 
-    def _generate_interaction_tables(self):
+    def _generate_interaction_tables(self, rmax=20.0):
         """Generates tables of user-defined potentials"""
 
         # Determine which interactions need to be tabled 
         self.tablep = self._get_LJ1210_table()
         self.LJtable = self.tablep
 
-        r = np.arange(0, 20.0, 0.002)
+        r = np.arange(0, rmax, 0.002)
         self._tabled_pots = []
         self._tables = []
         self._tablenames = []
@@ -151,7 +151,8 @@ class GromacsFiles(object):
             fout.write(temp)
 
         # files useful for visualizing
-        self.model.ref_traj.save("ref.pdb")
+        if hasattr(self.model, "ref_traj"):
+            self.model.ref_traj.save("ref.pdb")
         viz_bonds.write_bonds_tcl(self.model.mapping.top)
 
     def _write_table_files(self, path_to_tables):
