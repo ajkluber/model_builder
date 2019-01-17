@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 
 import mdtraj as md
@@ -24,7 +25,7 @@ class CalphaCbetaMapping(object):
         self._sidechain_idxs = []
         self._sidechain_mass = []
         self._chain_indices = []
-        for chain_count,chain in enumerate(topology._chains):
+        for chain_count, chain in enumerate(topology._chains):
             if chain_count in use_chains:
                 newChain = newTopology.add_chain()
                 for residue in chain._residues:
@@ -45,8 +46,8 @@ class CalphaCbetaMapping(object):
                         ca_idxs.append([[ atm.index for atm in residue.atoms if \
                                 (atm.name == "CA") ][0], new_atm_idx ])
                     except:
-                        print residue
-                        print chain
+                        print(residue)
+                        print(chain)
                         for atm in residue.atoms:
                             atm.name
                         raise

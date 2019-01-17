@@ -1,4 +1,5 @@
 """ Check inputs for making a CoarseGrainedModel """
+from __futute__ import print_function
 
 import numpy as np
 import re
@@ -115,7 +116,7 @@ def _load_sbm(modelopts):
             model.add_pairs(pairs)
             pairopts = []
             if modelopts["model_params_file"] is None:
-                print "Warning: No model_params_file specified. Defaulting all epsilons to 1"
+                print("Warning: No model_params_file specified. Defaulting all epsilons to 1")
                 epsilons = np.ones(np.shape(pairs)[0])
             else:
                 if os.path.exists(modelopts["model_params_file"]):
@@ -161,7 +162,7 @@ def load_models(names,dry_run=False):
     Models = []
     Fittingopts = []
     for name in names:
-        print "Loading model for: %s" % name
+        print("Loading model for: %s" % name)
         model,fittingopts = load_model(name,dry_run=dry_run)
         Models.append(model)
         Fittingopts.append(fittingopts)
@@ -179,8 +180,8 @@ def load_config(name):
     modelopts = _empty_model_opts()
     fittingopts = _empty_fitting_opts()
 
-    print "Creating model according to " + name
-    print "Options not shown default to None"
+    print("Creating model according to " + name)
+    print("Options not shown default to None")
     load_model_section(config.items("model"),modelopts)
     load_fitting_section(config,modelopts,fittingopts)
     #_add_pair_opts(modelopts) 
@@ -196,12 +197,12 @@ def load_model_section(modelitems,modelopts):
     check_boolean = ["using_sbm_gmx", "umbrella", "simple_disulfides"]
     check_exists = ["topology", "starting_gro", "reference"]
     
-    print "Model options:"
+    print("Model options:")
     for item,value in modelitems:
         if value in [None,""]:
             pass
         else:
-            print "  %-20s = %s" % (item,value)
+            print("  %-20s = %s" % (item,value))
             #Generic Checks
             if item in check_boolean:
                 value = value in bool_valid_check
@@ -250,12 +251,12 @@ def load_fitting_section(config,modelopts,fittingopts):
         else:
             check_special = False
 
-        print "\nFitting options:"
+        print("\nFitting options:")
         for item,value in config.items("fitting"):
             if value in [None,""]:
                 pass
             else:
-                print "  %-20s = %s" % (item,value)
+                print("  %-20s = %s" % (item,value))
                 if item == "iteration":
                     value = int(value)
                 elif item == "include_dirs":
@@ -336,7 +337,7 @@ def parse_pairwise_params(pairwise_file):
                 pot_type = data[3]
             else:
                 raise IOError("Unknown potential key {} for pair {} {}  line {}".format(data[3], data[0], data[1], count))
-                #print "Line {:d}: Unknown potenital {} for pair: {:d} {:d}".format(count, data[3], data[0], data[1])
+                #print("Line {:d}: Unknown potenital {} for pair: {:d} {:d}".format(count, data[3], data[0], data[1]))
             
             pairs_potential_type.append(pot_type)
             pairs_args.append([float(val) for val in data[4:]])
@@ -426,7 +427,7 @@ def FRET_fitopts_load(item, value):
 def FRET_fitopts_save(key, option, config):
     if key == "fret_pairs":
         collection = ""
-        print option
+        print(option)
         for i in range(np.shape(option)[0]):
             for j in range(np.shape(option)[1]):
                 collection += "%d " % option[i,j]

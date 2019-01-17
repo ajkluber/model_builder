@@ -1,3 +1,4 @@
+from __future__ import print_function
 import itertools
 import numpy as np
 
@@ -37,7 +38,7 @@ def _cb_cutoff(ires, jres, ref_xyz, contacts, cutoff):
 def residue_contacts(traj, cutoff=0.5, exclude_neighbors=4, method="heavy_atom_cutoff"):
     """Return indices of residues that are in contact"""
     if traj.n_frames > 1:
-        print "warning: only using first frame of as reference"
+        print("warning: only using first frame of as reference")
     ref_xyz = traj[0].xyz[0] 
 
     contacts = []
@@ -112,7 +113,7 @@ def trilaterate(v1, v2, v3, d1, d2, d3, left_handed=True):
     e_z = np.cross(e_x, e_y)
 
     # Should be unit norm.
-    #print np.linalg.norm(e_x), np.linalg.norm(e_y), np.linalg.norm(e_z) 
+    #print("{} {} {}".format(np.linalg.norm(e_x), np.linalg.norm(e_y), np.linalg.norm(e_z)))
 
     v4_x = (d1**2 - d2**2 + v2_x**2)/(2.*v2_x)
     v4_y = ((d1**2 - d3**2 + v3_x**2 + v3_y**2)/(2.*v3_y)) - (v3_x/v3_y)*v4_x

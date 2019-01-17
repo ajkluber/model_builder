@@ -44,8 +44,8 @@ def check_bond_idxs(thing):
     elif type(thing) == Trajectory:
         bond_idxs = array([ [atm1.serial, atm2.serial] for atm1, atm2 in thing.top.bonds ])
     elif type(thing) == ndarray:
-        if topology.shape[1] != 2:
-            raise IOError("array must be size (n_bonds, 2). Inputted: {}".format(topology.shape))
+        if thing.shape[1] != 2:
+            raise IOError("array must be size (n_bonds, 2). Inputted: {}".format(thing.shape))
         else:
             bond_idxs = thing
     else:

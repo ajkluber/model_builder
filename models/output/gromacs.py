@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import numpy as np
 
@@ -260,7 +261,7 @@ class GromacsFiles(object):
                                     dih.atmk.index + 1, dih.atml.index + 1,
                                     func, phi_s, kd)
                 else:
-                    print "Warning: unknown dihedral interaction for: {}".format(dih.describe())
+                    print("Warning: unknown dihedral interaction for: {}".format(dih.describe()))
         return dihedrals_top
 
     def _get_pairs_top(self):
@@ -296,10 +297,10 @@ class GromacsFiles(object):
                         try:
                             assert pot.eps >= 0
                         except:
-                            print "Negative Potential Value (%f) was used for atom index %d %d" % (pot.eps, pot.atmi.index + 1, pot.atmj.index + 1)
+                            print("Negative Potential Value (%f) was used for atom index %d %d" % (pot.eps, pot.atmi.index + 1, pot.atmj.index + 1))
                             raise
                     else:
-                        print "Warning: interaction is not supported: {}".format(pot.describe())
+                        print("Warning: interaction is not supported: {}".format(pot.describe()))
                     pairs_top += "{}{:>2}{}\n".format(atm_idxs, func, params)
         return pairs_top
     

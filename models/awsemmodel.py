@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import os
 import shutil
@@ -31,7 +32,7 @@ class AwsemModel(Model):
             Name of the .mem file.
         
         """
-        print "Adding memory file %s from %s" % (mem_file, param_path)
+        print("Adding memory file %s from %s" % (mem_file, param_path))
         self.Hamiltonian.fragment_memory_scale = fragment_memory_scale
         cwd = os.getcwd()
         os.chdir(param_path)
@@ -50,7 +51,7 @@ class AwsemModel(Model):
             weight = float(info[4])
             traj = md.load(mem_pdb)
             if length > max_frag_length and cycle:
-                print "Cycling Through the sequence, exceeding max_frag_length"
+                print("Cycling Through the sequence, exceeding max_frag_length")
                 total_length = length
                 length = max_frag_length
                 go = True

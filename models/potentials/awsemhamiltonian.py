@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import os
 
@@ -49,7 +50,7 @@ class AwsemHamiltonian(object):
 
     def _potential_is_parameterized(self, code):
         if self.potential_forms[code] is None:
-            #print "Potential {} is not parameterized!".format(code)
+            #print("Potential {} is not parameterized!".format(code))
             status = False
         else:
             status = True
