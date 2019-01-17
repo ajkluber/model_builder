@@ -22,6 +22,8 @@ class CalphaMapping(object):
 
         """
 
+        n_calphas =  len([ atm.index for atm in topology.atoms if atm.name == "CA" ])
+        assert (n_calphas == topology.n_residues), " number of C-alpha is not equal to number of residues! check for missing or non-standard amino acids." 
 
         self._ref_topology = topology.copy()
 
