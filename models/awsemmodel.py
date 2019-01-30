@@ -1,12 +1,12 @@
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 import numpy as np
 import os
 import shutil
 import mdtraj as md
 
-import potentials 
+import model_builder.models.potentials as potentials
 
-from model import Model            
+from model_builder.models.model import Model
 
 
 class AwsemModel(Model):

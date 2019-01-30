@@ -1,8 +1,9 @@
+from __future__ import absolute_import
 import numpy as np
 
-import potentials
+import model_builder.models.potentials as potentials
 
-from model import Model
+from model_builder.models.model import Model
 
 class StructureBasedModel(Model):
 

@@ -1,15 +1,21 @@
 """ Check inputs for making a CoarseGrainedModel """
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 
 import numpy as np
 import re
 import os
 import shutil
-import ConfigParser
+try: 
+    # python 3.7
+    import configparser as ConfigParser
+except:
+    # python 2.7
+    import ConfigParser
+
 import mdtraj as md
 
-from models import StructureBasedModel as SBM
-from models import AwsemModel as AwsemModel
+from model_builder.models import StructureBasedModel as SBM
+from model_builder.models import AwsemModel as AwsemModel
 
 #############################################################################
 # Helper functions to load in models from .ini files

@@ -1,8 +1,8 @@
+from __future__ import absolute_import
+from model_builder.models.potentials.hamiltonian import Hamiltonian
+from model_builder.models.potentials.sbmhamiltonian import StructureBasedHamiltonian
+from model_builder.models.potentials.awsemhamiltonian import AwsemHamiltonian
 
-from hamiltonian import Hamiltonian
-from sbmhamiltonian import StructureBasedHamiltonian
-from awsemhamiltonian import AwsemHamiltonian
-
-import pairwise
-import bonded
-import awsem
+import model_builder.models.potentials.pairwise
+import model_builder.models.potentials.bonded
+import model_builder.models.potentials.awsem

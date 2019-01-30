@@ -19,8 +19,9 @@ Example:
 
 """
 
-import models
-import inputs
-load_model = inputs.load_model
+from __future__ import absolute_import
+import model_builder.models
+import model_builder.inputs
+load_model = model_builder.inputs.load_model
 #import info_string
-import make_model
+import model_builder.make_model

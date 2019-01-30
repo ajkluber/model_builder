@@ -1,10 +1,10 @@
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 import os
 import numpy as np
 
 import mdtraj as md
 
-import viz_bonds
+import model_builder.models.output.viz_bonds as viz_bonds
 
 SUPPORTED_VERSIONS = ["4.5.4","4.5.4_sbm","4.6.5","4.6.5_sbm"]
 

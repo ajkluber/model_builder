@@ -1,7 +1,7 @@
+from __future__ import absolute_import
+import model_builder.models.output.viz_bonds
 
-import viz_bonds
-
-from gromacs import GromacsFiles
-from lammps import LammpsFiles 
-from awsem import AWSEMLammpsFiles
-from internal import InternalFiles
+from model_builder.models.output.gromacs import GromacsFiles
+from model_builder.models.output.lammps import LammpsFiles 
+from model_builder.models.output.awsem import AWSEMLammpsFiles
+from model_builder.models.output.internal import InternalFiles

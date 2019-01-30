@@ -1,11 +1,11 @@
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 import numpy as np
 
 import mdtraj as md
 from mdtraj.core.topology import Topology
 
-import util
-import atom_types
+import model_builder.models.mappings.util as util
+import model_builder.models.mappings.atom_types as atom_types
 
 class CalphaCbetaMapping(object):
     """Calpha Cbeta center-of-mass representation mapping"""

@@ -1,11 +1,12 @@
+from __future__ import absolute_import
 import numpy as np
 
 import mdtraj as md
 
-import pairwise
-import bonded
+import model_builder.models.potentials.pairwise
+import model_builder.models.potentials.bonded
 
-import util
+import model_builder.models.potentials.util as util
 
 class Hamiltonian(object):
     """Model Hamiltonian"""

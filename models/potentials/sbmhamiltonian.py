@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 import numpy as np
 
 import mdtraj as md
 
-import util
+import model_builder.models.potentials.util as util
 
-from hamiltonian import Hamiltonian
+from model_builder.models.potentials.hamiltonian import Hamiltonian
 
 class StructureBasedHamiltonian(Hamiltonian):
 

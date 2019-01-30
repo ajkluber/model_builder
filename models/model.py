@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 import numpy as np
 
-import mappings
-import potentials
+import model_builder.models.mappings as mappings
+import model_builder.models.potentials as potentials
 
 class Model(object):
     """Model class """
