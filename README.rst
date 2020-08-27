@@ -1,6 +1,6 @@
-=============
-Model Builder
-=============
+==============================
+Model Builder (not maintained)
+==============================
 
 ``model_builder``
 
